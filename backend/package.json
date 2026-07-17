@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"No tests specified yet\"",
-    "dev": "nodemon --watch src src/server.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js"
   },
@@ -24,6 +24,7 @@
     "@types/node": "^26.1.1",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
+    "tsx": "^4.23.1",
     "typescript": "^7.0.2"
   }
 }
