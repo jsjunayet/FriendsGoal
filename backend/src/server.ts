@@ -13,7 +13,7 @@ app.use(express.json());
 
 // Base Route
 app.get("/", (req: Request, res: Response) => {
-  res.send("FriendsGoal Backend is running perfectly! 🚀");
+  res.send("FriendsGoal Backend is running perfectly alright! 🚀");
 });
 
 // Start Server
