@@ -1,56 +1,36 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const cors_1 = __importDefault(require("cors"));
-const dotenv_1 = __importDefault(require("dotenv"));
-const express_1 = __importStar(require("express"));
-dotenv_1.default.config();
-const app = (0, express_1.default)();
-const PORT = process.env.PORT || 5000;
-// Middleware
-app.use((0, cors_1.default)());
-app.use(express_1.default.json());
-// Base Route
-app.get("/", (req, res) => {
-    res.send("FriendsGoal Backend is running perfectly! 🚀");
+const mongoose_1 = __importDefault(require("mongoose"));
+const app_1 = __importDefault(require("./app"));
+const index_1 = __importDefault(require("./app/DB/index"));
+let server;
+async function main() {
+    try {
+        await mongoose_1.default.connect("mongodb+srv://edusync:WIo7u9TShcTespwN@cluster0.l4anbhy.mongodb.net/edusyncBD?retryWrites=true&w=majority&appName=Cluster0");
+        (0, index_1.default)();
+        server = app_1.default.listen(5000, () => {
+            console.log(`app is listening on port ${5000}`);
+        });
+    }
+    catch (err) {
+        console.log(err);
+    }
+}
+main();
+process.on("unhandledRejection", (err) => {
+    console.log(`😈 unahandledRejection is detected , shutting down ...`, err);
+    if (server) {
+        server.close(() => {
+            process.exit(1);
+        });
+    }
+    process.exit(1);
 });
-// Start Server
-app.listen(PORT, () => {
-    console.log(`Server is blasting off on port ${PORT} ⚡`);
+process.on("uncaughtException", () => {
+    console.log(`😈 uncaughtException is detected , shutting down ...`);
+    process.exit(1);
 });
 //# sourceMappingURL=server.js.map

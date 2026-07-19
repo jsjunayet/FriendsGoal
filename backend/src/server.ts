@@ -1,23 +1,41 @@
-import cors from "cors";
-import dotenv from "dotenv";
-import type { Request, Response } from "express";
-import express from "express";
+import { Server } from "http";
+import mongoose from "mongoose";
+import app from "./app";
+import config from "./app/config/index";
+let server: Server;
 
-dotenv.config();
+async function main() {
+  try {
+    const mongoUri = config.database_url;
+    if (!mongoUri) {
+      throw new Error("Missing DATABASE_URL in environment configuration.");
+    }
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+    await mongoose.connect(mongoUri);
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+    // await seedSuperAdmin();
+    server = app.listen(5000, () => {
+      console.log(`app is listening on port ${5000}`);
+    });
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
+}
 
-// Base Route
-app.get("/", (req: Request, res: Response) => {
-  res.send("FriendsGoal Backend is running perfectly alright! 🚀");
+main();
+
+process.on("unhandledRejection", (err) => {
+  console.log(`😈 unahandledRejection is detected , shutting down ...`, err);
+  if (server) {
+    server.close(() => {
+      process.exit(1);
+    });
+  }
+  process.exit(1);
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Server is blasting off on port ${PORT} ⚡`);
+process.on("uncaughtException", () => {
+  console.log(`😈 uncaughtException is detected , shutting down ...`);
+  process.exit(1);
 });
