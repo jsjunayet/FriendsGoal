@@ -1,0 +1,108 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Bell, LogOut, Shield, User } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+
+// Role label map
+const ROLE_LABELS: Record<string, string> = {
+  superAdmin: "Super Admin",
+  admin: "Admin",
+  member: "Member",
+};
+
+// Initials avatar from userId
+function Initials({ userId }: { userId: string }) {
+  const letters = userId.slice(0, 2).toUpperCase();
+  return (
+    <div
+      aria-hidden
+      className="w-9 h-9 rounded-full bg-[#1FDE64] flex items-center justify-center flex-shrink-0 text-[#1A1A1A] text-[13px] font-bold select-none"
+    >
+      {letters}
+    </div>
+  );
+}
+
+export function DashboardNav() {
+  const router = useRouter();
+  const { user, logout } = useAuth();
+
+  const isAdmin = user?.role === "admin" || user?.role === "superAdmin";
+  const roleLabel = user ? (ROLE_LABELS[user.role] ?? user.role) : "Member";
+  const dashboardHref = isAdmin ? "/admin/dashboard" : "/dashboard";
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
+
+  return (
+    <header className="sticky top-0 z-50 w-full bg-white border-b border-[#E5E5E5] shadow-xs">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 xl:px-8 h-[64px] flex items-center justify-between gap-4">
+
+        {/* Logo */}
+        <Link
+          href={dashboardHref}
+          className="inline-flex items-center gap-2.5 group flex-shrink-0"
+        >
+          <div className="w-9 h-9 rounded-full bg-[#1FDE64] flex items-center justify-center flex-shrink-0 shadow-sm">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+              <path
+                d="M10 2.5C10 2.5 4.5 6.5 4.5 11.5C4.5 14.54 7.19 17 10 17C12.81 17 15.5 14.54 15.5 11.5C15.5 6.5 10 2.5 10 2.5Z"
+                fill="white"
+              />
+              <circle cx="10" cy="11.5" r="2.8" fill="#1FDE64" />
+            </svg>
+          </div>
+          <span className="font-bold text-[#1A1A1A] text-[16px] tracking-tight">
+            Friends Goal
+          </span>
+        </Link>
+
+        {/* Right actions */}
+        <div className="flex items-center gap-2 sm:gap-3">
+
+          {/* Role badge — visible on sm+ */}
+          {user && (
+            <div className="hidden sm:flex items-center gap-1.5 h-[30px] px-3 rounded-full bg-[#F6FFED] border border-[#D4F5D2]">
+              {isAdmin ? (
+                <Shield className="w-3.5 h-3.5 text-[#2B5A27]" />
+              ) : (
+                <User className="w-3.5 h-3.5 text-[#2B5A27]" />
+              )}
+              <span className="text-[12px] font-bold text-[#2B5A27] uppercase tracking-wide">
+                {roleLabel}
+              </span>
+            </div>
+          )}
+
+          {/* Notifications */}
+        
+
+          {/* Logout */}
+          <button
+            type="button"
+            onClick={handleLogout}
+            aria-label="Log out"
+            className="w-9 h-9 rounded-full flex items-center justify-center text-[#555555] hover:bg-[#FFF0F0] hover:text-[#ef4444] transition-colors"
+          >
+            <LogOut className="w-[18px] h-[18px]" />
+          </button>
+
+          {/* Avatar — shows initials from userId */}
+          {user ? (
+            <div className="relative flex-shrink-0 ml-1 cursor-default" title={`${user.userId} · ${roleLabel}`}>
+              <div className="ring-2 ring-[#1FDE64] ring-offset-1 rounded-full">
+                <Initials userId={user.userId} />
+              </div>
+            </div>
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-[#E5E5E5] flex-shrink-0 ml-1" />
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}

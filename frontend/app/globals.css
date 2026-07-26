@@ -1,0 +1,272 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-caslon), "Libre Caslon Text", Georgia, serif;
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-caslon), "Libre Caslon Text", Georgia, serif;
+
+  /* --- FIGMA DESIGN TOKENS (ENFORCED) --- */
+  --color-figma-white: #ffffff;
+  --color-figma-black: #262626;
+  --color-figma-green: #2b5a27;
+  --color-figma-primary: #1fde64;
+  --color-figma-p2: #1a1a1a;
+  --color-figma-stroke: #e5e5e5;
+  --color-figma-n2: #f5f5f5;
+  --color-figma-secondary: #faffe6;
+  --color-figma-linear-start: #f8faf8;
+  --color-figma-linear-end: #e9efe7;
+  --color-figma-bg2: #fafafa;
+  --color-figma-stroke2: #c4c4c4;
+  --color-figma-turtle: #003b36;
+  --color-figma-linear: #eef2f0;
+  --color-figma-tag: #666666;
+  --color-figma-sec-btn-stroke: #d9d9d9;
+
+  /* Brand green palette */
+  --color-brand-50: #f0faf4;
+  --color-brand-100: #d9f2e3;
+  --color-brand-200: #b5e6cc;
+  --color-brand-300: #82d1ac;
+  --color-brand-400: #4db885;
+  --color-brand-500: #27a065;
+  --color-brand-600: #1a8050;
+  --color-brand-700: #16673f;
+  --color-brand-800: #145234;
+  --color-brand-900: #12442b;
+
+  /* Dark section bg */
+  --color-dark-900: #0d1f17;
+  --color-dark-800: #142a1e;
+  --color-dark-700: #1a3627;
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: #1fde64;
+  /* Updated to Figma Primary Green */
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: #f6ffed;
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: #f5f5f5;
+  --muted-foreground: #666666;
+  --accent: #f6ffed;
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: #1fde64;
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: #1fde64;
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: #f6ffed;
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: #e5e5e5;
+  --sidebar-ring: #1fde64;
+
+  /* --- FIGMA TYPOGRAPHY TOKENS --- */
+  --figma-h2-size: 32px;
+  --figma-body-size: 18px;
+  --figma-nav-size: 16px;
+  --figma-line-height: 140%;
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: #1fde64;
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: #1fde64;
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: #1fde64;
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: #1fde64;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+
+  html {
+    @apply font-sans scroll-smooth;
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    overflow-x: hidden;
+    max-width: 100vw;
+    /* Improve mobile touch targets */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* --- CUSTOM FIGMA TYPOGRAPHY UTILITIES --- */
+  h2,
+  .figma-h2 {
+    font-size: var(--figma-h2-size);
+    line-height: var(--figma-line-height);
+    font-weight: 600;
+  }
+
+  p,
+  .figma-body {
+    font-size: var(--figma-body-size);
+    line-height: var(--figma-line-height);
+  }
+
+  /* Minimum touch target for interactive elements */
+  button,
+  [role="button"],
+  a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Exception: inline text links don't need min sizing */
+  p a,
+  nav a,
+  .text-link {
+    min-height: unset;
+    min-width: unset;
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1fde64;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #003b36;
+}
+
+/* Continuous Marquee Banner */
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0%);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee-slow {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 35s linear infinite;
+}
+
+.animate-marquee-slow:hover {
+  animation-play-state: paused;
+}
+
+/* ── Loading bar animation ─────────────────────────────────────────────────── */
+@keyframes loading-bar {
+  0%   { width: 0%;    margin-left: 0%; }
+  40%  { width: 60%;   margin-left: 0%; }
+  60%  { width: 30%;   margin-left: 40%; }
+  80%  { width: 20%;   margin-left: 75%; }
+  100% { width: 0%;    margin-left: 100%; }
+}
+
+.animate-loading-bar {
+  animation: loading-bar 1.6s ease-in-out infinite;
+}
