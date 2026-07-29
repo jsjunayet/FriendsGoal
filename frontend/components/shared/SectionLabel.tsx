@@ -17,7 +17,7 @@ export function SectionLabel({ children, className, align = "center" }: SectionL
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.4 }}
       className={cn(
-        "text-xs font-semibold uppercase tracking-[0.18em] text-[#27a065]",
+        "text-xs font-semibold uppercase tracking-[0.18em] text-[#1FDE64]",
         align === "center" && "text-center",
         align === "left" && "text-left",
         className

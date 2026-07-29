@@ -56,13 +56,13 @@ function DesktopDropdown({ items, isOpen }: DesktopDropdownProps) {
                 key={item.href + i}
                 href={item.href}
                 role="menuitem"
-                className="group flex items-start gap-3 px-4 py-3 hover:bg-[#f0faf5] transition-colors duration-150 focus-visible:outline-none focus-visible:bg-[#f0faf5]"
+                className="group flex items-start gap-3 px-4 py-3 hover:bg-[#f0fff8] transition-colors duration-150 focus-visible:outline-none focus-visible:bg-[#f0fff8]"
               >
-                <span className="mt-0.5 w-7 h-7 rounded-lg bg-[#f0faf5] group-hover:bg-[#27a065] flex items-center justify-center flex-shrink-0 transition-colors duration-150 text-[#27a065] group-hover:text-white">
+                <span className="mt-0.5 w-7 h-7 rounded-lg bg-[#f0fff8] group-hover:bg-[#1FDE64] flex items-center justify-center flex-shrink-0 transition-colors duration-150 text-[#1FDE64] group-hover:text-[#262626]">
                   {DROPDOWN_ICONS[item.label]}
                 </span>
                 <span className="flex flex-col gap-0.5">
-                  <span className="text-[13.5px] font-semibold text-gray-800 group-hover:text-[#1a8050] transition-colors leading-tight">
+                  <span className="text-[13.5px] font-semibold text-gray-800 group-hover:text-[#1a1a1a] transition-colors leading-tight">
                     {t(DROPDOWN_LABEL_KEYS[item.label] ?? (item.label as TranslationKey))}
                   </span>
                   {item.description && (
@@ -110,14 +110,14 @@ export function DesktopNavItem({ item, isActive }: DesktopNavItemProps) {
         href={item.href}
         className={cn(
           "relative text-[13.5px] font-medium transition-colors duration-200 py-1 whitespace-nowrap",
-          isActive ? "text-[#27a065]" : "text-gray-700 hover:text-[#27a065]"
+          isActive ? "text-[#1FDE64]" : "text-gray-700 hover:text-[#1FDE64]"
         )}
       >
         {label}
         {isActive && (
           <motion.span
             layoutId="nav-underline"
-            className="absolute -bottom-0.5 left-0 right-0 h-[2px] bg-[#27a065] rounded-full"
+            className="absolute -bottom-0.5 left-0 right-0 h-[2px] bg-[#1FDE64] rounded-full"
             transition={{ type: "spring", stiffness: 380, damping: 30 }}
           />
         )}
@@ -141,11 +141,11 @@ export function DesktopNavItem({ item, isActive }: DesktopNavItemProps) {
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "relative flex items-center gap-1 text-[13.5px] font-medium transition-colors duration-200 py-1 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:text-[#27a065]",
-          isActive || open ? "text-[#27a065]" : "text-gray-700 hover:text-[#27a065]"
+          "relative flex items-center gap-1 text-[13.5px] font-medium transition-colors duration-200 py-1 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:text-[#1FDE64]",
+          isActive || open ? "text-[#1FDE64]" : "text-gray-700 hover:text-[#1FDE64]"
         )}
       >
-        {item.label}
+        {label}
         <motion.span
           animate={{ rotate: open ? 180 : 0 }}
           transition={{ duration: 0.2 }}
@@ -156,7 +156,7 @@ export function DesktopNavItem({ item, isActive }: DesktopNavItemProps) {
         {(isActive || open) && (
           <motion.span
             layoutId="nav-underline"
-            className="absolute -bottom-0.5 left-0 right-0 h-[2px] bg-[#27a065] rounded-full"
+            className="absolute -bottom-0.5 left-0 right-0 h-[2px] bg-[#1FDE64] rounded-full"
             transition={{ type: "spring", stiffness: 380, damping: 30 }}
           />
         )}

@@ -35,7 +35,7 @@ export function LanguageToggle({
             className={cn(
               "px-3 py-1 rounded-full text-[12px] font-bold tracking-wider uppercase transition-all duration-200 cursor-pointer",
               lang === l
-                ? "bg-[#27a065] text-white shadow-sm"
+                ? "bg-[#1FDE64] text-white shadow-sm"
                 : "text-gray-500 hover:text-gray-700"
             )}
           >
@@ -66,7 +66,7 @@ export function LanguageToggle({
             className={cn(
               "w-10 h-8 rounded-lg text-[12px] font-bold uppercase transition-all duration-200 cursor-pointer",
               lang === l
-                ? "bg-[#27a065] text-white"
+                ? "bg-[#1FDE64] text-white"
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"
             )}
           >

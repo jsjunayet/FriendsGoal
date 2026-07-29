@@ -31,7 +31,6 @@ export default async function NoticeDetailPage({ params }: Props) {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <NoticeDetailClient article={article} />
-      <Footer />
     </div>
   );
 }

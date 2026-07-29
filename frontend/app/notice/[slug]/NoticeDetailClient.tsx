@@ -463,22 +463,33 @@ export function NoticeDetailClient({ article }: NoticeDetailClientProps) {
           )}
 
           {/* Agenda Highlights */}
-          <div className="mt-4">
-            <h2 className="font-serif font-bold text-[#1A1A1A] text-[20px] sm:text-[22px] mb-5">
+          <div className="mt-4 rounded-[24px] bg-[#1A1A1A] p-6 sm:p-8">
+            <h2 className="font-serif font-bold text-white text-[20px] sm:text-[22px] mb-5">
               {agendaTitleText}
             </h2>
             <div className="flex flex-col gap-4">
               {agendaList.map((item) => (
                 <div key={item.num} className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#1FDE64] text-[#1A1A1A] text-[11px] font-bold flex items-center justify-center mt-0.5">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#1FDE64] text-white text-[11px] font-bold flex items-center justify-center mt-0.5">
                     {item.num}
                   </span>
                   <div>
-                    <p className="font-bold text-[#1A1A1A] text-[14px] sm:text-[15px]">{item.title}</p>
-                    <p className="text-[#666666] text-[13px] sm:text-[14px] mt-0.5">{item.text}</p>
+                    <p className="font-bold text-white text-[14px] sm:text-[15px]">{item.title}</p>
+                    <p className="text-gray-400 text-[13px] sm:text-[14px] mt-0.5">{item.text}</p>
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Click Here link */}
+            <div className="mt-6 pt-4 border-t border-white/10">
+              <Link
+                href="/notice"
+                className="inline-flex items-center gap-1.5 text-[#1FDE64] text-[14px] font-semibold hover:text-white transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                {isBn ? "এখানে ক্লিক করুন" : "Click Here"}
+              </Link>
             </div>
           </div>
         </div>

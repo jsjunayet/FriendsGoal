@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, ChevronDown } from "lucide-react";
+import { Users } from "lucide-react";
 import { DirectoryMemberCard } from "@/components/cards/DirectoryMemberCard";
 import type { DirectoryMember } from "@/types";
 import { useTranslation } from "@/context/LanguageContext";
@@ -15,11 +15,18 @@ export interface CouncilResponsibility {
   textBn?: string;
 }
 
+export interface RoleOption {
+  label: string;       // English label
+  labelBn: string;     // Bangla label
+}
+
 export interface CouncilPageContentProps {
   headingTitle: string;
   headingTitleBn?: string;
-  roleFilterLabel: string;
-  roleFilterLabelBn?: string;
+  /** All available role pills shown above the member grid */
+  roleOptions: RoleOption[];
+  /** Default selected role (English label) */
+  defaultRole: string;
   members: DirectoryMember[];
   roleDescription: string;
   roleDescriptionBn?: string;
@@ -27,82 +34,116 @@ export interface CouncilPageContentProps {
 }
 
 export function CouncilPageContent({
-  headingTitle = "Core Leadership",
-  headingTitleBn = "মূল নেতৃত্ব",
-  roleFilterLabel = "Executive Member",
-  roleFilterLabelBn = "নির্বাহী সদস্য",
+  headingTitle,
+  headingTitleBn = "",
+  roleOptions = [],
+  defaultRole = "",
   members,
   roleDescription,
-  roleDescriptionBn = "নির্বাহী সদস্যদের মূল দায়িত্ব হলো সংগঠনের মসৃণ কার্যক্রম পরিচালনা নিশ্চিত করা এবং লক্ষ্য অর্জনে সহায়তা করা।",
+  roleDescriptionBn = "",
   responsibilities,
 }: CouncilPageContentProps) {
   const { lang } = useTranslation();
   const isBn = lang === "bn";
 
-  const displayHeading = isBn ? headingTitleBn : headingTitle;
-  const displayRoleFilter = isBn ? roleFilterLabelBn : roleFilterLabel;
+  const displayHeading = isBn && headingTitleBn ? headingTitleBn : headingTitle;
   const displayRoleDesc = isBn && roleDescriptionBn ? roleDescriptionBn : roleDescription;
-  const responsibilitiesLabel = isBn ? "দায়িত্বসমূহ-" : "Responsibilities-";
+  const responsibilitiesLabel = isBn ? "দায়িত্বসমূহ" : "Responsibilities";
 
-  const [selectedRole, setSelectedRole] = useState<string>(displayRoleFilter);
+  const [selectedRole, setSelectedRole] = useState<string>(defaultRole);
+
+  // Reset to defaultRole whenever language or defaultRole changes
+  useEffect(() => {
+    setSelectedRole(defaultRole);
+  }, [defaultRole]);
+
+  // Filter members by selected role (match against English label)
+  const filteredMembers = members.filter(
+    (m) => m.role === selectedRole
+  );
+  // If no members match the filter, show all
+  const displayMembers = filteredMembers.length > 0 ? filteredMembers : members;
+
+  // Find selected role option for description
+  const selectedOption = roleOptions.find((r) => r.label === selectedRole);
+  const displaySelectedLabel = isBn && selectedOption?.labelBn
+    ? selectedOption.labelBn
+    : selectedOption?.label ?? selectedRole;
 
   return (
     <section className="w-full py-14 sm:py-20 bg-white" aria-label={headingTitle}>
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8 space-y-12">
-        {/* Top Header Row with Role Filter Dropdown */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h2 className="font-serif text-[32px] sm:text-[36px] font-bold text-[#1A1A1A] tracking-tight">
-            {displayHeading}
-          </h2>
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 xl:px-8 space-y-10">
 
-          {/* Filter Dropdown Pill */}
-          <div className="relative self-start sm:self-auto">
-            <button
-              type="button"
-              className="
-                inline-flex items-center justify-center gap-3
-                h-[44px] px-6 rounded-full
-                bg-white border border-[#E5E5E5] text-[#1A1A1A]
-                text-[14px] font-semibold tracking-tight
-                hover:bg-[#FAFAFA] transition-colors duration-200
-                shadow-xs cursor-pointer
-              "
-            >
-              <span>{selectedRole || displayRoleFilter}</span>
-              <ChevronDown className="w-4 h-4 text-[#555555]" />
-            </button>
-          </div>
+        {/* ── Section heading ──────────────────────────────────────────── */}
+        <h2 className="font-serif text-[28px] sm:text-[32px] font-bold text-[#1A1A1A] tracking-tight">
+          {displayHeading}
+        </h2>
+
+        {/* ── Role filter pills ─────────────────────────────────────────── */}
+        <div className="flex flex-wrap gap-2.5">
+          {roleOptions.map((role) => {
+            const isActive = selectedRole === role.label;
+            const roleLabel = isBn ? role.labelBn : role.label;
+            return (
+              <button
+                key={role.label}
+                type="button"
+                onClick={() => setSelectedRole(role.label)}
+                className={`
+                  h-[38px] px-5 rounded-full text-[13px] font-semibold
+                  border transition-all duration-200 cursor-pointer whitespace-nowrap
+                  ${isActive
+                    ? "bg-[#1A1A1A] text-white border-[#1A1A1A] shadow-sm"
+                    : "bg-white text-[#333333] border-[#D5D5D5] hover:border-[#1A1A1A] hover:text-[#1A1A1A]"
+                  }
+                `}
+              >
+                {roleLabel}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Member Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {members.map((member, index) => (
+        {/* ── Section subheading under pills ───────────────────────────── */}
+        <h3 className="font-serif text-[22px] sm:text-[26px] font-bold text-[#1A1A1A] -mt-2">
+          {displayHeading}
+        </h3>
+
+        {/* ── Member cards grid ─────────────────────────────────────────── */}
+        <motion.div
+          key={selectedRole}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8"
+        >
+          {displayMembers.map((member, index) => (
             <DirectoryMemberCard key={member.id + index} member={member} index={index} />
           ))}
-        </div>
+        </motion.div>
 
-        {/* Responsibilities Section Below Grid */}
-        <div className="pt-8 space-y-6 max-w-[920px]">
+        {/* ── Role description + responsibilities ───────────────────────── */}
+        <div className="pt-4 space-y-6 max-w-[920px]">
           <div>
-            <h3 className="font-serif text-[24px] sm:text-[28px] font-bold text-[#1A1A1A]">
-              {displayRoleFilter}
+            <h3 className="font-serif text-[22px] sm:text-[26px] font-bold text-[#1A1A1A]">
+              {displaySelectedLabel}
             </h3>
             <p className="mt-2 text-[14px] sm:text-[15px] text-[#555555] leading-relaxed">
               {displayRoleDesc}
             </p>
           </div>
 
-          {/* Responsibilities Green Badge */}
+          {/* Responsibilities badge */}
           <div className="flex items-center gap-3 pt-2">
-            <div className="w-9 h-9 rounded-full bg-[#1FDE64] text-white flex items-center justify-center flex-shrink-0 shadow-xs">
-              <Users className="w-4.5 h-4.5 text-white" />
+            <div className="w-9 h-9 rounded-full bg-[#1FDE64] flex items-center justify-center flex-shrink-0 shadow-xs">
+              <Users className="w-4 h-4 text-white" />
             </div>
             <h4 className="font-serif text-[20px] font-bold text-[#2B5A27]">
               {responsibilitiesLabel}
             </h4>
           </div>
 
-          {/* Responsibilities Policy Box */}
+          {/* Responsibility cards */}
           <div className="space-y-5">
             {responsibilities.map((item) => {
               const itemTitle = isBn && item.titleBn ? item.titleBn : item.title;
@@ -127,6 +168,7 @@ export function CouncilPageContent({
             })}
           </div>
         </div>
+
       </div>
     </section>
   );

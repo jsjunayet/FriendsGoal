@@ -13,7 +13,8 @@ import {
 import { useTranslation } from "@/context/LanguageContext";
 
 interface PolicySectionItem {
-  num: string;
+  num: string;    // Bangla digits  e.g. "৯.১"
+  numEn: string;  // English digits e.g. "9.1"
   title: string;
   titleBn?: string;
   text: string;
@@ -42,6 +43,7 @@ const POLICY_DATA: PolicyCategory[] = [
     sections: [
       {
         num: "৯.১",
+        numEn: "9.1",
         title: "Election in accordance with the organization's constitution:",
         titleBn: "সংগঠনের সংবিধান অনুযায়ী নির্বাচন:",
         text: "The method for constituting the governing body is stipulated in the constitution. This can be through direct voting, nomination, or a selection committee.",
@@ -49,6 +51,7 @@ const POLICY_DATA: PolicyCategory[] = [
       },
       {
         num: "৯.২",
+        numEn: "9.2",
         title: "Number of Members:",
         titleBn: "সদস্য সংখ্যা:",
         text: "The number of members of the council is generally stipulated in the constitution. For example, it could range from 1 to 100, or be 101, 103, 105, 107, 109, or 111.",
@@ -56,6 +59,7 @@ const POLICY_DATA: PolicyCategory[] = [
       },
       {
         num: "৯.৩",
+        numEn: "9.3",
         title: "Eligibility:",
         titleBn: "যোগ্যতা:",
         text: "Membership eligibility is determined in accordance with the constitution or the organization's rules—for example, age, experience, shareholder status (if applicable), etc.",
@@ -65,6 +69,7 @@ const POLICY_DATA: PolicyCategory[] = [
     moreSections: [
       {
         num: "৯.৪",
+        numEn: "9.4",
         title: "Term of Office:",
         titleBn: "কার্যকাল:",
         text: "Board members serve a 3-year term, renewable once upon democratic vote by council members.",
@@ -72,6 +77,7 @@ const POLICY_DATA: PolicyCategory[] = [
       },
       {
         num: "৯.৫",
+        numEn: "9.5",
         title: "Meeting Frequency:",
         titleBn: "সভার সময়সূচী:",
         text: "The Board shall convene at least once every quarter to review financial reports and strategic investments.",
@@ -89,6 +95,7 @@ const POLICY_DATA: PolicyCategory[] = [
     sections: [
       {
         num: "১০.১",
+        numEn: "10.1",
         title: "Voluntary Withdrawal:",
         titleBn: "স্বেচ্ছায় প্রত্যাহার:",
         text: "Any member may withdraw from the organization by submitting a written notice 30 days prior to withdrawal.",
@@ -96,6 +103,7 @@ const POLICY_DATA: PolicyCategory[] = [
       },
       {
         num: "১০.২",
+        numEn: "10.2",
         title: "Fund Refund Terms:",
         titleBn: "তহবিল ফেরতের শর্তাবলী:",
         text: "Accumulated monthly savings will be refunded in full without interest deductions within 60 business days of cancellation approval.",
@@ -103,6 +111,7 @@ const POLICY_DATA: PolicyCategory[] = [
       },
       {
         num: "১০.৩",
+        numEn: "10.3",
         title: "Non-Compliance Review:",
         titleBn: "নিয়ম লঙ্ঘনের পর্যালোচনা:",
         text: "Failure to contribute monthly savings for 3 consecutive months without prior notice will trigger automatic council review.",
@@ -120,6 +129,7 @@ const POLICY_DATA: PolicyCategory[] = [
     sections: [
       {
         num: "১১.১",
+        numEn: "11.1",
         title: "Code of Ethics:",
         titleBn: "নৈতিকতা আচরণবিধি:",
         text: "All members must adhere to principles of honesty, mutual respect, and strict non-interest financial operations.",
@@ -127,6 +137,7 @@ const POLICY_DATA: PolicyCategory[] = [
       },
       {
         num: "১১.২",
+        numEn: "11.2",
         title: "Disciplinary Process:",
         titleBn: "শৃঙ্খলামূলক প্রক্রিয়া:",
         text: "Violations of organizational rules will be referred to the Executive Council for formal inquiry and resolution.",
@@ -144,6 +155,7 @@ const POLICY_DATA: PolicyCategory[] = [
     sections: [
       {
         num: "১২.১",
+        numEn: "12.1",
         title: "Emergency Bereavement Support:",
         titleBn: "জরুরি শোক সহায়তা:",
         text: "In the event of a member's passing, the organization grants an immediate benevolent support fund to the designated family beneficiary.",
@@ -151,6 +163,7 @@ const POLICY_DATA: PolicyCategory[] = [
       },
       {
         num: "১২.২",
+        numEn: "12.2",
         title: "Savings Transfer:",
         titleBn: "সঞ্চয় হস্তান্তর:",
         text: "The deceased member's total accumulated savings balance will be transferred to their legally registered nominee.",
@@ -240,7 +253,7 @@ export function PolicyViewerSection() {
             </div>
 
             {/* Main Policy Card Container */}
-            <div className="bg-white rounded-[28px] border border-[#E5E5E5] p-6 sm:p-8 sm:p-10 shadow-xs space-y-6">
+            <div className="bg-white rounded-[28px] border border-[#E5E5E5] p-6 sm:p-8 shadow-xs space-y-6">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentCategory.id}
@@ -252,12 +265,13 @@ export function PolicyViewerSection() {
                 >
                   {/* Initial Sections */}
                   {currentCategory.sections.map((sec) => {
+                    const secNum = isBn ? sec.num : sec.numEn;
                     const secTitle = isBn && sec.titleBn ? sec.titleBn : sec.title;
                     const secText = isBn && sec.textBn ? sec.textBn : sec.text;
                     return (
                       <div key={sec.num} className="space-y-2">
                         <h3 className="font-bold text-[16px] sm:text-[17px] text-[#1A1A1A] leading-snug">
-                          {sec.num}. {secTitle}
+                          {secNum}. {secTitle}
                         </h3>
                         <div className="flex items-start gap-2.5 pl-1">
                           <span className="w-2 h-2 rounded-full bg-[#1FDE64] flex-shrink-0 mt-2" />
@@ -269,33 +283,39 @@ export function PolicyViewerSection() {
                     );
                   })}
 
-                  {/* Expanded Sections */}
-                  {expanded && currentCategory.moreSections && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="space-y-6 pt-2 border-t border-[#E5E5E5]"
-                    >
-                      {currentCategory.moreSections.map((sec) => {
-                        const secTitle = isBn && sec.titleBn ? sec.titleBn : sec.title;
-                        const secText = isBn && sec.textBn ? sec.textBn : sec.text;
-                        return (
-                          <div key={sec.num} className="space-y-2">
-                            <h3 className="font-bold text-[16px] sm:text-[17px] text-[#1A1A1A] leading-snug">
-                              {sec.num}. {secTitle}
-                            </h3>
-                            <div className="flex items-start gap-2.5 pl-1">
-                              <span className="w-2 h-2 rounded-full bg-[#1FDE64] flex-shrink-0 mt-2" />
-                              <p className="text-[14px] sm:text-[15px] text-[#555555] leading-relaxed">
-                                {secText}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </motion.div>
+                  {/* Expanded Sections — animated independently, outside the tab-switch AnimatePresence */}
+                  {currentCategory.moreSections && (
+                    <AnimatePresence initial={false}>
+                      {expanded && (
+                        <motion.div
+                          key="more-sections"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="space-y-6 pt-2 border-t border-[#E5E5E5] overflow-hidden"
+                        >
+                          {currentCategory.moreSections.map((sec) => {
+                            const secNum = isBn ? sec.num : sec.numEn;
+                            const secTitle = isBn && sec.titleBn ? sec.titleBn : sec.title;
+                            const secText = isBn && sec.textBn ? sec.textBn : sec.text;
+                            return (
+                              <div key={sec.num} className="space-y-2">
+                                <h3 className="font-bold text-[16px] sm:text-[17px] text-[#1A1A1A] leading-snug">
+                                  {secNum}. {secTitle}
+                                </h3>
+                                <div className="flex items-start gap-2.5 pl-1">
+                                  <span className="w-2 h-2 rounded-full bg-[#1FDE64] flex-shrink-0 mt-2" />
+                                  <p className="text-[14px] sm:text-[15px] text-[#555555] leading-relaxed">
+                                    {secText}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   )}
                 </motion.div>
               </AnimatePresence>

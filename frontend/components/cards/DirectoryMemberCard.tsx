@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { MapPin, Calendar, Droplets, IdCard } from "lucide-react";
+import { MapPin, Calendar, Droplets } from "lucide-react";
 import type { DirectoryMember } from "@/types";
 import { useTranslation } from "@/context/LanguageContext";
 
@@ -39,7 +39,7 @@ export function DirectoryMemberCard({ member, index }: DirectoryMemberCardProps)
       className="bg-white rounded-[20px] border border-[#E8E8E8] flex flex-col shadow-sm hover:shadow-lg transition-shadow duration-300 p-3"
     >
       {/* ── Portrait image with gap on all sides + rounded corners ── */}
-      <div className="relative w-full aspect-[4/5] rounded-[14px] overflow-hidden bg-[#F0F0F0]">
+      <div className="relative w-full aspect-[4/5] rounded-[14px] overflow-hidden bg-[#F0F0F0] z-10">
         <Image
           src={member.image || "/images/about/about-2.svg"}
           alt={`${member.name} — ${member.role}`}
@@ -47,12 +47,16 @@ export function DirectoryMemberCard({ member, index }: DirectoryMemberCardProps)
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 380px"
           className="object-cover object-top transition-transform duration-500 hover:scale-[1.04] rounded-[14px]"
         />
+        {/* Member ID badge — front layer circle */}
+        <div className="absolute bottom-3 right-3 z-20 bg-[#1FDE64] text-[#262626] text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md tracking-wider uppercase">
+          {member.memberId}
+        </div>
       </div>
 
       {/* ── Info below image ── */}
       <div className="pt-3 pb-1 px-1 flex flex-col gap-2.5">
-        {/* Name + Role */}
-        <div className="text-center">
+        {/* Name + Role — left aligned */}
+        <div className="text-left">
           <p className="text-[11px] font-bold tracking-[0.18em] text-[#888888] uppercase">
             {roleText}
           </p>
@@ -77,10 +81,6 @@ export function DirectoryMemberCard({ member, index }: DirectoryMemberCardProps)
           <div className="flex items-center gap-1.5 min-w-0">
             <Droplets className="w-3 h-3 text-[#1FDE64] flex-shrink-0" />
             <span className="truncate">{member.bloodGroup}</span>
-          </div>
-          <div className="flex items-center gap-1.5 min-w-0">
-            <IdCard className="w-3 h-3 text-[#1FDE64] flex-shrink-0" />
-            <span className="truncate font-semibold text-[#1A1A1A]">{member.memberId}</span>
           </div>
         </div>
       </div>

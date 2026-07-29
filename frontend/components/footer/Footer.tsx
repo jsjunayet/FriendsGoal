@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import { Mail, Phone, MapPin } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { SITE_CONFIG } from "@/constants/site";
 import { useTranslation } from "@/context/LanguageContext";
+
+// Routes where the Footer should be hidden
+const HIDDEN_ON: RegExp[] = [
+  /^\/login$/,
+];
 
 // ─── Logo ──────────────────────────────────────────────────────────────────────
 function FooterLogo() {
@@ -57,6 +63,9 @@ const SOCIALS = [
 // ─── Footer ────────────────────────────────────────────────────────────────────
 export function Footer() {
   const { t } = useTranslation();
+  const pathname = usePathname();
+
+  if (HIDDEN_ON.some((pattern) => pattern.test(pathname))) return null;
 
   return (
     <footer className="w-full bg-[#FAFAFA] text-[#666666] border-t border-[#E5E5E5]" aria-label="Footer">
@@ -125,13 +134,13 @@ export function Footer() {
             </a>
 
             {/* Social icons */}
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex items-center gap-2 mb-4">
               {SOCIALS.map((s) => (
                 <a
                   key={s.label}
                   href={s.href}
                   aria-label={s.label}
-                  className="w-7 h-7 rounded-full bg-[#EFEFEF] hover:bg-[#1FDE64] text-[#555555] hover:text-[#262626] flex items-center justify-center transition-colors duration-200"
+                  className="w-7 h-7 rounded-full bg-[#EFEFEF] hover:bg-white hover:shadow-md text-[#555555] hover:text-[#1FDE64] flex items-center justify-center transition-all duration-200 border border-transparent hover:border-[#E5E5E5]"
                 >
                   {s.icon}
                 </a>
@@ -154,7 +163,7 @@ export function Footer() {
         {/* ── Bottom bar ─────────────────────────────────────────────────────── */}
         <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[12px] text-[#888888]">
           <p>{t("footer_copyright")}</p>
-          <p className="font-semibold text-[#2B5A27]">
+          <p className="text-[#888888]">
             {t("footer_dev")} <span className="underline underline-offset-2">Turtle Studio</span>
           </p>
         </div>

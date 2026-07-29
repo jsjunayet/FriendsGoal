@@ -97,7 +97,7 @@ export function SocialCtaSection() {
                 transition={{ duration: 0.4, delay: 0.25 + i * 0.08 }}
                 whileHover={{ scale: 1.1, y: -2 }}
                 whileTap={{ scale: 0.95 }}
-                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-[#27a065] hover:border-[#27a065] transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#27a065]"
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-[#1FDE64] hover:border-[#1FDE64] transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1FDE64]"
               >
                 {link.icon}
               </motion.a>

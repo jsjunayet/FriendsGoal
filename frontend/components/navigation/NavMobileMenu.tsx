@@ -48,8 +48,8 @@ function MobileDropdownItem({ item, activeSection, onClose }: MobileDropdownItem
         className={cn(
           "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left",
           isActive
-            ? "bg-[#f0faf4] text-[#27a065]"
-            : "text-gray-700 hover:bg-gray-50 hover:text-[#27a065]"
+            ? "bg-[#f0fff8] text-[#1FDE64]"
+            : "text-gray-700 hover:bg-gray-50 hover:text-[#1FDE64]"
         )}
       >
         {label}
@@ -71,15 +71,15 @@ function MobileDropdownItem({ item, activeSection, onClose }: MobileDropdownItem
             transition={{ duration: 0.22, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="ml-3 mt-0.5 border-l-2 border-[#d1f0e0] pl-3 flex flex-col gap-0.5 pb-1">
+            <div className="ml-3 mt-0.5 border-l-2 border-[#1FDE64]/40 pl-3 flex flex-col gap-0.5 pb-1">
               {item.dropdown!.map((child, i) => (
                 <Link
                   key={i}
                   href={child.href}
                   onClick={onClose}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-gray-600 hover:bg-[#f0faf4] hover:text-[#27a065] transition-colors"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-gray-600 hover:bg-[#f0fff8] hover:text-[#1FDE64] transition-colors"
                 >
-                  <span className="text-[#27a065]">{DROPDOWN_ICONS[child.label]}</span>
+                  <span className="text-[#1FDE64]">{DROPDOWN_ICONS[child.label]}</span>
                   {t(DROPDOWN_LABEL_KEYS[child.label] ?? (child.label as TranslationKey))}
                 </Link>
               ))}
@@ -130,10 +130,10 @@ export function NavMobileMenu({ activeSection, onClose }: NavMobileMenuProps) {
         {/* Drawer header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-[#27a065] flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-[#1FDE64] flex items-center justify-center flex-shrink-0">
               <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <path d="M10 2.5C10 2.5 4.5 6.5 4.5 11.5C4.5 14.54 7.19 17 10 17C12.81 17 15.5 14.54 15.5 11.5C15.5 6.5 10 2.5 10 2.5Z" fill="white" />
-                <circle cx="10" cy="11.5" r="2.8" fill="#27a065" />
+                <path d="M10 2.5C10 2.5 4.5 6.5 4.5 11.5C4.5 14.54 7.19 17 10 17C12.81 17 15.5 14.54 15.5 11.5C15.5 6.5 10 2.5 10 2.5Z" fill="#262626" />
+                <circle cx="10" cy="11.5" r="2.8" fill="#1FDE64" />
               </svg>
             </div>
             <span className="font-bold text-gray-900 text-[15px] tracking-tight">Friends Goal</span>
@@ -182,12 +182,12 @@ export function NavMobileMenu({ activeSection, onClose }: NavMobileMenuProps) {
                 className={cn(
                   "flex items-center gap-3 px-3 py-3 rounded-xl text-[15px] font-medium transition-colors",
                   isActive
-                    ? "bg-[#f0faf4] text-[#27a065] font-semibold"
-                    : "text-gray-700 hover:bg-gray-50 hover:text-[#27a065]"
+                    ? "bg-[#f0fff8] text-[#1FDE64] font-semibold"
+                    : "text-gray-700 hover:bg-gray-50 hover:text-[#1FDE64]"
                 )}
               >
                 {isActive && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#27a065] flex-shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#1FDE64] flex-shrink-0" />
                 )}
                 {label}
               </Link>
@@ -201,7 +201,7 @@ export function NavMobileMenu({ activeSection, onClose }: NavMobileMenuProps) {
           <Link
             href="/login"
             onClick={onClose}
-            className="flex items-center justify-center w-full h-12 rounded-xl bg-[#27a065] text-white text-[15px] font-bold hover:bg-[#1e8a55] transition-colors shadow-md"
+            className="flex items-center justify-center w-full h-12 rounded-xl bg-[#1FDE64] text-[#262626] text-[15px] font-bold hover:bg-[#18C957] transition-colors shadow-md"
           >
             {t("nav_login")}
           </Link>

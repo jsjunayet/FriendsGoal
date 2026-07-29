@@ -27,7 +27,7 @@ export function NoticeFeed() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            className="inline-flex items-center h-[36px] px-5 rounded-full bg-[#1FDE64] text-[#1A1A1A] text-[13px] font-bold uppercase tracking-wider cursor-pointer"
+            className="inline-flex items-center h-[36px] px-5 rounded-full bg-[#1FDE64] text-white text-[13px] font-bold uppercase tracking-wider cursor-pointer"
           >
             ALL
           </button>
@@ -64,7 +64,7 @@ export function NoticeFeed() {
                 onClick={() => goTo(p)}
                 className={`w-9 h-9 rounded-full text-[13px] font-bold transition-all cursor-pointer ${
                   p === page
-                    ? "bg-[#1FDE64] text-[#1A1A1A] shadow-sm"
+                    ? "bg-[#1FDE64] text-white shadow-sm"
                     : "border border-[#E5E5E5] text-[#555555] hover:bg-[#FAFAFA]"
                 }`}
                 aria-label={`Page ${p}`}

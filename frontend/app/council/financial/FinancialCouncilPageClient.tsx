@@ -2,13 +2,20 @@
 
 import { PageHero } from "@/components/PageHero";
 import { CouncilPageContent } from "@/components/sections/CouncilPageContent";
+import type { RoleOption } from "@/components/sections/CouncilPageContent";
 import type { DirectoryMember } from "@/types";
+
+const FINANCIAL_ROLES: RoleOption[] = [
+  { label: "Financial Member",  labelBn: "আর্থিক সদস্য" },
+  { label: "Treasurer",         labelBn: "কোষাধ্যক্ষ" },
+  { label: "Financial Auditor", labelBn: "আর্থিক নিরীক্ষক" },
+];
 import { useTranslation } from "@/context/LanguageContext";
 
 const FINANCIAL_MEMBERS: DirectoryMember[] = [
-  { id: "fin-1", memberId: "ID-009", name: "MD. FAZLE RABBI", role: "TREASURER", location: "Dhanmondi, Dhaka", dob: "25 May 1994", bloodGroup: "AB+ (Positive)", image: "/images/about/about-1.png" },
-  { id: "fin-2", memberId: "ID-001", name: "MD. AL AMIN", role: "PRESIDENT", location: "Uttara, Dhaka", dob: "14 Feb 1991", bloodGroup: "B+ (Positive)", image: "/images/hero/hero-1.png" },
-  { id: "fin-3", memberId: "ID-003", name: "MD. MIRAJUL ISLAM", role: "FINANCIAL AUDITOR", location: "Mirpur, Dhaka", dob: "10 Aug 1992", bloodGroup: "A+ (Positive)", image: "/images/hero/hero-3.png" },
+  { id: "fin-1", memberId: "ID-009", name: "MD. FAZLE RABBI",   role: "Treasurer",         location: "Dhanmondi, Dhaka", dob: "25 May 1994", bloodGroup: "AB+ (Positive)", image: "/images/about/about-1.png" },
+  { id: "fin-2", memberId: "ID-001", name: "MD. AL AMIN",       role: "Financial Member",   location: "Uttara, Dhaka",    dob: "14 Feb 1991", bloodGroup: "B+ (Positive)",  image: "/images/hero/hero-1.png"  },
+  { id: "fin-3", memberId: "ID-003", name: "MD. MIRAJUL ISLAM", role: "Financial Auditor",  location: "Mirpur, Dhaka",    dob: "10 Aug 1992", bloodGroup: "A+ (Positive)",  image: "/images/hero/hero-3.png"  },
 ];
 
 const FINANCIAL_RESPONSIBILITIES = [
@@ -17,8 +24,7 @@ const FINANCIAL_RESPONSIBILITIES = [
 ];
 
 export function FinancialCouncilPageClient() {
-  const { t, lang } = useTranslation();
-  const isBn = lang === "bn";
+  const { t } = useTranslation();
   return (
     <div className="w-full bg-white text-[#555555]">
       <PageHero
@@ -27,16 +33,12 @@ export function FinancialCouncilPageClient() {
           { label: t("financial_page_crumb") },
         ]}
         titleLine1={t("financial_page_title")}
-        description={isBn
-          ? "সম্পূর্ণ স্বচ্ছতা, সুদমুক্ত কোষাগার তদারকি এবং সমস্ত সম্প্রদায়ের বিনিয়োগের জন্য টেকসই সম্পদ ব্যবস্থাপনা নিশ্চিত করা।"
-          : "Ensuring total transparency, interest-free treasury oversight, and sustainable wealth management for all community investments."
-        }
       />
       <CouncilPageContent
         headingTitle="Financial Leadership"
         headingTitleBn="আর্থিক নেতৃত্ব"
-        roleFilterLabel="Financial Member"
-        roleFilterLabelBn="আর্থিক সদস্য"
+        roleOptions={FINANCIAL_ROLES}
+        defaultRole="Financial Member"
         members={FINANCIAL_MEMBERS}
         roleDescription="The responsibility of financial council members is to oversee savings fund distribution, maintain rigorous audit logs, and ensure 100% interest-free compliance across all member investments."
         roleDescriptionBn="আর্থিক কাউন্সিলের সদস্যদের দায়িত্ব হলো সঞ্চয় তহবিল বিতরণ তদারকি করা, সঠিক অডিট লগ বজায় রাখা এবং ১০০% সুদমুক্ত অর্থায়ন নিশ্চিত করা।"

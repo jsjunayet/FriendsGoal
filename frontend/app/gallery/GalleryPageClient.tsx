@@ -16,7 +16,7 @@ export function GalleryPageClient() {
         titleLine1={t("gallery_page_title")}
         description={t("gallery_page_desc")}
       />
-      <GallerySection />
+      <GallerySection isPage={true} />
     </div>
   );
 }
