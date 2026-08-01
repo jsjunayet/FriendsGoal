@@ -7,6 +7,7 @@ import { ArrowLeft, Calendar, ChevronLeft, ChevronRight, X, ZoomIn } from "lucid
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@/context/LanguageContext";
 import type { NewsArticle } from "@/types";
+import { h1 } from "framer-motion/client";
 
 interface NoticeDetailClientProps {
   article: NewsArticle;
@@ -509,3 +510,4 @@ export function NoticeDetailClient({ article }: NoticeDetailClientProps) {
     </>
   );
 }
+{/* <h1>hello world</h1> */}
