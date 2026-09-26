@@ -26,7 +26,11 @@ const ROLE_TRANSLATIONS: Record<string, { en: string; bn: string }> = {
 
 export function DirectoryMemberCard({ member, index }: DirectoryMemberCardProps) {
   const { lang } = useTranslation();
-  const roleText = ROLE_TRANSLATIONS[member.role]?.[lang] || member.role;
+  const dynamicRoleBn = (member as any).roleBn || (member as any).designationBn;
+  const roleText =
+    lang === "bn" && dynamicRoleBn
+      ? dynamicRoleBn
+      : ROLE_TRANSLATIONS[member.role]?.[lang] || dynamicRoleBn || member.role;
 
   return (
     <motion.article

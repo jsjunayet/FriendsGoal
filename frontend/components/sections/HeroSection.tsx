@@ -131,15 +131,15 @@ export function HeroSection() {
             className="
               group inline-flex items-center gap-3
               h-[52px] px-10 rounded-full
-              bg-[#1FDE64] text-[#262626]
+              bg-[#1FDE64] text-white
               text-[16px] font-semibold tracking-tight
               shadow-md hover:shadow-lg transition-all duration-200
               focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1FDE64]
             "
           >
             <span>{t("hero_cta")}</span>
-            <span className="w-8 h-8 rounded-full bg-[#262626] text-[#1FDE64] flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:translate-x-1">
-              <ArrowRight className="w-4 h-4" />
+            <span className="  text-white flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:translate-x-1">
+              <ArrowRight className="w-5 h-5" />
             </span>
           </a>
         </motion.div>

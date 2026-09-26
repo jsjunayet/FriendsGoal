@@ -5,18 +5,26 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
 const app_1 = __importDefault(require("./app"));
-const index_1 = __importDefault(require("./app/DB/index"));
+const index_1 = __importDefault(require("./app/config/index"));
+const operation_service_1 = require("./app/modules/Operation/operation.service");
 let server;
 async function main() {
     try {
-        await mongoose_1.default.connect("mongodb+srv://edusync:WIo7u9TShcTespwN@cluster0.l4anbhy.mongodb.net/edusyncBD?retryWrites=true&w=majority&appName=Cluster0");
-        (0, index_1.default)();
+        const mongoUri = index_1.default.database_url;
+        if (!mongoUri) {
+            throw new Error("Missing DATABASE_URL in environment configuration.");
+        }
+        await mongoose_1.default.connect(mongoUri);
+        // Initialize recurring monthly auto-billing cron engine
+        operation_service_1.OperationServices.initMonthlyAutoBillingCron();
+        // await seedSuperAdmin();
         server = app_1.default.listen(5000, () => {
             console.log(`app is listening on port ${5000}`);
         });
     }
     catch (err) {
-        console.log(err);
+        console.error(err);
+        process.exit(1);
     }
 }
 main();

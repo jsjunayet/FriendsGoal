@@ -1,0 +1,103 @@
+import { z } from "zod";
+export declare const MemberValidation: {
+    createMemberValidationSchema: z.ZodObject<{
+        body: z.ZodObject<{
+            memberCode: z.ZodOptional<z.ZodString>;
+            fullName: z.ZodString;
+            email: z.ZodString;
+            bloodGroup: z.ZodOptional<z.ZodString>;
+            profession: z.ZodOptional<z.ZodString>;
+            nidNo: z.ZodOptional<z.ZodString>;
+            birthRegistrationNo: z.ZodOptional<z.ZodString>;
+            fatherName: z.ZodOptional<z.ZodString>;
+            motherName: z.ZodOptional<z.ZodString>;
+            mobileNo: z.ZodString;
+            dateOfBirth: z.ZodOptional<z.ZodString>;
+            division: z.ZodOptional<z.ZodString>;
+            district: z.ZodOptional<z.ZodString>;
+            thana: z.ZodOptional<z.ZodString>;
+            presentAddress: z.ZodOptional<z.ZodString>;
+            designation: z.ZodOptional<z.ZodString>;
+            designationBn: z.ZodOptional<z.ZodString>;
+            councilCategory: z.ZodOptional<z.ZodEnum<{
+                core_leadership: "core_leadership";
+                financial_leadership: "financial_leadership";
+                general_member: "general_member";
+            }>>;
+            role: z.ZodOptional<z.ZodEnum<{
+                admin: "admin";
+                manager: "manager";
+                member: "member";
+                superadmin: "superadmin";
+            }>>;
+            password: z.ZodOptional<z.ZodString>;
+            totalDeposit: z.ZodOptional<z.ZodNumber>;
+            savingsBalance: z.ZodOptional<z.ZodNumber>;
+            dueAmount: z.ZodOptional<z.ZodNumber>;
+            nomineeName: z.ZodOptional<z.ZodString>;
+            nomineeRelation: z.ZodOptional<z.ZodString>;
+            nomineeDob: z.ZodOptional<z.ZodString>;
+            nomineeNid: z.ZodOptional<z.ZodString>;
+            nomineeAddress: z.ZodOptional<z.ZodString>;
+            nomineePictureUrl: z.ZodOptional<z.ZodString>;
+            pictureUrl: z.ZodOptional<z.ZodString>;
+            signatureUrl: z.ZodOptional<z.ZodString>;
+            status: z.ZodOptional<z.ZodEnum<{
+                active: "active";
+                blocked: "blocked";
+                inactive: "inactive";
+            }>>;
+        }, z.core.$strip>;
+    }, z.core.$strip>;
+    updateMemberValidationSchema: z.ZodObject<{
+        body: z.ZodObject<{
+            memberCode: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            fullName: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            email: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            bloodGroup: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            profession: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            nidNo: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            birthRegistrationNo: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            fatherName: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            motherName: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            mobileNo: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            dateOfBirth: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            division: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            district: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            thana: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            presentAddress: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            designation: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            designationBn: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            councilCategory: z.ZodOptional<z.ZodOptional<z.ZodEnum<{
+                core_leadership: "core_leadership";
+                financial_leadership: "financial_leadership";
+                general_member: "general_member";
+            }>>>;
+            role: z.ZodOptional<z.ZodOptional<z.ZodEnum<{
+                admin: "admin";
+                manager: "manager";
+                member: "member";
+                superadmin: "superadmin";
+            }>>>;
+            password: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            totalDeposit: z.ZodOptional<z.ZodOptional<z.ZodNumber>>;
+            savingsBalance: z.ZodOptional<z.ZodOptional<z.ZodNumber>>;
+            dueAmount: z.ZodOptional<z.ZodOptional<z.ZodNumber>>;
+            nomineeName: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            nomineeRelation: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            nomineeDob: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            nomineeNid: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            nomineeAddress: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            nomineePictureUrl: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            pictureUrl: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            signatureUrl: z.ZodOptional<z.ZodOptional<z.ZodString>>;
+            status: z.ZodOptional<z.ZodOptional<z.ZodEnum<{
+                active: "active";
+                blocked: "blocked";
+                inactive: "inactive";
+            }>>>;
+            isDeleted: z.ZodOptional<z.ZodOptional<z.ZodBoolean>>;
+        }, z.core.$strip>;
+    }, z.core.$strip>;
+};
+//# sourceMappingURL=member.validation.d.ts.map

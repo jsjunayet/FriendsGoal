@@ -5,6 +5,8 @@ import { CouncilPageContent } from "@/components/sections/CouncilPageContent";
 import type { RoleOption } from "@/components/sections/CouncilPageContent";
 import type { DirectoryMember } from "@/types";
 import { useTranslation } from "@/context/LanguageContext";
+import { useQuery } from "@tanstack/react-query";
+import { fetchPublicCouncilApi } from "@/lib/memberApi";
 
 // ─── Role filter pills (9 roles, 3 rows of 3) ─────────────────────────────────
 const EXECUTIVE_ROLES: RoleOption[] = [
@@ -152,6 +154,27 @@ const EXECUTIVE_RESPONSIBILITIES = [
 
 export function ExecutiveCouncilPageClient() {
   const { t } = useTranslation();
+
+  const { data: dynamicMembers } = useQuery({
+    queryKey: ["public-council", "core_leadership"],
+    queryFn: () => fetchPublicCouncilApi({ category: "core_leadership" }),
+  });
+
+  const displayMembers: DirectoryMember[] =
+    dynamicMembers && dynamicMembers.length > 0
+      ? dynamicMembers.map((m) => ({
+          id: m._id,
+          memberId: m.memberCode?.startsWith("ID-") ? m.memberCode : `ID-${m.memberCode || "001"}`,
+          name: m.fullName,
+          role: m.designation,
+          roleBn: m.designationBn,
+          location: `${m.thana ? m.thana + ", " : ""}${m.district || m.division || "Patuakhali"}`,
+          dob: m.dateOfBirth || "01 Dec 1993",
+          bloodGroup: m.bloodGroup ? `${m.bloodGroup} (Positive)` : "O+ (Positive)",
+          image: m.pictureUrl || "/images/hero/hero-2.png",
+        }))
+      : EXECUTIVE_MEMBERS;
+
   return (
     <div className="w-full bg-white text-[#555555]">
       <PageHero
@@ -166,7 +189,7 @@ export function ExecutiveCouncilPageClient() {
         headingTitleBn="মূল নেতৃত্ব"
         roleOptions={EXECUTIVE_ROLES}
         defaultRole="Executive Member"
-        members={EXECUTIVE_MEMBERS}
+        members={displayMembers}
         roleDescription="The responsibility of executive members is generally to ensure the smooth operation of an organization or committee and to assist in achieving its objectives."
         roleDescriptionBn="নির্বাহী সদস্যদের মূল দায়িত্ব হলো সংগঠনের মসৃণ কার্যক্রম পরিচালনা নিশ্চিত করা এবং লক্ষ্য অর্জনে সহায়তা করা।"
         responsibilities={EXECUTIVE_RESPONSIBILITIES}

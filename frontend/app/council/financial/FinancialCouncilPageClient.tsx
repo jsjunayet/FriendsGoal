@@ -4,13 +4,15 @@ import { PageHero } from "@/components/PageHero";
 import { CouncilPageContent } from "@/components/sections/CouncilPageContent";
 import type { RoleOption } from "@/components/sections/CouncilPageContent";
 import type { DirectoryMember } from "@/types";
+import { useTranslation } from "@/context/LanguageContext";
+import { useQuery } from "@tanstack/react-query";
+import { fetchPublicCouncilApi } from "@/lib/memberApi";
 
 const FINANCIAL_ROLES: RoleOption[] = [
   { label: "Financial Member",  labelBn: "আর্থিক সদস্য" },
   { label: "Treasurer",         labelBn: "কোষাধ্যক্ষ" },
   { label: "Financial Auditor", labelBn: "আর্থিক নিরীক্ষক" },
 ];
-import { useTranslation } from "@/context/LanguageContext";
 
 const FINANCIAL_MEMBERS: DirectoryMember[] = [
   { id: "fin-1", memberId: "ID-009", name: "MD. FAZLE RABBI",   role: "Treasurer",         location: "Dhanmondi, Dhaka", dob: "25 May 1994", bloodGroup: "AB+ (Positive)", image: "/images/about/about-1.png" },
@@ -25,6 +27,27 @@ const FINANCIAL_RESPONSIBILITIES = [
 
 export function FinancialCouncilPageClient() {
   const { t } = useTranslation();
+
+  const { data: dynamicMembers } = useQuery({
+    queryKey: ["public-council", "financial_leadership"],
+    queryFn: () => fetchPublicCouncilApi({ category: "financial_leadership" }),
+  });
+
+  const displayMembers: DirectoryMember[] =
+    dynamicMembers && dynamicMembers.length > 0
+      ? dynamicMembers.map((m) => ({
+          id: m._id,
+          memberId: m.memberCode?.startsWith("ID-") ? m.memberCode : `ID-${m.memberCode || "001"}`,
+          name: m.fullName,
+          role: m.designation,
+          roleBn: m.designationBn,
+          location: `${m.thana ? m.thana + ", " : ""}${m.district || m.division || "Dhaka"}`,
+          dob: m.dateOfBirth || "25 May 1994",
+          bloodGroup: m.bloodGroup ? `${m.bloodGroup} (Positive)` : "AB+ (Positive)",
+          image: m.pictureUrl || "/images/about/about-1.png",
+        }))
+      : FINANCIAL_MEMBERS;
+
   return (
     <div className="w-full bg-white text-[#555555]">
       <PageHero
@@ -39,7 +62,7 @@ export function FinancialCouncilPageClient() {
         headingTitleBn="আর্থিক নেতৃত্ব"
         roleOptions={FINANCIAL_ROLES}
         defaultRole="Financial Member"
-        members={FINANCIAL_MEMBERS}
+        members={displayMembers}
         roleDescription="The responsibility of financial council members is to oversee savings fund distribution, maintain rigorous audit logs, and ensure 100% interest-free compliance across all member investments."
         roleDescriptionBn="আর্থিক কাউন্সিলের সদস্যদের দায়িত্ব হলো সঞ্চয় তহবিল বিতরণ তদারকি করা, সঠিক অডিট লগ বজায় রাখা এবং ১০০% সুদমুক্ত অর্থায়ন নিশ্চিত করা।"
         responsibilities={FINANCIAL_RESPONSIBILITIES}

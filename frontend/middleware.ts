@@ -38,40 +38,59 @@ export function middleware(request: NextRequest) {
   }
 
   const isLoggedIn = request.cookies.get("fg_auth")?.value === "1";
-  const role = request.cookies.get("fg_auth_role")?.value ?? "";
+  const rawRole = request.cookies.get("fg_auth_role")?.value ?? "";
+  const role = rawRole.toLowerCase();
+  const isAdmin = role === "admin" || role === "superadmin";
 
   // ── /admin/** ─────────────────────────────────────────────────────────────
   if (pathname.startsWith("/admin")) {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
-    if (role !== "admin" && role !== "superAdmin") {
-      // Authenticated but wrong role — send to their own dashboard
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+    if (!isAdmin) {
+      return NextResponse.redirect(new URL("/dashboard/member", request.url));
     }
     return NextResponse.next();
   }
 
-  // ── /dashboard/** ─────────────────────────────────────────────────────────
-  if (pathname.startsWith("/dashboard")) {
+  // ── /dashboard/member ─────────────────────────────────────────────────────
+  if (pathname === "/dashboard/member" || pathname.startsWith("/dashboard/member/")) {
     if (!isLoggedIn) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);
     }
-    // Admins who land on /dashboard should go to their admin dashboard
-    if (role === "admin" || role === "superAdmin") {
-      return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+    return NextResponse.next();
+  }
+
+  // ── /dashboard/** (Admin Financial Analytics) ─────────────────────────────
+  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
+    if (!isLoggedIn) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("next", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    // Only 'superadmin' and 'admin' can access /dashboard.
+    // 'manager' or 'member' are redirected to /dashboard/member.
+    if (!isAdmin) {
+      return NextResponse.redirect(new URL("/dashboard/member", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // ── /notifications ────────────────────────────────────────────────────────
+  if (pathname.startsWith("/notifications")) {
+    if (!isLoggedIn) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("next", pathname);
+      return NextResponse.redirect(loginUrl);
     }
     return NextResponse.next();
   }
 
   // ── /login — bounce already-authenticated users ───────────────────────────
   if (pathname === "/login" && isLoggedIn) {
-    const dest =
-      role === "admin" || role === "superAdmin"
-        ? "/admin/dashboard"
-        : "/dashboard";
+    const dest = isAdmin ? "/dashboard" : "/dashboard/member";
     return NextResponse.redirect(new URL(dest, request.url));
   }
 

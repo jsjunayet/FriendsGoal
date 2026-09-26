@@ -57,18 +57,31 @@ export function CouncilPageContent({
     setSelectedRole(defaultRole);
   }, [defaultRole]);
 
-  // Filter members by selected role (match against English label)
-  const filteredMembers = members.filter(
-    (m) => m.role === selectedRole
-  );
-  // If no members match the filter, show all
-  const displayMembers = filteredMembers.length > 0 ? filteredMembers : members;
-
-  // Find selected role option for description
+  // Find selected role option for description & filtering
   const selectedOption = roleOptions.find((r) => r.label === selectedRole);
   const displaySelectedLabel = isBn && selectedOption?.labelBn
     ? selectedOption.labelBn
     : selectedOption?.label ?? selectedRole;
+
+  // Filter members by selected role (match against English label or Bangla label)
+  const filteredMembers = members.filter((m) => {
+    const roleEn = m.role?.toLowerCase() || "";
+    const roleBn = (m as any).roleBn || (m as any).designationBn || "";
+    const target = selectedRole.toLowerCase();
+    const optionMatches =
+      selectedOption &&
+      (m.role === selectedOption.label ||
+        roleBn === selectedOption.labelBn ||
+        m.role === selectedOption.labelBn);
+    return (
+      roleEn === target ||
+      roleBn === selectedRole ||
+      m.role === selectedRole ||
+      optionMatches
+    );
+  });
+  // If no members match the filter, show all
+  const displayMembers = filteredMembers.length > 0 ? filteredMembers : members;
 
   return (
     <section className="w-full py-14 sm:py-20 bg-white" aria-label={headingTitle}>

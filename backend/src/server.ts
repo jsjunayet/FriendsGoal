@@ -2,6 +2,7 @@ import { Server } from "http";
 import mongoose from "mongoose";
 import app from "./app";
 import config from "./app/config/index";
+import { OperationServices } from "./app/modules/Operation/operation.service";
 let server: Server;
 
 async function main() {
@@ -12,6 +13,9 @@ async function main() {
     }
 
     await mongoose.connect(mongoUri);
+
+    // Initialize recurring monthly auto-billing cron engine
+    OperationServices.initMonthlyAutoBillingCron();
 
     // await seedSuperAdmin();
     server = app.listen(5000, () => {

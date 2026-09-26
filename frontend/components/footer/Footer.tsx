@@ -9,6 +9,9 @@ import { useTranslation } from "@/context/LanguageContext";
 // Routes where the Footer should be hidden
 const HIDDEN_ON: RegExp[] = [
   /^\/login$/,
+  /^\/dashboard/,
+  /^\/admin/,
+  /^\/notifications/,
 ];
 
 // ─── Logo ──────────────────────────────────────────────────────────────────────
@@ -163,9 +166,18 @@ export function Footer() {
         {/* ── Bottom bar ─────────────────────────────────────────────────────── */}
         <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[12px] text-[#888888]">
           <p>{t("footer_copyright")}</p>
-          <p className="text-[#888888]">
-            {t("footer_dev")} <span className="underline underline-offset-2">Turtle Studio</span>
-          </p>
+
+<p className="text-[#888888]">
+  {t("footer_dev")}{" "}
+  <Link
+    href="https://turtlestudio-it.com"
+     target="_blank"
+  rel="noopener noreferrer"
+    className="text-[#1FDE64] underline underline-offset-2 hover:opacity-80 transition"
+  >
+    Turtle Studio
+  </Link>
+</p>
         </div>
       </div>
     </footer>

@@ -7,6 +7,9 @@ import { Navbar } from "@/components/navigation/Navbar";
 const HIDDEN_ON: RegExp[] = [
   /^\/notice\/.+/, // /notice/[slug] — individual notice detail pages
   /^\/login$/,     // login page
+  /^\/dashboard/,  // dashboard routes
+  /^\/admin/,      // admin routes
+  /^\/notifications/, // notifications routes
 ];
 
 export function ConditionalNavbar() {

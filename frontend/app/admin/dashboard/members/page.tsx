@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import MembersClient from "./MembersClient";
+import { MemberListTable } from "@/components/member/MemberListTable";
 
 export const metadata: Metadata = {
   title: "Member Management | Friends Goal Admin",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function MembersPage() {
-  return <MembersClient />;
+  return <MemberListTable />;
 }

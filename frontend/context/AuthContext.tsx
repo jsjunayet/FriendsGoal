@@ -22,7 +22,7 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type UserRole = "superAdmin" | "admin" | "member";
+export type UserRole = "superAdmin" | "superadmin" | "admin" | "manager" | "member" | string;
 
 export interface AuthUser {
   userId: string;

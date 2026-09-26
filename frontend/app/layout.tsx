@@ -6,6 +6,7 @@ import { Footer } from "@/components/footer/Footer";
 import { SITE_CONFIG } from "@/constants/site";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { QueryProvider } from "@/providers/QueryProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -58,11 +59,13 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={`${inter.variable} ${libreCaslon.variable} overflow-x-hidden`}>
       <body suppressHydrationWarning className="min-h-screen flex flex-col bg-white antialiased overflow-x-hidden">
         <AuthProvider>
-          <LanguageProvider>
-            <ConditionalNavbar />
-            <main className="flex-1 w-full overflow-x-hidden">{children}</main>
-            <Footer />
-          </LanguageProvider>
+          <QueryProvider>
+            <LanguageProvider>
+              <ConditionalNavbar />
+              <main className="flex-1 w-full overflow-x-hidden">{children}</main>
+              <Footer />
+            </LanguageProvider>
+          </QueryProvider>
         </AuthProvider>
       </body>
     </html>

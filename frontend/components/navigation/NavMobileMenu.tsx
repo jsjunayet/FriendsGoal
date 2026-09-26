@@ -193,11 +193,15 @@ export function NavMobileMenu({ activeSection, onClose }: NavMobileMenuProps) {
               </Link>
             );
           })}
+
+          {/* Language toggle — sits right after the last nav item (FAQ) */}
+          <div className="px-3 py-2.5 mt-1">
+            <LanguageToggle variant="stacked" />
+          </div>
         </nav>
 
         {/* Drawer footer */}
-        <div className="px-4 pt-3 pb-5 border-t border-gray-100 flex-shrink-0 flex flex-col gap-3">
-          <LanguageToggle variant="stacked" />
+        <div className="px-4 pt-3 pb-5 border-t border-gray-100 flex-shrink-0">
           <Link
             href="/login"
             onClick={onClose}
