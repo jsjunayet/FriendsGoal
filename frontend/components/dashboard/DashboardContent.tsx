@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import {
@@ -14,7 +15,11 @@ import {
   Receipt,
   Banknote,
   History,
+  ArrowUpRight,
 } from "lucide-react";
+import { fetchMemberProfitBalanceApi } from "@/lib/disbursementApi";
+import { RequestWithdrawalModal } from "./RequestWithdrawalModal";
+import { useMemberDashboard } from "@/lib/hooks/useMemberDashboard";
 
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
 function StatBar({
@@ -131,6 +136,36 @@ function OverviewCard({
 
 // ─── Main Personal Financial Status Card ─────────────────────────────────────
 function PersonalFinancialCard() {
+  const { summary, profitBalance, refetchSummary, isLoading } = useMemberDashboard();
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+
+  const totalDepositVal = summary?.totalDeposit ?? 30450;
+  const dueAmountVal = summary?.dueAmount ?? 1000;
+  const myProfitVal = profitBalance ?? summary?.profitBalance ?? 4554;
+  const memberName = summary?.fullName || "MD BELAL HOSSAIN";
+  const memberCode = summary?.memberCode || "002";
+  const memberId = summary?.memberId || "mem-002";
+
+  const scheduleList =
+    summary?.activePaymentSchedule && summary.activePaymentSchedule.length > 0
+      ? summary.activePaymentSchedule
+      : [
+          {
+            receiptNo: "REC-2026-09",
+            month: "September 2026 Monthly Due",
+            amount: dueAmountVal > 0 ? dueAmountVal : 1200,
+            status: dueAmountVal > 0 ? "Due" : "Paid",
+            paymentDate: "15 Sept 2026",
+          },
+          {
+            receiptNo: "REC-2026-08",
+            month: "August 2026 Monthly Collection",
+            amount: 1200,
+            status: "Paid",
+            paymentDate: "12 Aug 2026",
+          },
+        ];
+
   return (
     <div className="bg-white rounded-[28px] border border-[#E5E5E5] shadow-xs overflow-hidden">
       {/* Top: member info + stats */}
@@ -142,7 +177,7 @@ function PersonalFinancialCard() {
           <div className="relative w-full aspect-[4/5] rounded-[14px] overflow-hidden bg-[#F0F0F0]">
             <Image
               src="/images/about/about-1.png"
-              alt="MD Belal Hossain"
+              alt={memberName}
               fill
               className="object-cover object-top rounded-[14px]"
             />
@@ -152,10 +187,10 @@ function PersonalFinancialCard() {
           <div className="pt-3 pb-1 px-1 flex flex-col gap-2">
             <div>
               <span className="text-[10px] font-bold tracking-[0.18em] text-[#888888] uppercase block">
-                SECRETARY
+                {summary?.role === "admin" || summary?.role === "superAdmin" ? "ADMIN" : "MEMBER"}
               </span>
               <h2 className="font-bold text-[#1A1A1A] text-[14px] uppercase leading-tight tracking-[0.06em] mt-0.5">
-                MD BELAL HOSSAIN
+                {memberName}
               </h2>
             </div>
 
@@ -168,7 +203,7 @@ function PersonalFinancialCard() {
                 { icon: <MapPin className="w-3 h-3" />,    text: "Rajapur, Patuakhali" },
                 { icon: <Calendar className="w-3 h-3" />,  text: "01 Dec 1993" },
                 { icon: <Droplets className="w-3 h-3" />,  text: "O+ (Positive)" },
-                { icon: <IdCard className="w-3 h-3" />,    text: "ID-002" },
+                { icon: <IdCard className="w-3 h-3" />,    text: `ID-${memberCode}` },
               ].map(({ icon, text }) => (
                 <div key={text} className="flex items-center gap-1.5 min-w-0">
                   <span className="text-[#1FDE64] flex-shrink-0">{icon}</span>
@@ -182,7 +217,7 @@ function PersonalFinancialCard() {
         {/* Right: financial stats */}
         <div className="p-6 sm:p-8 flex flex-col gap-6">
           {/* Header row */}
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div>
               <h3 className="font-serif text-[20px] sm:text-[22px] font-bold text-[#1A1A1A]">
                 Personal Financial Status
@@ -191,23 +226,60 @@ function PersonalFinancialCard() {
                 Detailed breakdown of your individual contributions.
               </p>
             </div>
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 h-[36px] px-4 rounded-full bg-[#1FDE64] text-[#1A1A1A] text-[12px] font-bold tracking-wide whitespace-nowrap hover:bg-[#18c957] transition-colors cursor-pointer flex-shrink-0"
-            >
-              <History className="w-3.5 h-3.5" />
-              Payment History
-            </button>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setIsWithdrawModalOpen(true)}
+                className="inline-flex items-center gap-1.5 h-[36px] px-3.5 rounded-full bg-[#1A1A1A] text-white text-[12px] font-bold tracking-wide whitespace-nowrap hover:bg-[#333333] transition-colors cursor-pointer flex-shrink-0 shadow-2xs"
+              >
+                <ArrowUpRight className="w-3.5 h-3.5 text-[#1FDE64]" />
+                Request Withdrawal
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 h-[36px] px-4 rounded-full bg-[#1FDE64] text-[#1A1A1A] text-[12px] font-bold tracking-wide whitespace-nowrap hover:bg-[#18c957] transition-colors cursor-pointer flex-shrink-0"
+              >
+                <History className="w-3.5 h-3.5" />
+                Payment History
+              </button>
+            </div>
           </div>
 
-          {/* Stat bars 3-col */}
+          {/* Stat bars 3-col: MY PROFIT bound directly to member.profitBalance */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6">
-            <StatBar label="Total Deposit" value="30,450" color="green" pct={78} />
-            <StatBar label="Due Amount" value="1,000" color="red" pct={15} />
-            <StatBar label="My Profit" value="4,554" color="blue" pct={42} />
+            <StatBar
+              label="Total Deposit"
+              value={`৳${(Number(totalDepositVal) || 0).toLocaleString("en-US")}`}
+              color="green"
+              pct={78}
+            />
+            <StatBar
+              label="Due Amount"
+              value={`৳${(Number(dueAmountVal) || 0).toLocaleString("en-US")}`}
+              color="red"
+              pct={Number(dueAmountVal) > 0 ? 15 : 0}
+            />
+            <StatBar
+              label="My Profit"
+              value={`৳${(Number(myProfitVal) || 0).toLocaleString("en-US", {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2,
+              })}`}
+              color="blue"
+              pct={42}
+            />
           </div>
         </div>
       </div>
+
+      {/* Withdrawal Request Modal */}
+      <RequestWithdrawalModal
+        isOpen={isWithdrawModalOpen}
+        onClose={() => setIsWithdrawModalOpen(false)}
+        availableProfit={myProfitVal}
+        memberId={memberId}
+        onWithdrawalSuccess={() => refetchSummary()}
+      />
 
       {/* Divider */}
       <div className="border-t border-[#E5E5E5]" />
@@ -236,35 +308,39 @@ function PersonalFinancialCard() {
               </tr>
             </thead>
             <tbody>
-              {[
-                {
-                  desc: "Monthly Maintenance Fee",
-                  date: "Oct 15, 2024",
-                  amount: "$229.00",
-                  status: "PENDING",
-                  statusColor: "text-[#F59E0B] bg-[#FFFBEB] border-[#FDE68A]",
-                },
-                {
-                  desc: "Annual Membership Fee",
-                  date: "Dec 01, 2024",
-                  amount: "$200.00",
-                  status: "UPCOMING",
-                  statusColor: "text-[#3B82F6] bg-[#EFF6FF] border-[#BFDBFE]",
-                },
-              ].map((row) => (
-                <tr key={row.desc} className="border-b border-[#F9F9F9] hover:bg-[#FAFAFA] transition-colors">
-                  <td className="py-4 pr-6 font-medium text-[#1A1A1A]">{row.desc}</td>
-                  <td className="py-4 pr-6 text-[#555555]">{row.date}</td>
-                  <td className="py-4 pr-6 font-semibold text-[#1A1A1A]">{row.amount}</td>
-                  <td className="py-4">
-                    <span
-                      className={`inline-flex items-center h-[26px] px-3 rounded-full text-[11px] font-bold border ${row.statusColor}`}
-                    >
-                      {row.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {scheduleList.map((row: any, idx: number) => {
+                const isPaid = row.status === "Paid";
+                const isDue = row.status === "Due";
+                const statusColor = isPaid
+                  ? "text-[#00B074] bg-[#EAF8F1] border-[#00B074]/30"
+                  : isDue
+                  ? "text-[#F59E0B] bg-[#FFFBEB] border-[#FDE68A]"
+                  : "text-[#3B82F6] bg-[#EFF6FF] border-[#BFDBFE]";
+
+                return (
+                  <tr
+                    key={row.receiptNo || idx}
+                    className="border-b border-[#F9F9F9] hover:bg-[#FAFAFA] transition-colors"
+                  >
+                    <td className="py-4 pr-6 font-medium text-[#1A1A1A]">
+                      {row.month || "Monthly Collection"}
+                    </td>
+                    <td className="py-4 pr-6 text-[#555555]">
+                      {row.paymentDate || "15th of month"}
+                    </td>
+                    <td className="py-4 pr-6 font-semibold text-[#1A1A1A]">
+                      ৳{(Number(row?.amount) || 0).toLocaleString()}
+                    </td>
+                    <td className="py-4">
+                      <span
+                        className={`inline-flex items-center h-[26px] px-3 rounded-full text-[11px] font-bold border ${statusColor}`}
+                      >
+                        {row.status}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

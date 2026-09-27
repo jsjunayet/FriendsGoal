@@ -232,12 +232,12 @@ export function MemberListTable({ onToggleMobileSidebar }: MemberListTableProps)
 
                     {/* Total Deposit */}
                     <td className="py-3 px-4 font-semibold text-gray-900">
-                      {member.totalDeposit.toLocaleString()}
+                      ৳{(Number(member.totalDeposit) || 0).toLocaleString()}
                     </td>
 
                     {/* Due Amount */}
                     <td className="py-3 px-4 font-semibold text-gray-900">
-                      ${member.dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      ৳{(Number(member.dueAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
 
                     {/* Mobile No */}

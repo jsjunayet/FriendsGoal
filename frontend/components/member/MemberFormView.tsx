@@ -108,10 +108,10 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
     nomineeAddress: initialMember?.nomineeAddress || "",
     pictureUrl: initialMember?.pictureUrl || "/images/hero/hero-2.png",
     signatureUrl: initialMember?.signatureUrl || "",
-    totalDeposit: initialMember?.totalDeposit || 20000,
-    savingsBalance: initialMember?.savingsBalance || 1000,
-    dueAmount: initialMember?.dueAmount || 0,
-    memberCode: initialMember?.memberCode || "001",
+    totalDeposit: isCreateMode ? 0 : (initialMember?.totalDeposit ?? 0),
+    savingsBalance: isCreateMode ? 0 : (initialMember?.savingsBalance ?? 0),
+    dueAmount: isCreateMode ? 0 : (initialMember?.dueAmount ?? 0),
+    memberCode: isCreateMode ? undefined : (initialMember?.memberCode || undefined),
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -193,7 +193,19 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
       return;
     }
 
-    saveMutation.mutate(formData);
+    const dataToSubmit: Partial<IMember> = {
+      ...formData,
+      ...(isCreateMode
+        ? {
+            totalDeposit: 0,
+            savingsBalance: 0,
+            dueAmount: 0,
+            memberCode: undefined,
+          }
+        : {}),
+    };
+
+    saveMutation.mutate(dataToSubmit);
   };
 
   return (

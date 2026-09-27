@@ -350,11 +350,11 @@ export function DueListView() {
                       }`}
                     >
                       {item.status === "Advance"
-                        ? item.advanceBalance.toLocaleString("en-US", {
+                        ? (Number(item.advanceBalance) || 0).toLocaleString("en-US", {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })
-                        : item.dueAmount.toLocaleString("en-US", {
+                        : (Number(item.dueAmount) || 0).toLocaleString("en-US", {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}

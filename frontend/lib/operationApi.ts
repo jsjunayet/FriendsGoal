@@ -410,6 +410,8 @@ export async function fetchCollectionsApi(
     advanceBalance: number;
     totalDeposit: number;
   };
+  dueBalance?: number;
+  advanceBalance?: number;
   collections: ICollectionRecord[];
 }> {
   const query = memberId ? `?memberId=${encodeURIComponent(memberId)}` : "";
@@ -419,7 +421,21 @@ export async function fetchCollectionsApi(
     });
     if (!res.ok) throw new Error("Failed to fetch collections");
     const json = await res.json();
-    return json.data;
+    const payload = json.data || {};
+    const cols = Array.isArray(payload.collections)
+      ? payload.collections
+      : Array.isArray(payload.data)
+      ? payload.data
+      : Array.isArray(payload)
+      ? payload
+      : [];
+
+    return {
+      memberInfo: payload.memberInfo,
+      dueBalance: payload.dueBalance,
+      advanceBalance: payload.advanceBalance,
+      collections: cols,
+    };
   } catch (err) {
     console.warn("Backend /operations/collections failed, fallback", err);
     if (!memberId) {

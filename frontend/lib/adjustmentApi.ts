@@ -186,57 +186,26 @@ export async function fetchAdjustmentsApi(
 export async function createAdjustmentApi(
   payload: ICreateAdjustmentPayload
 ): Promise<IAdjustmentRecord> {
-  try {
-    const res = await fetch(`${BASE_URL}/adjustments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+  const res = await fetch(`${BASE_URL}/adjustments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
 
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && json.data) {
-        inMemoryAdjustments = [json.data, ...inMemoryAdjustments];
-        return json.data;
-      }
-    } else {
-      const errJson = await res.json().catch(() => null);
-      throw new Error(errJson?.message || "Failed to create adjustment");
+  if (res.ok) {
+    const json = await res.json();
+    if (json.success && json.data) {
+      inMemoryAdjustments = [json.data, ...inMemoryAdjustments];
+      return json.data;
     }
-  } catch (err: any) {
-    console.warn("Backend /adjustments POST failed, saving optimistically", err);
   }
 
-  // Optimistic fallback
-  const nextId = String(130 + inMemoryAdjustments.length);
-  const typeMap: Record<string, string> = {
-    credit: "Balance Adjustment",
-    debit: "Balance Adjustment",
-    fee_reversal: "Fee Reversal",
-    operational: "Operational Adjustment",
-  };
-  const isDebit = payload.adjustmentType === "debit";
-  const signed = isDebit ? -Math.abs(payload.adjustmentAmount) : Math.abs(payload.adjustmentAmount);
-
-  const newAdj: IAdjustmentRecord = {
-    _id: "adj-" + Date.now(),
-    adjustmentId: nextId,
-    memberId: payload.memberId,
-    memberCode: payload.memberId,
-    memberName: "MD MAFUF HOSSAIN",
-    adjustmentType: payload.adjustmentType,
-    adjustmentTypeName: typeMap[payload.adjustmentType] || "Balance Adjustment",
-    adjustmentDate: payload.adjustmentDate || new Date().toISOString().slice(0, 10),
-    adjustmentAmount: payload.adjustmentAmount,
-    signedAmount: signed,
-    previousBalance: { totalDeposit: 20000, savingsBalance: 1000, dueAmount: 0 },
-    updatedBalance: { totalDeposit: 20000 + signed, savingsBalance: 1000, dueAmount: 0 },
-    remarks: payload.remarks,
-    createdAt: new Date().toISOString(),
-  };
-
-  inMemoryAdjustments = [newAdj, ...inMemoryAdjustments];
-  return newAdj;
+  const errJson = await res.json().catch(() => null);
+  const errMsg =
+    errJson?.message ||
+    errJson?.errorSources?.[0]?.message ||
+    "Failed to create adjustment";
+  throw new Error(errMsg);
 }
 
 /**

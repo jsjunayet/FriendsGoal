@@ -64,6 +64,49 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
     pathname.startsWith("/admin/dashboard/money-adjustment") ||
     pathname.includes("adjustment");
 
+  const isExpenseActive =
+    pathname === "/dashboard/expense" ||
+    pathname.startsWith("/dashboard/expense") ||
+    pathname === "/admin/dashboard/expense" ||
+    pathname.startsWith("/admin/dashboard/expense") ||
+    pathname.includes("expense");
+
+  const isInvestmentActive =
+    pathname === "/dashboard/investment" ||
+    pathname.startsWith("/dashboard/investment") ||
+    pathname === "/admin/dashboard/investment" ||
+    pathname.startsWith("/admin/dashboard/investment") ||
+    pathname.includes("investment");
+
+  const isDisbursementActive =
+    pathname === "/dashboard/income-disbursement" ||
+    pathname.startsWith("/dashboard/income-disbursement") ||
+    pathname === "/admin/dashboard/income-disbursement" ||
+    pathname.startsWith("/admin/dashboard/income-disbursement") ||
+    pathname.includes("income-disbursement") ||
+    pathname.includes("disburs");
+
+  const isWithdrawalsActive =
+    pathname === "/dashboard/withdrawals" ||
+    pathname.startsWith("/dashboard/withdrawals") ||
+    pathname === "/admin/dashboard/withdrawals" ||
+    pathname.startsWith("/admin/dashboard/withdrawals") ||
+    pathname === "/admin/withdrawals" ||
+    pathname.startsWith("/admin/withdrawals") ||
+    pathname.includes("withdraw");
+
+  const isAuditLogActive =
+    pathname === "/dashboard/audit-logs" ||
+    pathname.startsWith("/dashboard/audit-logs") ||
+    pathname === "/dashboard/modification-history" ||
+    pathname.startsWith("/dashboard/modification-history") ||
+    pathname === "/admin/dashboard/audit-logs" ||
+    pathname.startsWith("/admin/dashboard/audit-logs") ||
+    pathname === "/admin/audit-logs" ||
+    pathname.startsWith("/admin/audit-logs") ||
+    pathname.includes("audit") ||
+    pathname.includes("modification-history");
+
   return (
     <>
       {/* Mobile Backdrop */}
@@ -223,18 +266,47 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
                     Money Adjustment
                   </Link>
 
-                  {[
-                    "Expense",
-                    "Investment Information",
-                    "Income Disburs",
-                  ].map((subItem) => (
-                    <span
-                      key={subItem}
-                      className="py-1 px-3 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50 cursor-pointer transition-colors block truncate"
-                    >
-                      {subItem}
-                    </span>
-                  ))}
+                  {/* Expense */}
+                  <Link
+                    href="/dashboard/expense"
+                    onClick={onCloseMobile}
+                    className={cn(
+                      "py-1 px-3 rounded-full transition-all block truncate font-medium",
+                      isExpenseActive
+                        ? "bg-[#EAF8F1] text-[#00B074] font-semibold border border-[#00B074]/30 shadow-2xs"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    Expense
+                  </Link>
+
+                  {/* Investment Information */}
+                  <Link
+                    href="/dashboard/investment"
+                    onClick={onCloseMobile}
+                    className={cn(
+                      "py-1 px-3 rounded-full transition-all block truncate font-medium",
+                      isInvestmentActive
+                        ? "bg-[#EAF8F1] text-[#00B074] font-semibold border border-[#00B074]/30 shadow-2xs"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    Investment Information
+                  </Link>
+
+                  {/* Income Disburs */}
+                  <Link
+                    href="/dashboard/income-disbursement"
+                    onClick={onCloseMobile}
+                    className={cn(
+                      "py-1 px-3 rounded-full transition-all block truncate font-medium",
+                      isDisbursementActive
+                        ? "bg-[#EAF8F1] text-[#00B074] font-semibold border border-[#00B074]/30 shadow-2xs"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    Income Disburs
+                  </Link>
                 </div>
               )}
             </div>
@@ -271,14 +343,31 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
                   >
                     Financial Analytics
                   </Link>
-                  {["Manage", "Modification History", "Withdrawal Requests"].map((subItem) => (
-                    <span
-                      key={subItem}
-                      className="py-1.5 px-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50 cursor-pointer transition-colors block truncate"
-                    >
-                      {subItem}
-                    </span>
-                  ))}
+                  <Link
+                    href="/dashboard/audit-logs"
+                    onClick={onCloseMobile}
+                    className={cn(
+                      "py-1.5 px-2 rounded-lg transition-colors block truncate font-medium",
+                      isAuditLogActive
+                        ? "text-[#00B074] font-semibold"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    Modification History
+                  </Link>
+
+                  <Link
+                    href="/dashboard/withdrawals"
+                    onClick={onCloseMobile}
+                    className={cn(
+                      "py-1.5 px-2 rounded-lg transition-colors block truncate font-medium",
+                      isWithdrawalsActive
+                        ? "text-[#00B074] font-semibold"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    Withdrawal Requests
+                  </Link>
                 </div>
               )}
             </div>

@@ -388,83 +388,69 @@ export async function fetchPublicCouncilApi(params?: {
 }
 
 export async function createMemberApi(payload: Partial<IMember>): Promise<IMember> {
-  try {
-    const res = await fetch(`${BASE_URL}/members`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && json.data) {
-        return json.data;
-      }
+  const res = await fetch(`${BASE_URL}/members`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (res.ok) {
+    const json = await res.json();
+    if (json.success && json.data) {
+      inMemoryMembers.unshift(json.data);
+      return json.data;
     }
-  } catch (err) {
-    // Fallback
   }
 
-  const nextCode = String(inMemoryMembers.length + 1).padStart(3, "0");
-  const newMember: IMember = {
-    _id: `mem-${Date.now()}`,
-    memberCode: payload.memberCode || nextCode,
-    fullName: payload.fullName || "New Member",
-    email: payload.email || `member${nextCode}@friendsgoal.org`,
-    mobileNo: payload.mobileNo || "01700000000",
-    designation: payload.designation || "General Member",
-    designationBn: payload.designationBn || "সাধারণ সদস্য",
-    councilCategory: payload.councilCategory || "general_member",
-    role: payload.role || "member",
-    totalDeposit: payload.totalDeposit || 0,
-    savingsBalance: payload.savingsBalance || 0,
-    dueAmount: payload.dueAmount || 0,
-    status: "active",
-    isDeleted: false,
-    ...payload,
-  };
-
-  inMemoryMembers.unshift(newMember);
-  return newMember;
+  const errJson = await res.json().catch(() => null);
+  const errMsg =
+    errJson?.message ||
+    errJson?.errorSources?.[0]?.message ||
+    "Failed to create member";
+  throw new Error(errMsg);
 }
 
 export async function updateMemberApi(id: string, payload: Partial<IMember>): Promise<IMember> {
-  try {
-    const res = await fetch(`${BASE_URL}/members/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && json.data) {
-        return json.data;
+  const res = await fetch(`${BASE_URL}/members/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (res.ok) {
+    const json = await res.json();
+    if (json.success && json.data) {
+      const idx = inMemoryMembers.findIndex((m) => m._id === id || m.memberCode === id);
+      if (idx !== -1) {
+        inMemoryMembers[idx] = json.data;
       }
+      return json.data;
     }
-  } catch (err) {
-    // Fallback
   }
 
-  const index = inMemoryMembers.findIndex((m) => m._id === id || m.memberCode === id);
-  if (index !== -1) {
-    inMemoryMembers[index] = { ...inMemoryMembers[index], ...payload };
-    return inMemoryMembers[index];
-  }
-
-  throw new Error("Member not found");
+  const errJson = await res.json().catch(() => null);
+  const errMsg =
+    errJson?.message ||
+    errJson?.errorSources?.[0]?.message ||
+    "Failed to update member";
+  throw new Error(errMsg);
 }
 
 export async function deleteMemberApi(id: string): Promise<void> {
-  try {
-    const res = await fetch(`${BASE_URL}/members/${id}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-    });
-    if (res.ok) {
-      return;
-    }
-  } catch (err) {
-    // Fallback
+  const res = await fetch(`${BASE_URL}/members/${id}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (res.ok) {
+    inMemoryMembers = inMemoryMembers.filter((m) => m._id !== id && m.memberCode !== id);
+    return;
   }
 
-  inMemoryMembers = inMemoryMembers.filter((m) => m._id !== id && m.memberCode !== id);
+  const errJson = await res.json().catch(() => null);
+  const errMsg =
+    errJson?.message ||
+    errJson?.errorSources?.[0]?.message ||
+    "Failed to delete member";
+  throw new Error(errMsg);
 }

@@ -172,8 +172,11 @@ export function CreateAdjustmentView() {
                   onChange={(e) => setAdjustmentType(e.target.value as TAdjustmentType)}
                   className="w-full appearance-none px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus:outline-hidden focus:ring-2 focus:ring-[#00B074]/30 focus:border-[#00B074] transition-all cursor-pointer"
                 >
-                  <option value="debit">Debit (Deduct / Correction)</option>
+                  <option value="PROFIT">Profit Adjustment (PROFIT)</option>
+                  <option value="DEPOSIT">Deposit Adjustment (DEPOSIT)</option>
+                  <option value="DUE">Due Adjustment (DUE)</option>
                   <option value="credit">Credit (Add Deposit)</option>
+                  <option value="debit">Debit (Deduct / Correction)</option>
                   <option value="fee_reversal">Fee Reversal / Waive</option>
                   <option value="operational">Other Operational Adjustment</option>
                 </select>

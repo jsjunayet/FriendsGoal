@@ -68,9 +68,15 @@ export function MoneyCollectionView() {
         setAdvanceBalance(0);
         try {
           const res = await fetchCollectionsApi();
-          setHistory(res.collections.slice(0, 10));
+          const list = Array.isArray(res?.collections)
+            ? res.collections
+            : Array.isArray((res as any)?.data)
+            ? (res as any).data
+            : [];
+          setHistory(list.slice(0, 10));
         } catch (err) {
           console.error("Failed to load global collections", err);
+          setHistory([]);
         } finally {
           setLoadingHistory(false);
         }
@@ -83,19 +89,30 @@ export function MoneyCollectionView() {
         );
         if (found) {
           setSelectedMember(found);
-          setDueBalance(found.dueAmount ?? 0);
-          setAdvanceBalance(found.savingsBalance ?? 0);
+          setDueBalance(Number(found.dueAmount) || 0);
+          setAdvanceBalance(Number(found.savingsBalance) || 0);
         }
 
         try {
           const res = await fetchCollectionsApi(selectedMemberId);
-          if (res.memberInfo) {
-            setDueBalance(res.memberInfo.dueAmount);
-            setAdvanceBalance(res.memberInfo.advanceBalance);
+          if (res?.memberInfo) {
+            setDueBalance(Number(res.memberInfo.dueAmount) || 0);
+            setAdvanceBalance(
+              Number(res.memberInfo.advanceBalance ?? (res.memberInfo as any).savingsBalance) || 0
+            );
+          } else if (res?.dueBalance !== undefined) {
+            setDueBalance(Number(res.dueBalance) || 0);
+            setAdvanceBalance(Number(res.advanceBalance) || 0);
           }
-          setHistory(res.collections);
+          const list = Array.isArray(res?.collections)
+            ? res.collections
+            : Array.isArray((res as any)?.data)
+            ? (res as any).data
+            : [];
+          setHistory(list);
         } catch (err) {
           console.error("Failed to load member collections", err);
+          setHistory([]);
         } finally {
           setLoadingHistory(false);
         }
@@ -129,13 +146,18 @@ export function MoneyCollectionView() {
       });
 
       // Update local balances
-      setDueBalance(result.newDueAmount);
-      setAdvanceBalance(result.newAdvanceBalance);
+      setDueBalance(Number(result.newDueAmount ?? (result as any).dueBalance) || 0);
+      setAdvanceBalance(Number(result.newAdvanceBalance ?? (result as any).advanceBalance) || 0);
       setPaidInput("");
 
       // Refresh collections history
       const updatedHistory = await fetchCollectionsApi(memberTargetId);
-      setHistory(updatedHistory.collections);
+      const list = Array.isArray(updatedHistory?.collections)
+        ? updatedHistory.collections
+        : Array.isArray((updatedHistory as any)?.data)
+        ? (updatedHistory as any).data
+        : [];
+      setHistory(list);
 
       // Open Success Popup Modal
       setSuccessModalData(result);
@@ -161,7 +183,7 @@ export function MoneyCollectionView() {
         month: new Date().toLocaleString("en-US", { month: "short", year: "numeric" }),
         status: "Paid",
       };
-      setHistory([newRecord, ...history]);
+      setHistory((prev) => [newRecord, ...(Array.isArray(prev) ? prev : [])]);
       setPaidInput("");
 
       setSuccessModalData({
@@ -220,7 +242,7 @@ export function MoneyCollectionView() {
             </div>
             <div class="amount-box">
               <div class="label">Amount Paid</div>
-              <div class="value">${receipt.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })} BDT</div>
+              <div class="value">${(Number(receipt?.amount) || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })} BDT</div>
             </div>
             <div class="row"><span class="k">Member:</span><span class="v">${receipt.memberCode} - ${receipt.memberName}</span></div>
             <div class="row"><span class="k">Payment Date:</span><span class="v">${receipt.date}</span></div>
@@ -233,6 +255,8 @@ export function MoneyCollectionView() {
     `);
     win.document.close();
   };
+
+  const safeHistory = Array.isArray(history) ? history : [];
 
   return (
     <div className="p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6">
@@ -284,15 +308,15 @@ export function MoneyCollectionView() {
               DUE BALANCE
             </div>
             <div className="text-3xl font-extrabold text-[#DC2626] tracking-tight">
-              {dueBalance.toLocaleString("en-US", {
+              {(Number(dueBalance) || 0).toLocaleString("en-US", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}{" "}
               <span className="text-xl font-bold text-gray-800">BDT</span>
             </div>
-            {advanceBalance > 0 && (
+            {Number(advanceBalance) > 0 && (
               <div className="text-xs text-[#00B074] font-semibold mt-1">
-                Advance Balance: {advanceBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })} BDT
+                Advance Balance: {(Number(advanceBalance) || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })} BDT
               </div>
             )}
           </div>
@@ -344,7 +368,7 @@ export function MoneyCollectionView() {
             <span>Due History</span>
           </div>
           <div className="text-xs text-gray-400 font-medium">
-            {history.length} {history.length === 1 ? "entry" : "entries"}
+            {safeHistory.length} {safeHistory.length === 1 ? "entry" : "entries"}
           </div>
         </div>
 
@@ -368,14 +392,14 @@ export function MoneyCollectionView() {
                     Loading history entries...
                   </td>
                 </tr>
-              ) : history.length === 0 ? (
+              ) : safeHistory.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-gray-400">
                     No transaction entries found.
                   </td>
                 </tr>
               ) : (
-                history.map((record, index) => {
+                safeHistory.map((record, index) => {
                   const isDue = record.status === "Due";
                   return (
                     <tr
@@ -403,7 +427,7 @@ export function MoneyCollectionView() {
                           isDue ? "text-[#EF4444]" : "text-[#00B074]"
                         }`}
                       >
-                        {record.amount.toLocaleString("en-US", {
+                        {(Number(record?.amount) || 0).toLocaleString("en-US", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
@@ -485,7 +509,7 @@ export function MoneyCollectionView() {
                   AMOUNT PAID
                 </div>
                 <div className="text-2xl font-extrabold text-[#00684A] mt-1">
-                  {successModalData.amount.toLocaleString("en-US", {
+                  {(Number(successModalData.amount) || 0).toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}{" "}
@@ -518,7 +542,7 @@ export function MoneyCollectionView() {
                     REMAINING DUE
                   </span>
                   <span className="font-semibold text-[#DC2626]">
-                    {successModalData.newDueAmount.toLocaleString("en-US", {
+                    {(Number(successModalData.newDueAmount ?? (successModalData as any).dueBalance) || 0).toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                     })}{" "}
                     BDT
