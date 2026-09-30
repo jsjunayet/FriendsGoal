@@ -104,7 +104,10 @@ export default function LoginPage() {
           pushToast(err.message, "error");
         }
       } else {
-        pushToast("Network error — please check your connection and try again.", "error");
+        pushToast(
+          "Unable to connect to backend. Please ensure NEXT_PUBLIC_API_URL is set on Vercel/deployment, or wait 30s if Render backend is waking up.",
+          "error"
+        );
       }
     } finally {
       setLoading(false);
