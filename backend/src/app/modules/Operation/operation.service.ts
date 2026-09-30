@@ -3,8 +3,9 @@ import nodeCron from "node-cron";
 import AppError from "../../errors/AppError";
 import { Member } from "../Member/member.model";
 import { Collection, MonthlyBill, Ledger } from "./operation.model";
-import type { IDueListItem, IExportFilterOptions } from "./operation.interface";
 import { generateReceiptCode, formatMonthYear } from "./operation.utils";
+import { NotificationServices } from "../Notification/notification.service";
+import { IDueListItem, IExportFilterOptions } from "./operation.interface";
 
 // ─── 1. Get Due List (Paginated Receivables with Status Filters) ───────────────
 
@@ -120,6 +121,7 @@ const getCollectionsFromDB = async (memberId?: string) => {
       dueBalance: 0,
       advanceBalance: 0,
       data: recentCollections,
+      collections: recentCollections,
     };
   }
 
@@ -147,11 +149,13 @@ const getCollectionsFromDB = async (memberId?: string) => {
       mobileNo: member.mobileNo,
       dueAmount: member.dueAmount || 0,
       savingsBalance: member.savingsBalance || 0,
+      advanceBalance: member.savingsBalance || 0,
       totalDeposit: member.totalDeposit || 0,
     },
     dueBalance: member.dueAmount || 0,
     advanceBalance: member.savingsBalance || 0,
     data: memberCollections,
+    collections: memberCollections,
   };
 };
 
@@ -239,12 +243,19 @@ const collectPaymentIntoDB = async (payload: CollectPaymentPayload) => {
   return {
     receiptNo,
     amountPaid: amount,
+    amount,
     member: `${member.memberCode} - ${member.fullName}`,
+    memberCode: member.memberCode,
+    memberName: member.fullName,
+    paymentDate: currentMonth,
     date: currentMonth,
     entryNo: totalCollectionsCount,
     status: "Paid",
     dueBalance: newDue,
     advanceBalance: newAdvance,
+    newDueAmount: newDue,
+    newAdvanceBalance: newAdvance,
+    newTotalDeposit: Number(member.totalDeposit || 0),
     collection,
   };
 };
@@ -252,7 +263,7 @@ const collectPaymentIntoDB = async (payload: CollectPaymentPayload) => {
 // ─── 5. Subscription Engine: Monthly Auto-Billing Cron (node-cron) ────────────
 
 const initMonthlyAutoBillingCron = () => {
-  // Run on the 1st of every month at 00:00: "0 0 1 * *"
+  // Monthly Auto-Billing Cron (runs on 1st of every month at midnight)
   nodeCron.schedule("0 0 1 * *", async () => {
     console.log("⏰ Running Monthly Auto-Billing Cron Job...");
     try {
@@ -315,6 +326,28 @@ const initMonthlyAutoBillingCron = () => {
           newAdvance,
           description: `Monthly fee charge of ${chargeAmount} BDT for ${currentMonth}`,
         });
+
+        if (billStatus === "Due") {
+          const htmlBody = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 8px;">
+              <h2 style="color: #F59E0B;">New Monthly Due Allocated</h2>
+              <p>Dear <strong>${member.fullName}</strong>,</p>
+              <p>Your monthly due of <strong>৳${chargeAmount}</strong> for <strong>${currentMonth}</strong> has been allocated.</p>
+              <p>Your new total due balance is <strong>৳${newDue}</strong>.</p>
+              <p>Please log in to the portal to acknowledge and proceed with payment.</p>
+            </div>
+          `;
+
+          await NotificationServices.createNotification({
+            recipientId: member._id,
+            title: "New Monthly Due Allocated",
+            message: htmlBody,
+            type: "DUE_ALERT",
+            channel: ["IN_APP", "EMAIL", "SMS"],
+            requiresAction: true,
+            metadata: { billingMonth: currentMonth, amount: chargeAmount, newDue },
+          }).catch((err) => console.error("Failed to send due allocation alert", err));
+        }
       }
       console.log(`✅ Monthly Auto-Billing executed for ${activeMembers.length} active members.`);
     } catch (err) {

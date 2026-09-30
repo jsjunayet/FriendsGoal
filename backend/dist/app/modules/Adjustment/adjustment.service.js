@@ -14,6 +14,12 @@ const TYPE_NAME_MAP = {
     debit: "Balance Adjustment",
     fee_reversal: "Fee Reversal",
     operational: "Operational Adjustment",
+    PROFIT: "Profit Adjustment",
+    profit: "Profit Adjustment",
+    DEPOSIT: "Deposit Adjustment",
+    deposit: "Deposit Adjustment",
+    DUE: "Due Adjustment",
+    due: "Due Adjustment",
 };
 /**
  * 1. Create Adjustment with atomic financial recalculation
@@ -21,30 +27,61 @@ const TYPE_NAME_MAP = {
 const createAdjustmentInDB = async (payload, userId) => {
     const { memberId, adjustmentType, adjustmentDate, adjustmentAmount, remarks } = payload;
     const amount = Number(adjustmentAmount);
-    if (isNaN(amount) || amount <= 0) {
-        throw new AppError_1.default(http_status_1.default.BAD_REQUEST, "Adjustment amount must be a positive number");
+    if (isNaN(amount) || amount === 0) {
+        throw new AppError_1.default(http_status_1.default.BAD_REQUEST, "Adjustment amount cannot be zero");
     }
-    // 1. Fetch Member
-    const member = await member_model_1.Member.findById(memberId);
+    // 1. Fetch Member (support both ObjectId and memberCode)
+    let member = null;
+    if (mongoose_1.default.Types.ObjectId.isValid(memberId)) {
+        member = await member_model_1.Member.findById(memberId);
+    }
+    if (!member) {
+        member = await member_model_1.Member.findOne({
+            $or: [{ memberCode: memberId }, { mobileNo: memberId }, { email: memberId }],
+        });
+    }
     if (!member || member.isDeleted) {
         throw new AppError_1.default(http_status_1.default.NOT_FOUND, "Active member record not found");
     }
     // Snapshot previous balances
-    const prevDeposit = member.totalDeposit || 0;
-    const prevSavings = member.savingsBalance || 0;
-    const prevDue = member.dueAmount || 0;
+    const prevDeposit = Number(member.totalDeposit?.toString?.() ?? member.totalDeposit ?? 0);
+    const prevSavings = Number(member.savingsBalance?.toString?.() ?? member.savingsBalance ?? 0);
+    const prevDue = Number(member.dueAmount?.toString?.() ?? member.dueAmount ?? 0);
+    const prevProfit = Number(member.profitBalance?.toString?.() ?? member.profitBalance ?? 0);
     const previousBalance = {
         totalDeposit: prevDeposit,
         savingsBalance: prevSavings,
         dueAmount: prevDue,
+        profitBalance: prevProfit,
     };
     let newDeposit = prevDeposit;
     let newSavings = prevSavings;
     let newDue = prevDue;
+    let newProfit = prevProfit;
     let signedAmount = amount;
     // 2. Financial Ledger Recalculation Math
-    switch (adjustmentType) {
-        case "credit": {
+    const normalizedType = adjustmentType.toUpperCase();
+    switch (normalizedType) {
+        case "PROFIT": {
+            // Positive amount: $inc { profitBalance: amount }, Negative amount: $inc { profitBalance: -amount }
+            signedAmount = amount;
+            newProfit = Math.max(0, prevProfit + amount);
+            break;
+        }
+        case "DEPOSIT": {
+            // Update totalDeposit
+            signedAmount = amount;
+            newDeposit = Math.max(0, prevDeposit + amount);
+            newSavings = Math.max(0, prevSavings + amount);
+            break;
+        }
+        case "DUE": {
+            // Update dueAmount
+            signedAmount = amount;
+            newDue = Math.max(0, prevDue + amount);
+            break;
+        }
+        case "CREDIT": {
             // Credit: Add to lifetime deposit. Clear dues first, remainder to advance/savings
             signedAmount = amount;
             newDeposit = prevDeposit + amount;
@@ -65,29 +102,28 @@ const createAdjustmentInDB = async (payload, userId) => {
             }
             break;
         }
-        case "debit": {
+        case "DEBIT": {
             // Debit: Excess payment recorded by mistake. Deduct from lifetime deposit and savings.
-            // If savings insufficient, restore due amount.
-            signedAmount = -amount;
-            newDeposit = Math.max(0, prevDeposit - amount);
-            if (prevSavings >= amount) {
-                newSavings = prevSavings - amount;
+            signedAmount = -Math.abs(amount);
+            newDeposit = Math.max(0, prevDeposit - Math.abs(amount));
+            if (prevSavings >= Math.abs(amount)) {
+                newSavings = prevSavings - Math.abs(amount);
                 newDue = prevDue;
             }
             else {
-                const shortfall = amount - prevSavings;
+                const shortfall = Math.abs(amount) - prevSavings;
                 newSavings = 0;
                 newDue = prevDue + shortfall;
             }
             break;
         }
-        case "fee_reversal": {
+        case "FEE_REVERSAL": {
             // Fee Reversal: Waive dues/penalties
             signedAmount = amount;
             newDue = Math.max(0, prevDue - amount);
             break;
         }
-        case "operational": {
+        case "OPERATIONAL": {
             // Operational: Manual adjustments
             signedAmount = amount;
             newDeposit = prevDeposit + amount;
@@ -95,12 +131,13 @@ const createAdjustmentInDB = async (payload, userId) => {
             break;
         }
         default:
-            throw new AppError_1.default(http_status_1.default.BAD_REQUEST, "Invalid adjustment type");
+            throw new AppError_1.default(http_status_1.default.BAD_REQUEST, `Invalid adjustment type: ${adjustmentType}`);
     }
     const updatedBalance = {
         totalDeposit: newDeposit,
         savingsBalance: newSavings,
         dueAmount: newDue,
+        profitBalance: newProfit,
     };
     // Generate Sequential adjustmentId (matching Screenshot 2: 130, 131, 132...)
     const lastRecord = await adjustment_model_1.Adjustment.findOne().sort({ createdAt: -1 });
@@ -138,6 +175,7 @@ const createAdjustmentInDB = async (payload, userId) => {
             totalDeposit: newDeposit,
             savingsBalance: newSavings,
             dueAmount: newDue,
+            profitBalance: newProfit,
         }, { session, runValidators: true });
         await session.commitTransaction();
         return createdAdjustment;
@@ -154,6 +192,7 @@ const createAdjustmentInDB = async (payload, userId) => {
                 totalDeposit: newDeposit,
                 savingsBalance: newSavings,
                 dueAmount: newDue,
+                profitBalance: newProfit,
             }, { runValidators: true });
             return createdAdjustment;
         }

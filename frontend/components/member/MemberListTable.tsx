@@ -23,6 +23,7 @@ import {
 } from "@/lib/memberApi";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import { NotificationPopover } from "@/components/dashboard/NotificationPopover";
+import { ExportDropdown } from "@/components/shared";
 
 interface MemberListTableProps {
   onToggleMobileSidebar?: () => void;
@@ -61,22 +62,7 @@ export function MemberListTable({ onToggleMobileSidebar }: MemberListTableProps)
   };
 
   const handleDownload = () => {
-    // Generate CSV export
-    const headers = "ID,Name,Email,Mobile,Total Deposit,Due Amount,Profession\n";
-    const rows = members
-      .map(
-        (m) =>
-          `"${m.memberCode}","${m.fullName}","${m.email}","${m.mobileNo}",${m.totalDeposit},${m.dueAmount},"${m.profession || ""}"`
-      )
-      .join("\n");
-    const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `friends_goal_members_page_${page}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Old implementation replaced by ExportDropdown
   };
 
   return (
@@ -151,17 +137,7 @@ export function MemberListTable({ onToggleMobileSidebar }: MemberListTableProps)
             <span>Add Member</span>
           </Link>
 
-          <div className="relative">
-            <button
-              type="button"
-              onClick={handleDownload}
-              className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-[13px] font-semibold text-gray-700 transition-colors shadow-xs cursor-pointer"
-            >
-              <Download className="w-4 h-4 text-gray-500" />
-              <span>Download</span>
-              <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-            </button>
-          </div>
+          <ExportDropdown endpointUrl="/api/v1/members/export-all" defaultFilename="Members_Directory_Report" />
         </div>
       </div>
 

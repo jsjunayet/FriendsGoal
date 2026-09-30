@@ -10,6 +10,7 @@ import {
   Loader2,
   CheckCircle2,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   createExpenseApi,
   fetchExpenseCategoriesApi,
@@ -98,24 +99,24 @@ export function CreateExpenseView() {
     e.preventDefault();
 
     if (!expenseHead.trim()) {
-      alert("Please select or enter an Expense Head");
+      toast.error("Please select or enter an Expense Head");
       return;
     }
     if (!memberInput.trim()) {
-      alert("Please enter or select a Member");
+      toast.error("Please enter or select a Member");
       return;
     }
     if (!expenseDate) {
-      alert("Please select an Expense Date");
+      toast.error("Please select an Expense Date");
       return;
     }
     const numAmount = parseFloat(amount.replace(/[^0-9.]/g, ""));
     if (isNaN(numAmount) || numAmount <= 0) {
-      alert("Please enter a valid positive Amount");
+      toast.error("Please enter a valid positive Amount");
       return;
     }
     if (!remarks.trim()) {
-      alert("Please enter Remarks");
+      toast.error("Please enter Remarks");
       return;
     }
 
@@ -140,7 +141,7 @@ export function CreateExpenseView() {
         router.push("/dashboard/expense");
       }, 1000);
     } catch (err: any) {
-      alert("Failed to save expense: " + (err.message || "Unknown error"));
+      toast.error("Failed to save expense: " + (err.message || "Unknown error"));
     } finally {
       setIsSubmitting(false);
     }
@@ -157,7 +158,7 @@ export function CreateExpenseView() {
   });
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1200px] mx-auto space-y-6">
+    <div className="w-full flex flex-col gap-6 p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
       {/* ─── Top Navigation matching Screenshot 2 ───────────────────────────────── */}
       <div>
         <Link
@@ -316,33 +317,28 @@ export function CreateExpenseView() {
             </div>
           </div>
 
-          {/* ─── Buttons matching Screenshot 2 ────────────────────────────────────── */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 pt-4">
-            <div className="hidden md:block md:col-span-4" />
-            <div className="md:col-span-8 flex items-center gap-3">
-              {/* SAVE Button: Dark Emerald Green */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-6 py-2.5 bg-[#056839] hover:bg-[#04532e] text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-lg transition-colors shadow-xs inline-flex items-center justify-center min-w-[90px] cursor-pointer disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  "SAVE"
-                )}
-              </button>
+          {/* ─── Centered Action Buttons matching Screenshot 2 ──────────────────── */}
+          <div className="flex items-center justify-center gap-3 pt-6">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-7 py-2.5 bg-[#056839] hover:bg-[#04532e] text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-md transition-colors shadow-xs inline-flex items-center justify-center min-w-[90px] cursor-pointer disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                "SAVE"
+              )}
+            </button>
 
-              {/* RESET Button: Light Grey */}
-              <button
-                type="button"
-                onClick={handleReset}
-                disabled={isSubmitting}
-                className="px-6 py-2.5 bg-[#E5E7EB] hover:bg-[#D1D5DB] text-gray-700 text-xs sm:text-sm font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
-              >
-                RESET
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleReset}
+              disabled={isSubmitting}
+              className="px-7 py-2.5 bg-[#E5E7EB] hover:bg-[#D1D5DB] text-gray-700 text-xs sm:text-sm font-bold uppercase tracking-wider rounded-md transition-colors cursor-pointer"
+            >
+              RESET
+            </button>
           </div>
         </form>
       </div>

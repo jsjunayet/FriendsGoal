@@ -6,6 +6,6 @@ export const metadata: Metadata = {
   description: "Manage and track member receivables.",
 };
 
-export default function AdminDueListPage() {
-  return <DueListView />;
+export default function AdminDueListPage({ searchParams }: { searchParams: { status?: string } }) {
+  return <DueListView initialStatus={searchParams.status} />;
 }

@@ -10,6 +10,7 @@ import {
   FileText,
   RefreshCw,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   fetchDueListApi,
   downloadExportFile,
@@ -18,12 +19,17 @@ import {
   TMeta,
 } from "@/lib/operationApi";
 
-export function DueListView() {
+export function DueListView({ initialStatus }: { initialStatus?: string }) {
   // State for filters
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState("");
   const [year, setYear] = useState("2024");
-  const [statusFilter, setStatusFilter] = useState<"All" | "Advance" | "Due" | "Zero">("All");
+  
+  const defaultStatus = initialStatus && ["All", "Advance", "Due", "Zero"].includes(initialStatus) 
+    ? (initialStatus as "All" | "Advance" | "Due" | "Zero") 
+    : "All";
+    
+  const [statusFilter, setStatusFilter] = useState<"All" | "Advance" | "Due" | "Zero">(defaultStatus);
 
   // State for data
   const [loading, setLoading] = useState(true);
@@ -86,14 +92,14 @@ export function DueListView() {
         dateRange: dateRange || undefined,
       });
     } catch (err: any) {
-      alert("Export failed: " + (err.message || "Unknown error"));
+      toast.error("Export failed: " + (err.message || "Unknown error"));
     } finally {
       setIsExporting(false);
     }
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6">
+    <div className="w-full flex flex-col gap-6 p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
       {/* ─── Top Header ────────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

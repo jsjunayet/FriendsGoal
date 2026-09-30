@@ -1,4 +1,5 @@
-export type TUserRole = 'superAdmin' | 'admin' | 'faculty' | 'student';
+import { USER_ROLE } from './user.constant';
+export type TUserRole = (typeof USER_ROLE)[keyof typeof USER_ROLE];
 export type TUser = {
     id: string;
     email: string;

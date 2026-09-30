@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AdminSidebar } from "@/components/dashboard/AdminSidebar";
+import { NotificationBlocker } from "@/components/shared/NotificationBlocker";
 
 export default function AdminRootLayout({
   children,
@@ -17,6 +18,7 @@ export default function AdminRootLayout({
         onCloseMobile={() => setMobileSidebarOpen(false)}
       />
       <main className="flex-1 min-w-0">{children}</main>
+      <NotificationBlocker />
     </div>
   );
 }

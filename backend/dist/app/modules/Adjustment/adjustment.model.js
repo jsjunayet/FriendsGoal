@@ -6,6 +6,7 @@ const adjustmentBalanceSnapshotSchema = new mongoose_1.Schema({
     totalDeposit: { type: Number, default: 0 },
     savingsBalance: { type: Number, default: 0 },
     dueAmount: { type: Number, default: 0 },
+    profitBalance: { type: Number, default: 0 },
 }, { _id: false });
 const adjustmentSchema = new mongoose_1.Schema({
     adjustmentId: {
@@ -13,7 +14,6 @@ const adjustmentSchema = new mongoose_1.Schema({
         required: true,
         unique: true,
         trim: true,
-        index: true,
     },
     memberId: {
         type: mongoose_1.Schema.Types.ObjectId,
@@ -33,7 +33,18 @@ const adjustmentSchema = new mongoose_1.Schema({
     },
     adjustmentType: {
         type: String,
-        enum: ["credit", "debit", "fee_reversal", "operational"],
+        enum: [
+            "credit",
+            "debit",
+            "fee_reversal",
+            "operational",
+            "PROFIT",
+            "DEPOSIT",
+            "DUE",
+            "profit",
+            "deposit",
+            "due",
+        ],
         required: [true, "Adjustment type is required"],
     },
     adjustmentTypeName: {

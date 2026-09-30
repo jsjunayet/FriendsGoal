@@ -7,6 +7,7 @@ import { SITE_CONFIG } from "@/constants/site";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { QueryProvider } from "@/providers/QueryProvider";
+import { Toaster } from "sonner";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -64,6 +65,7 @@ export default function RootLayout({
               <ConditionalNavbar />
               <main className="flex-1 w-full overflow-x-hidden">{children}</main>
               <Footer />
+              <Toaster position="top-right" richColors />
             </LanguageProvider>
           </QueryProvider>
         </AuthProvider>

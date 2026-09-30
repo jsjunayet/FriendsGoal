@@ -5,10 +5,21 @@ const zod_1 = require("zod");
 const createAdjustmentValidationSchema = zod_1.z.object({
     body: zod_1.z.object({
         memberId: zod_1.z.string().min(1, "Member ID is required"),
-        adjustmentType: zod_1.z.enum(["credit", "debit", "fee_reversal", "operational"]),
+        adjustmentType: zod_1.z.enum([
+            "credit",
+            "debit",
+            "fee_reversal",
+            "operational",
+            "PROFIT",
+            "DEPOSIT",
+            "DUE",
+            "profit",
+            "deposit",
+            "due",
+        ]),
         adjustmentDate: zod_1.z.string().optional(),
-        adjustmentAmount: zod_1.z.number().positive("Adjustment amount must be a positive number"),
-        remarks: zod_1.z.string().min(3, "Remarks must contain at least 3 characters"),
+        adjustmentAmount: zod_1.z.number().refine((val) => val !== 0, "Adjustment amount cannot be zero"),
+        remarks: zod_1.z.string().min(1, "Remarks are required"),
     }),
 });
 const filterAdjustmentsValidationSchema = zod_1.z.object({

@@ -6,6 +6,7 @@ const adjustmentBalanceSnapshotSchema = new Schema(
     totalDeposit: { type: Number, default: 0 },
     savingsBalance: { type: Number, default: 0 },
     dueAmount: { type: Number, default: 0 },
+    profitBalance: { type: Number, default: 0 },
   },
   { _id: false }
 );
@@ -17,7 +18,6 @@ const adjustmentSchema = new Schema<IAdjustment>(
       required: true,
       unique: true,
       trim: true,
-      index: true,
     },
     memberId: {
       type: Schema.Types.ObjectId,
@@ -37,7 +37,18 @@ const adjustmentSchema = new Schema<IAdjustment>(
     },
     adjustmentType: {
       type: String,
-      enum: ["credit", "debit", "fee_reversal", "operational"],
+      enum: [
+        "credit",
+        "debit",
+        "fee_reversal",
+        "operational",
+        "PROFIT",
+        "DEPOSIT",
+        "DUE",
+        "profit",
+        "deposit",
+        "due",
+      ],
       required: [true, "Adjustment type is required"],
     },
     adjustmentTypeName: {

@@ -3,10 +3,21 @@ import { z } from "zod";
 const createAdjustmentValidationSchema = z.object({
   body: z.object({
     memberId: z.string().min(1, "Member ID is required"),
-    adjustmentType: z.enum(["credit", "debit", "fee_reversal", "operational"] as const),
+    adjustmentType: z.enum([
+      "credit",
+      "debit",
+      "fee_reversal",
+      "operational",
+      "PROFIT",
+      "DEPOSIT",
+      "DUE",
+      "profit",
+      "deposit",
+      "due",
+    ] as const),
     adjustmentDate: z.string().optional(),
-    adjustmentAmount: z.number().positive("Adjustment amount must be a positive number"),
-    remarks: z.string().min(3, "Remarks must contain at least 3 characters"),
+    adjustmentAmount: z.number().refine((val) => val !== 0, "Adjustment amount cannot be zero"),
+    remarks: z.string().min(1, "Remarks are required"),
   }),
 });
 

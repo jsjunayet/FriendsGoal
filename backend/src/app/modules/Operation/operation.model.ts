@@ -64,10 +64,10 @@ const collectionSchema = new Schema<ICollection>(
   }
 );
 
+collectionSchema.index({ member: 1, month: 1 });
 collectionSchema.index({ member: 1, createdAt: -1 });
 collectionSchema.index({ memberCode: 1, createdAt: -1 });
 collectionSchema.index({ month: 1 });
-collectionSchema.index({ receiptNo: 1 });
 
 export const Collection = model<ICollection>("Collection", collectionSchema);
 

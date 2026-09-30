@@ -3,8 +3,8 @@ import httpStatus from 'http-status';
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 import config from '../../config/index';
 import AppError from '../../errors/AppError';
-import { sendEmail } from '../../utils/sendEmail';
 import { User } from '../User/user.model';
+import { NotificationServices } from '../Notification/notification.service';
 import type { TLoginUser } from './auth.interface';
 import { createToken, verifyToken } from './auth.utils';
 
@@ -40,6 +40,7 @@ const loginUser = async (payload: TLoginUser) => {
 
   const jwtPayload = {
     userId: user.id,
+    email: user.email,
     role: user.role,
   };
 
@@ -196,11 +197,29 @@ const forgetPassword = async (userId: string) => {
     '10m',
   );
 
-  const resetUILink = `${config.reset_pass_ui_link}?id=${user.id}&token=${resetToken} `;
+  const resetUILink = `${config.reset_pass_ui_link}?id=${user.id}&token=${resetToken}`;
 
-  sendEmail(user.email, resetUILink);
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 8px;">
+      <h2 style="color: #00B074;">Password Reset Request</h2>
+      <p>Hello,</p>
+      <p>We received a request to reset the password for your account.</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${resetUILink}" style="background-color: #00B074; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Reset Password</a>
+      </div>
+      <p style="color: #6B7280; font-size: 14px;">If you did not request this, please ignore this email. This link will expire in 10 minutes.</p>
+    </div>
+  `;
 
-  console.log(resetUILink);
+  await NotificationServices.createNotification({
+    recipientId: user._id, // Notice we use mongo _id here for ref
+    title: "Password Reset Request",
+    message: htmlBody,
+    type: "PASSWORD_RESET",
+    channel: ["EMAIL"],
+  });
+
+  console.log("Password reset triggered for:", user.email);
 };
 
 const resetPassword = async (

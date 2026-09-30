@@ -24,9 +24,13 @@ export interface IMember {
     councilCategory: TCouncilCategory;
     role: TMemberRole;
     password?: string;
-    totalDeposit: number;
-    savingsBalance: number;
-    dueAmount: number;
+    profitBalance: number | any;
+    totalDeposit: number | any;
+    savingsBalance: number | any;
+    dueAmount: number | any;
+    totalWithdrawn?: number | any;
+    depositBalance?: number | any;
+    pendingWithdrawal?: number | any;
     nomineeName?: string;
     nomineeRelation?: string;
     nomineeDob?: string;

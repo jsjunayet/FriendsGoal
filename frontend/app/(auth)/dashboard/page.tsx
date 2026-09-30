@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import { FinancialAnalyticsView } from "@/components/dashboard/FinancialAnalyticsView";
+import DashboardContent from "@/components/dashboard/DashboardContent";
 import { RoleGuard } from "@/components/dashboard/RoleGuard";
 
 export const metadata: Metadata = {
-  title: "Financial Analytics | Friends Goal Admin",
-  description: "Overview of collections, profits and member performance",
+  title: "Member Dashboard | Friends Goal",
+  description: "Personal member dashboard and analytics",
 };
 
 export default function DashboardPage() {
   return (
-    <RoleGuard allowedRoles={["admin", "superadmin"]} redirectMemberTo="/dashboard/member">
-      <FinancialAnalyticsView />
+    <RoleGuard allowedRoles={["member", "manager", "admin", "superadmin"]} redirectMemberTo="/login">
+      <DashboardContent />
     </RoleGuard>
   );
 }

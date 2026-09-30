@@ -31,13 +31,21 @@ async function request<T>(
 ): Promise<T> {
   const url = `${BASE_URL}${path}`;
 
+  let token = null;
+  try {
+    token = sessionStorage.getItem("fg_access_token");
+  } catch (e) {}
+
+  const mergedHeaders = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers ?? {}),
+  };
+
   const res = await fetch(url, {
     ...options,
     credentials: "include", // send HttpOnly refreshToken cookie automatically
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers ?? {}),
-    },
+    headers: mergedHeaders,
   });
 
   let body: unknown;

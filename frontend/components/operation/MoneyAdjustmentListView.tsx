@@ -17,6 +17,7 @@ import {
   IAdjustmentFilterParams,
   TMeta,
 } from "@/lib/adjustmentApi";
+import { ExportDropdown } from "@/components/shared";
 
 export function MoneyAdjustmentListView() {
   const [fromDate, setFromDate] = useState("");
@@ -68,7 +69,7 @@ export function MoneyAdjustmentListView() {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6">
+    <div className="w-full flex flex-col gap-6 p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
       {/* ─── Top Header matching Screenshot 2 ───────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -76,14 +77,18 @@ export function MoneyAdjustmentListView() {
           <p className="text-sm text-gray-500 mt-0.5">Manage and review financial adjustments.</p>
         </div>
 
-        {/* + MONEY ADJUST Button */}
-        <Link
-          href="/dashboard/money-adjustment/create"
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-xs transition-colors cursor-pointer uppercase tracking-wider"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>+ Money Adjust</span>
-        </Link>
+        <div className="flex items-center gap-3">
+          <ExportDropdown endpointUrl="/api/v1/reports/adjustments/export" defaultFilename="Adjustments_Report" />
+
+          {/* + MONEY ADJUST Button */}
+          <Link
+            href="/dashboard/money-adjustment/create"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 shadow-xs transition-colors cursor-pointer uppercase tracking-wider"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Money Adjust</span>
+          </Link>
+        </div>
       </div>
 
       {/* ─── Adjustment Information Filter Card matching Screenshot 2 ──────────── */}

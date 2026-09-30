@@ -17,11 +17,19 @@ export interface IMemberDashboardSummary {
   email: string;
   role: string;
   status: string;
+  bloodGroup?: string;
+  dateOfBirth?: string;
+  division?: string;
+  district?: string;
+  thana?: string;
+  pictureUrl?: string;
   totalDeposit: number;
   dueAmount: number;
   profitBalance: number;
   totalWithdrawn: number;
   savingsBalance: number;
+  depositBalance: number;
+  pendingWithdrawal: number;
   activePaymentSchedule: IPaymentScheduleItem[];
 }
 
@@ -38,9 +46,15 @@ export interface IWithdrawalRequestPayload {
 export const memberDashboardApi = {
   getDashboardSummary: async (): Promise<IMemberDashboardSummary> => {
     try {
+      let token = null;
+      if (typeof window !== "undefined") {
+        token = sessionStorage.getItem("fg_access_token");
+      }
+
       const res = await fetch(`${API_BASE_URL}/members/me/dashboard-summary`, {
         cache: "no-store",
         credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
 
       if (res.ok) {
@@ -49,39 +63,11 @@ export const memberDashboardApi = {
           return json.data;
         }
       }
-    } catch {
-      // Handled by dynamic fallback
+    } catch (error) {
+      console.error("Dashboard API Error:", error);
+      throw error;
     }
-
-    // Default dynamic state when server is booting or unauthenticated
-    return {
-      memberId: "mem-002",
-      fullName: "MD BELAL HOSSAIN",
-      memberCode: "002",
-      email: "belal@friendsgoal.org",
-      role: "member",
-      status: "active",
-      totalDeposit: 30450,
-      dueAmount: 1000,
-      profitBalance: 4554,
-      totalWithdrawn: 0,
-      savingsBalance: 30450,
-      activePaymentSchedule: [
-        {
-          receiptNo: "REC-2026-08",
-          month: "August 2026",
-          amount: 1200,
-          status: "Paid",
-          paymentDate: "2026-08-10",
-        },
-        {
-          receiptNo: "REC-2026-09",
-          month: "September 2026",
-          amount: 1200,
-          status: "Due",
-        },
-      ],
-    };
+    throw new Error("Failed to fetch dashboard summary");
   },
 
   getProfitBalance: async (memberId?: string): Promise<{ profitBalance: number }> => {
@@ -90,9 +76,15 @@ export const memberDashboardApi = {
         ? `${API_BASE_URL}/members/${memberId}/profit-balance`
         : `${API_BASE_URL}/members/me/profit-balance`;
 
+      let token = null;
+      if (typeof window !== "undefined") {
+        token = sessionStorage.getItem("fg_access_token");
+      }
+
       const res = await fetch(endpoint, {
         cache: "no-store",
         credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
 
       if (res.ok) {
@@ -103,18 +95,25 @@ export const memberDashboardApi = {
           };
         }
       }
-    } catch {
-      // Fallback
+    } catch (err) {
+      console.error("Profit Balance API Error:", err);
+      throw err;
     }
 
-    return { profitBalance: 4554 };
+    throw new Error("Failed to fetch profit balance");
   },
 
   submitWithdrawalRequest: async (payload: IWithdrawalRequestPayload) => {
+    let token = null;
+    if (typeof window !== "undefined") {
+      token = sessionStorage.getItem("fg_access_token");
+    }
+
     const res = await fetch(`${API_BASE_URL}/withdrawals/request`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       credentials: "include",
       body: JSON.stringify({

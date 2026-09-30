@@ -17,6 +17,7 @@ export interface IWithdrawalItem {
   memberName: string;
   memberInitials: string;
   avatarColor?: string;
+  memberAvatar?: string;
   amount: number;
   method: TWithdrawalMethod;
   accountDetails: string;
@@ -120,21 +121,29 @@ let inMemoryWithdrawals: IWithdrawalItem[] = [...INITIAL_WITHDRAWALS];
 
 export const withdrawalApi = {
   getWithdrawals: async (
-    statusTab: "All" | "Pending" | "Approved" | "Rejected" = "All",
-    search?: string
+    query: { statusTab?: "All" | "Pending" | "Approved" | "Rejected"; search?: string; memberId?: string } = {}
   ): Promise<IWithdrawalListResponse> => {
+    const { statusTab = "All", search, memberId } = query;
     try {
       const queryParams = new URLSearchParams();
       if (statusTab !== "All") queryParams.append("status", statusTab);
       if (search) queryParams.append("search", search);
+      if (memberId) queryParams.append("memberId", memberId);
+
+      let token = null;
+      if (typeof window !== "undefined") {
+        token = sessionStorage.getItem("fg_access_token");
+      }
 
       const res = await fetch(`${API_BASE_URL}/withdrawals?${queryParams.toString()}`, {
         cache: "no-store",
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
 
       if (res.ok) {
         const json = await res.json();
-        if (json.data && Array.isArray(json.data) && json.data.length > 0) {
+        if (json.data && Array.isArray(json.data)) {
           const transformed: IWithdrawalItem[] = json.data.map(
             (item: any, idx: number) => {
               const d = new Date(item.submittedAt || item.createdAt || Date.now());
@@ -166,9 +175,10 @@ export const withdrawalApi = {
                 _id: item._id,
                 referenceId: cleanId,
                 memberId: item.memberId,
-                memberName: item.memberName || "Member",
+                memberName: item.member?.fullName || item.memberName || "Member",
                 memberInitials: initials,
                 avatarColor: colors[idx % colors.length],
+                memberAvatar: item.member?.pictureUrl || null,
                 amount: Number(item.amount) || 0,
                 method: item.method || item.payoutMethod || "Mobile Banking",
                 accountDetails: item.accountDetails || item.accountNumber || "bKash",
@@ -217,42 +227,11 @@ export const withdrawalApi = {
           };
         }
       }
-    } catch {
-      // Backend offline fallback handled below
+      throw new Error("Failed to fetch withdrawals");
+    } catch (err) {
+      console.error(err);
+      throw err;
     }
-
-    // In-memory fallback
-    const all = inMemoryWithdrawals.length;
-    const pending = inMemoryWithdrawals.filter((w) => w.status === "Pending").length;
-    const approved = inMemoryWithdrawals.filter((w) => w.status === "Approved").length;
-    const rejected = inMemoryWithdrawals.filter((w) => w.status === "Rejected").length;
-
-    let filtered = [...inMemoryWithdrawals];
-    if (statusTab !== "All") {
-      filtered = filtered.filter((w) => w.status === statusTab);
-    }
-    if (search) {
-      const q = search.toLowerCase();
-      filtered = filtered.filter(
-        (w) =>
-          w.referenceId.toLowerCase().includes(q) ||
-          w.memberName.toLowerCase().includes(q) ||
-          w.method.toLowerCase().includes(q) ||
-          w.accountDetails.toLowerCase().includes(q) ||
-          w.reason.toLowerCase().includes(q)
-      );
-    }
-
-    return {
-      data: filtered,
-      counts: { all, pending, approved, rejected },
-      meta: {
-        page: 1,
-        limit: 20,
-        total: filtered.length,
-        totalPage: 1,
-      },
-    };
   },
 
   respondWithdrawal: async (
@@ -298,19 +277,30 @@ export const withdrawalApi = {
       }
     }
 
+    let token = null;
+    if (typeof window !== "undefined") {
+      token = sessionStorage.getItem("fg_access_token");
+    }
+
     // Call backend API
     try {
-      await fetch(`${API_BASE_URL}/withdrawals/${idOrRef}/respond`, {
+      const res = await fetch(`${API_BASE_URL}/withdrawals/${idOrRef}/respond`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
         body: JSON.stringify({
           action: payload.action,
           adminNote: payload.adminNote,
           reviewerName,
         }),
       });
-    } catch {
-      // Backend fallback handled
+      if (!res.ok) throw new Error("API Response not OK");
+    } catch (err) {
+      console.error(err);
+      throw err;
     }
 
     return target || inMemoryWithdrawals[0];

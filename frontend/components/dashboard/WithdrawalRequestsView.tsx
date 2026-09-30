@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Clock,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   withdrawalApi,
   IWithdrawalItem,
@@ -40,7 +41,7 @@ export default function WithdrawalRequestsView() {
   const loadData = async (tab: TabType = activeTab, search = searchQuery) => {
     setIsLoading(true);
     try {
-      const res = await withdrawalApi.getWithdrawals(tab, search);
+      const res = await withdrawalApi.getWithdrawals({ statusTab: tab, search });
       setWithdrawals(res.data);
       setCounts(res.counts);
     } catch {
@@ -88,7 +89,7 @@ export default function WithdrawalRequestsView() {
         setAdminNote("");
         await loadData(activeTab, searchQuery);
       } catch (err: any) {
-        alert(err.message || "Failed to update withdrawal status");
+        toast.error(err.message || "Failed to update withdrawal status");
       }
     });
   };
@@ -104,7 +105,7 @@ export default function WithdrawalRequestsView() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="w-full flex flex-col gap-6 p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
       {/* Top Header matching Screenshot 2 */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
@@ -298,13 +299,19 @@ export default function WithdrawalRequestsView() {
                         {/* MEMBER */}
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
-                            <div
-                              className={`w-8 h-8 rounded-full ${
-                                item.avatarColor || "bg-[#2F80ED]"
-                              } text-white flex items-center justify-center text-xs font-bold shadow-xs flex-shrink-0`}
-                            >
-                              {item.memberInitials}
-                            </div>
+                            {item.memberAvatar ? (
+                              <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 flex-shrink-0 relative shadow-xs">
+                                <img src={item.memberAvatar} alt={item.memberName} className="w-full h-full object-cover" />
+                              </div>
+                            ) : (
+                              <div
+                                className={`w-8 h-8 rounded-full ${
+                                  item.avatarColor || "bg-[#2F80ED]"
+                                } text-white flex items-center justify-center text-xs font-bold shadow-xs flex-shrink-0`}
+                              >
+                                {item.memberInitials}
+                              </div>
+                            )}
                             <span className="font-semibold text-gray-900 whitespace-nowrap">
                               {item.memberName}
                             </span>

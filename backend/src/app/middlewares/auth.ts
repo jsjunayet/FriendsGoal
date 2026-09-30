@@ -9,33 +9,49 @@ import catchAsync from '../utils/catchAsync';
 
 const auth = (...requiredRoles: TUserRole[]) => {
   return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const token = req.headers.authorization;
-    console.log(token);
+    const authHeader = req.headers.authorization;
+    const token =
+      req.cookies?.accessToken ||
+      (authHeader?.startsWith("Bearer ")
+        ? authHeader.split(" ")[1]
+        : authHeader);
+
     // checking if the token is missing
     if (!token) {
-      throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized!');
+      throw new AppError(httpStatus.UNAUTHORIZED, "You are not authorized!");
     }
 
     // checking if the given token is valid
     const decoded = jwt.verify(
       token,
-      config.jwt_access_secret as string,
+      config.jwt_access_secret as string
     ) as JwtPayload;
 
     const { role, userId, iat } = decoded;
 
-    // checking if the user is exist
-    const user = await User.isUserExistsByCustomId(userId);
+    // checking if user exists in User or Member
+    let user = await User.isUserExistsByCustomId(userId);
+    if (!user) {
+      const member = await (await import("../modules/Member/member.model")).Member.findById(userId);
+      if (member) {
+        user = {
+          _id: member._id,
+          id: member.id || member._id.toString(),
+          email: member.email,
+          role: (member.role as any) || "member",
+          status: member.status,
+          isDeleted: member.isDeleted,
+        } as any;
+      }
+    }
 
     if (!user) {
-      throw new AppError(httpStatus.NOT_FOUND, 'This user is not found !');
+      throw new AppError(httpStatus.NOT_FOUND, "This user is not found !");
     }
-    // checking if the user is already deleted
 
     const isDeleted = user?.isDeleted;
-
     if (isDeleted) {
-      throw new AppError(httpStatus.FORBIDDEN, 'This user is deleted !');
+      throw new AppError(httpStatus.FORBIDDEN, "This user is deleted !");
     }
 
     // checking if the user is blocked
@@ -62,7 +78,7 @@ const auth = (...requiredRoles: TUserRole[]) => {
       );
     }
 
-    req.user = decoded as JwtPayload & { role: string };
+    req.user = { ...(decoded as any), _id: user._id, id: user.id || user._id, email: user.email };
     next();
   });
 };

@@ -1,0 +1,40 @@
+import { z } from "zod";
+export declare const ExpenseValidation: {
+    createExpenseValidationSchema: z.ZodObject<{
+        body: z.ZodObject<{
+            expenseHead: z.ZodString;
+            memberId: z.ZodOptional<z.ZodString>;
+            memberName: z.ZodString;
+            memberCode: z.ZodOptional<z.ZodString>;
+            expenseDate: z.ZodString;
+            amount: z.ZodNumber;
+            remarks: z.ZodString;
+        }, z.core.$strip>;
+    }, z.core.$strip>;
+    updateExpenseValidationSchema: z.ZodObject<{
+        body: z.ZodObject<{
+            expenseHead: z.ZodOptional<z.ZodString>;
+            memberId: z.ZodOptional<z.ZodString>;
+            memberName: z.ZodOptional<z.ZodString>;
+            memberCode: z.ZodOptional<z.ZodString>;
+            expenseDate: z.ZodOptional<z.ZodString>;
+            amount: z.ZodOptional<z.ZodNumber>;
+            remarks: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>;
+    }, z.core.$strip>;
+    createCategoryValidationSchema: z.ZodObject<{
+        body: z.ZodObject<{
+            name: z.ZodString;
+            order: z.ZodOptional<z.ZodNumber>;
+        }, z.core.$strip>;
+    }, z.core.$strip>;
+    reorderCategoriesValidationSchema: z.ZodObject<{
+        body: z.ZodObject<{
+            categories: z.ZodArray<z.ZodObject<{
+                id: z.ZodString;
+                order: z.ZodNumber;
+            }, z.core.$strip>>;
+        }, z.core.$strip>;
+    }, z.core.$strip>;
+};
+//# sourceMappingURL=expense.validation.d.ts.map

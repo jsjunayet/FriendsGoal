@@ -141,8 +141,8 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
                 <h1 className="text-[15px] font-bold text-gray-900 leading-tight tracking-tight">
                   Friends Goal
                 </h1>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <span className="text-[12px] text-gray-400 capitalize">
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-[10px] bg-gray-100 text-gray-500 font-semibold px-1.5 py-0.5 rounded capitalize">
                     {user?.role ? (user.role === "superAdmin" ? "Super Admin" : user.role) : "Admin"}
                   </span>
                   <ChevronDown className="w-3 h-3 text-gray-400" />
@@ -166,13 +166,13 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
           <nav className="px-3 py-2 flex flex-col gap-1 overflow-y-auto max-h-[calc(100vh-170px)]">
             {/* 1. Dashboard */}
             <Link
-              href="/dashboard"
+              href={user?.role === "admin" || user?.role === "superAdmin" ? "/admin/dashboard" : "/dashboard"}
               onClick={onCloseMobile}
               className={cn(
-                "flex items-center gap-3 h-[42px] px-3.5 rounded-xl text-[14px] font-semibold transition-all",
+                "flex items-center gap-3 h-[42px] px-3.5 rounded-xl text-[14px] transition-all relative overflow-hidden",
                 isDashboardActive && !isMemberActive
-                  ? "bg-[#EAF8F1] text-[#00B074]"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  ? "bg-[#E8F8F5] text-[#0E8A5A] font-bold before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-[#0E8A5A]"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium"
               )}
             >
               <LayoutGrid
@@ -186,13 +186,13 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
 
             {/* 2. Member */}
             <Link
-              href="/dashboard/member"
+              href="/admin/dashboard/members"
               onClick={onCloseMobile}
               className={cn(
-                "flex items-center gap-3 h-[42px] px-3.5 rounded-xl text-[14px] font-medium transition-all",
+                "flex items-center gap-3 h-[42px] px-3.5 rounded-xl text-[14px] transition-all relative overflow-hidden",
                 isMemberActive
-                  ? "bg-[#EAF8F1] text-[#00B074] font-semibold"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  ? "bg-[#E8F8F5] text-[#0E8A5A] font-bold before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-[#0E8A5A]"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium"
               )}
             >
               <Users
@@ -226,12 +226,12 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
                 <div className="pl-9 pr-3 py-1 flex flex-col gap-1 text-[13px]">
                   {/* Due List */}
                   <Link
-                    href="/dashboard/due-list"
+                    href="/admin/dashboard/due-list"
                     onClick={onCloseMobile}
                     className={cn(
-                      "py-1 px-3 rounded-full transition-all block truncate font-medium",
+                      "py-1.5 px-3 rounded-lg transition-all block truncate font-medium relative overflow-hidden",
                       isDueListActive
-                        ? "bg-[#EAF8F1] text-[#00B074] font-semibold border border-[#00B074]/30 shadow-2xs"
+                        ? "bg-[#E8F8F5] text-[#0E8A5A] font-bold before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#0E8A5A]"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     )}
                   >
@@ -240,12 +240,12 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
 
                   {/* Collection */}
                   <Link
-                    href="/dashboard/collection"
+                    href="/admin/dashboard/collection"
                     onClick={onCloseMobile}
                     className={cn(
-                      "py-1 px-3 rounded-full transition-all block truncate font-medium",
+                      "py-1.5 px-3 rounded-lg transition-all block truncate font-medium relative overflow-hidden",
                       isCollectionActive
-                        ? "bg-[#EAF8F1] text-[#00B074] font-semibold border border-[#00B074]/30 shadow-2xs"
+                        ? "bg-[#E8F8F5] text-[#0E8A5A] font-bold before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#0E8A5A]"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     )}
                   >
@@ -254,12 +254,12 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
 
                   {/* Money Adjustment */}
                   <Link
-                    href="/dashboard/money-adjustment"
+                    href="/admin/dashboard/money-adjustment"
                     onClick={onCloseMobile}
                     className={cn(
-                      "py-1 px-3 rounded-full transition-all block truncate font-medium",
+                      "py-1.5 px-3 rounded-lg transition-all block truncate font-medium relative overflow-hidden",
                       isAdjustmentActive
-                        ? "bg-[#EAF8F1] text-[#00B074] font-semibold border border-[#00B074]/30 shadow-2xs"
+                        ? "bg-[#E8F8F5] text-[#0E8A5A] font-bold before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#0E8A5A]"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     )}
                   >
@@ -268,12 +268,12 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
 
                   {/* Expense */}
                   <Link
-                    href="/dashboard/expense"
+                    href="/admin/dashboard/expense"
                     onClick={onCloseMobile}
                     className={cn(
-                      "py-1 px-3 rounded-full transition-all block truncate font-medium",
+                      "py-1.5 px-3 rounded-lg transition-all block truncate font-medium relative overflow-hidden",
                       isExpenseActive
-                        ? "bg-[#EAF8F1] text-[#00B074] font-semibold border border-[#00B074]/30 shadow-2xs"
+                        ? "bg-[#E8F8F5] text-[#0E8A5A] font-bold before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#0E8A5A]"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     )}
                   >
@@ -282,12 +282,12 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
 
                   {/* Investment Information */}
                   <Link
-                    href="/dashboard/investment"
+                    href="/admin/dashboard/investment"
                     onClick={onCloseMobile}
                     className={cn(
-                      "py-1 px-3 rounded-full transition-all block truncate font-medium",
+                      "py-1.5 px-3 rounded-lg transition-all block truncate font-medium relative overflow-hidden",
                       isInvestmentActive
-                        ? "bg-[#EAF8F1] text-[#00B074] font-semibold border border-[#00B074]/30 shadow-2xs"
+                        ? "bg-[#E8F8F5] text-[#0E8A5A] font-bold before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#0E8A5A]"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     )}
                   >
@@ -296,12 +296,12 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
 
                   {/* Income Disburs */}
                   <Link
-                    href="/dashboard/income-disbursement"
+                    href="/admin/dashboard/income-disbursement"
                     onClick={onCloseMobile}
                     className={cn(
-                      "py-1 px-3 rounded-full transition-all block truncate font-medium",
+                      "py-1.5 px-3 rounded-lg transition-all block truncate font-medium relative overflow-hidden",
                       isDisbursementActive
-                        ? "bg-[#EAF8F1] text-[#00B074] font-semibold border border-[#00B074]/30 shadow-2xs"
+                        ? "bg-[#E8F8F5] text-[#0E8A5A] font-bold before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#0E8A5A]"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     )}
                   >
@@ -332,24 +332,24 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
               {reportOpen && (
                 <div className="pl-10 pr-2 py-1 flex flex-col gap-1 text-[13px]">
                   <Link
-                    href="/dashboard"
+                    href="/admin/dashboard"
                     onClick={onCloseMobile}
                     className={cn(
-                      "py-1.5 px-2 rounded-lg transition-colors block truncate font-medium",
+                      "py-1.5 px-3 rounded-lg transition-all block truncate font-medium relative overflow-hidden",
                       isFinancialAnalyticsActive
-                        ? "text-[#00B074] font-semibold"
+                        ? "bg-[#E8F8F5] text-[#0E8A5A] font-bold before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#0E8A5A]"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     )}
                   >
                     Financial Analytics
                   </Link>
                   <Link
-                    href="/dashboard/audit-logs"
+                    href="/admin/dashboard/audit-logs"
                     onClick={onCloseMobile}
                     className={cn(
-                      "py-1.5 px-2 rounded-lg transition-colors block truncate font-medium",
+                      "py-1.5 px-3 rounded-lg transition-all block truncate font-medium relative overflow-hidden",
                       isAuditLogActive
-                        ? "text-[#00B074] font-semibold"
+                        ? "bg-[#E8F8F5] text-[#0E8A5A] font-bold before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#0E8A5A]"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     )}
                   >
@@ -357,12 +357,12 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
                   </Link>
 
                   <Link
-                    href="/dashboard/withdrawals"
+                    href="/admin/dashboard/withdrawals"
                     onClick={onCloseMobile}
                     className={cn(
-                      "py-1.5 px-2 rounded-lg transition-colors block truncate font-medium",
+                      "py-1.5 px-3 rounded-lg transition-all block truncate font-medium relative overflow-hidden",
                       isWithdrawalsActive
-                        ? "text-[#00B074] font-semibold"
+                        ? "bg-[#E8F8F5] text-[#0E8A5A] font-bold before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#0E8A5A]"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                     )}
                   >

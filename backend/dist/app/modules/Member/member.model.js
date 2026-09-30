@@ -101,17 +101,40 @@ const memberSchema = new mongoose_1.Schema({
         type: String,
         select: false,
     },
+    profitBalance: {
+        type: mongoose_1.Schema.Types.Decimal128,
+        default: 0.0,
+        get: (v) => (v != null ? parseFloat(v.toString()) : 0),
+    },
     totalDeposit: {
-        type: Number,
-        default: 0,
+        type: mongoose_1.Schema.Types.Decimal128,
+        default: 0.0,
+        get: (v) => (v != null ? parseFloat(v.toString()) : 0),
     },
     savingsBalance: {
-        type: Number,
-        default: 0,
+        type: mongoose_1.Schema.Types.Decimal128,
+        default: 0.0,
+        get: (v) => (v != null ? parseFloat(v.toString()) : 0),
     },
     dueAmount: {
-        type: Number,
-        default: 0,
+        type: mongoose_1.Schema.Types.Decimal128,
+        default: 0.0,
+        get: (v) => (v != null ? parseFloat(v.toString()) : 0),
+    },
+    totalWithdrawn: {
+        type: mongoose_1.Schema.Types.Decimal128,
+        default: 0.0,
+        get: (v) => (v != null ? parseFloat(v.toString()) : 0),
+    },
+    depositBalance: {
+        type: mongoose_1.Schema.Types.Decimal128,
+        default: 0.0,
+        get: (v) => (v != null ? parseFloat(v.toString()) : 0),
+    },
+    pendingWithdrawal: {
+        type: mongoose_1.Schema.Types.Decimal128,
+        default: 0.0,
+        get: (v) => (v != null ? parseFloat(v.toString()) : 0),
     },
     // Nominee Details & Media
     nomineeName: {
@@ -157,13 +180,13 @@ const memberSchema = new mongoose_1.Schema({
     },
 }, {
     timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
+    versionKey: "__v",
+    toJSON: { virtuals: true, getters: true },
+    toObject: { virtuals: true, getters: true },
 });
-// Compound Index for performance on council queries
+// Compound Index for performance on queries
+memberSchema.index({ email: 1, mobileNo: 1 });
 memberSchema.index({ councilCategory: 1, designation: 1, status: 1 });
-memberSchema.index({ memberCode: 1 });
-memberSchema.index({ mobileNo: 1 });
 memberSchema.index({ fullName: "text", email: "text", profession: "text" });
 // Static methods
 memberSchema.statics.isMemberExists = async function (email) {

@@ -1,11 +1,22 @@
 import { Types } from "mongoose";
 
-export type TAdjustmentType = "credit" | "debit" | "fee_reversal" | "operational";
+export type TAdjustmentType =
+  | "credit"
+  | "debit"
+  | "fee_reversal"
+  | "operational"
+  | "PROFIT"
+  | "DEPOSIT"
+  | "DUE"
+  | "profit"
+  | "deposit"
+  | "due";
 
 export interface IAdjustmentBalanceSnapshot {
   totalDeposit: number;
   savingsBalance: number;
   dueAmount: number;
+  profitBalance?: number;
 }
 
 export interface IAdjustment {

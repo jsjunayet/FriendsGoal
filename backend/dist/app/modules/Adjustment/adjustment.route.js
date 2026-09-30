@@ -8,12 +8,13 @@ const express_1 = __importDefault(require("express"));
 const validateRequest_1 = __importDefault(require("../../middlewares/validateRequest"));
 const adjustment_controller_1 = require("./adjustment.controller");
 const adjustment_validation_1 = require("./adjustment.validation");
+const security_1 = require("../../middlewares/security");
 const router = express_1.default.Router();
 /**
  * 1. POST /api/v1/adjustments
  * Process adjustment, apply ledger math, create audit record
  */
-router.post("/", (0, validateRequest_1.default)(adjustment_validation_1.AdjustmentValidation.createAdjustmentValidationSchema), adjustment_controller_1.AdjustmentControllers.createAdjustment);
+router.post("/", security_1.financialMutationLimiter, (0, validateRequest_1.default)(adjustment_validation_1.AdjustmentValidation.createAdjustmentValidationSchema), adjustment_controller_1.AdjustmentControllers.createAdjustment);
 /**
  * 2. GET /api/v1/adjustments
  * Get filtered adjustments list with date range (fromDate, toDate) and search pagination

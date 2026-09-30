@@ -3,6 +3,8 @@ import validateRequest from "../../middlewares/validateRequest";
 import { AdjustmentControllers } from "./adjustment.controller";
 import { AdjustmentValidation } from "./adjustment.validation";
 
+import { financialMutationLimiter } from "../../middlewares/security";
+
 const router = express.Router();
 
 /**
@@ -11,6 +13,7 @@ const router = express.Router();
  */
 router.post(
   "/",
+  financialMutationLimiter,
   validateRequest(AdjustmentValidation.createAdjustmentValidationSchema),
   AdjustmentControllers.createAdjustment
 );

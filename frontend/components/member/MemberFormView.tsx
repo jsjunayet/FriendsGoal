@@ -27,6 +27,7 @@ import {
   type IMember,
 } from "@/lib/memberApi";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
+import { ExportDropdown } from "@/components/shared";
 
 // Predefined designation mapping to Bangla
 const DESIGNATION_PRESETS: Record<string, string> = {
@@ -228,14 +229,12 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-[13px] font-semibold text-gray-700 transition-colors shadow-xs cursor-pointer"
-          >
-            <Download className="w-4 h-4 text-gray-500" />
-            <span>Download</span>
-            <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-          </button>
+          {!isCreateMode && (
+            <ExportDropdown 
+              endpointUrl={`/api/v1/members/${initialMember?._id || formData.memberCode}/export`} 
+              defaultFilename={`Member_${formData.memberCode}_Statement`} 
+            />
+          )}
         </div>
       </div>
 

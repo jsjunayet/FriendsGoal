@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, GripVertical, Plus, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   IExpenseCategory,
   createExpenseCategoryApi,
@@ -76,7 +77,7 @@ export function ManageCategoriesModal({
 
     // Check duplicate
     if (items.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())) {
-      alert("A category with this name already exists.");
+      toast.error("A category with this name already exists.");
       return;
     }
 
@@ -88,7 +89,7 @@ export function ManageCategoriesModal({
       onCategoriesUpdated(updated);
       setNewCatName("");
     } catch (err: any) {
-      alert("Failed to add category: " + (err.message || "Unknown error"));
+      toast.error("Failed to add category: " + (err.message || "Unknown error"));
     } finally {
       setIsAdding(false);
     }

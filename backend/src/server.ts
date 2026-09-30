@@ -3,6 +3,9 @@ import mongoose from "mongoose";
 import app from "./app";
 import config from "./app/config/index";
 import { OperationServices } from "./app/modules/Operation/operation.service";
+import { initMonthlyDueReminderCron } from "./app/modules/Notification/notification.cron";
+import seedSuperAdmin from "./app/DB/index";
+import { initSocket } from "./shared/socket";
 let server: Server;
 
 async function main() {
@@ -12,15 +15,22 @@ async function main() {
       throw new Error("Missing DATABASE_URL in environment configuration.");
     }
 
-    await mongoose.connect(mongoUri);
+    await mongoose.connect(mongoUri, {
+      maxPoolSize: 50,
+      minPoolSize: 10,
+    });
 
     // Initialize recurring monthly auto-billing cron engine
     OperationServices.initMonthlyAutoBillingCron();
+    initMonthlyDueReminderCron();
 
-    // await seedSuperAdmin();
+    await seedSuperAdmin();
     server = app.listen(5000, () => {
       console.log(`app is listening on port ${5000}`);
     });
+    
+    // Init socket
+    initSocket(server);
   } catch (err) {
     console.error(err);
     process.exit(1);

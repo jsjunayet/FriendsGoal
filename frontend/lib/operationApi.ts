@@ -432,10 +432,8 @@ export async function fetchCollectionsApi(
 
     return {
       memberInfo: payload.memberInfo,
-      dueBalance: payload.dueBalance,
-      advanceBalance: payload.advanceBalance,
       collections: cols,
-    };
+    } as any;
   } catch (err) {
     console.warn("Backend /operations/collections failed, fallback", err);
     if (!memberId) {

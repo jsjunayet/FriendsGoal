@@ -10,6 +10,7 @@ import {
   FileEdit,
   CheckCircle2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { fetchMembersApi, IMember } from "@/lib/memberApi";
 import { createAdjustmentApi, TAdjustmentType } from "@/lib/adjustmentApi";
 
@@ -51,16 +52,16 @@ export function CreateAdjustmentView() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!memberId) {
-      alert("Please select a member");
+      toast.error("Please select a member");
       return;
     }
     const amt = parseFloat(adjustmentAmount);
     if (!amt || amt <= 0) {
-      alert("Please enter a valid positive adjustment amount");
+      toast.error("Please enter a valid positive adjustment amount");
       return;
     }
     if (!remarks.trim()) {
-      alert("Please enter remarks for audit justification");
+      toast.error("Please enter remarks for audit justification");
       return;
     }
 
@@ -79,14 +80,14 @@ export function CreateAdjustmentView() {
         router.push("/dashboard/money-adjustment");
       }, 1200);
     } catch (err: any) {
-      alert("Error creating adjustment: " + (err.message || "Unknown error"));
+      toast.error("Error creating adjustment: " + (err.message || "Unknown error"));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1200px] mx-auto space-y-6">
+    <div className="w-full flex flex-col gap-6 p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
       {/* ─── Top Header matching Screenshot 1 ───────────────────────────────────── */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Create Adjustment</h1>
@@ -221,11 +222,11 @@ export function CreateAdjustmentView() {
           </div>
 
           {/* Buttons: SAVE & Cancel matching Screenshot 1 */}
-          <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
+          <div className="flex items-center justify-center gap-3 pt-4 border-t border-gray-100">
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#00684A] hover:bg-[#00523a] text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-7 py-2.5 bg-[#00684A] hover:bg-[#00523a] text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
             >
               {isSubmitting ? (
                 <RefreshCw className="w-4 h-4 animate-spin text-white" />
@@ -238,7 +239,7 @@ export function CreateAdjustmentView() {
             <button
               type="button"
               onClick={() => router.push("/dashboard/money-adjustment")}
-              className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+              className="px-7 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
             >
               Cancel
             </button>

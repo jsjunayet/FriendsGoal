@@ -3,31 +3,54 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-/* eslint-disable no-undef */
-/* eslint-disable no-unused-vars */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const cors_1 = __importDefault(require("cors"));
+const helmet_1 = __importDefault(require("helmet"));
 const express_1 = __importDefault(require("express"));
 const globalErrorhandler_1 = __importDefault(require("./app/middlewares/globalErrorhandler"));
 const notFound_1 = __importDefault(require("./app/middlewares/notFound"));
 const index_1 = __importDefault(require("./app/routes/index"));
+const security_1 = require("./app/middlewares/security");
 const app = (0, express_1.default)();
-//parsers
-app.use(express_1.default.json());
-app.use((0, cookie_parser_1.default)());
-app.use((0, cors_1.default)({
-    origin: ["http://localhost:3000", "http://localhost:3001"],
-    credentials: true,
+// Security Headers
+app.use((0, helmet_1.default)({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
-// application routes
+// Parsers
+app.use(express_1.default.json({ limit: "10mb" }));
+app.use(express_1.default.urlencoded({ extended: true, limit: "10mb" }));
+app.use((0, cookie_parser_1.default)());
+// NoSQL Injection sanitizer
+app.use(security_1.sanitizeNoSql);
+// Strict CORS Configuration
+const allowedOrigins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    process.env.FRONTEND_URL,
+].filter(Boolean);
+app.use((0, cors_1.default)({
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps, curl, server-to-server)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        }
+        else {
+            callback(new Error(`Origin ${origin} not allowed by CORS`));
+        }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+}));
+// Application routes
 app.use("/api/v1", index_1.default);
 app.get("/", (req, res) => {
-    res.send("Hi The FriendsGoal is Running !");
+    res.send("Hi The FriendsGoal API is Running!");
 });
 app.use(globalErrorhandler_1.default);
-//Not Found
+// Not Found
 app.use(notFound_1.default);
 exports.default = app;
 //# sourceMappingURL=app.js.map

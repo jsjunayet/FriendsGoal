@@ -76,7 +76,7 @@ export function DisbursementListView() {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6">
+    <div className="w-full flex flex-col gap-6 p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
       {/* ─── Top Header matching Screenshot 1 & 3 ───────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -94,7 +94,7 @@ export function DisbursementListView() {
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50 shadow-xs transition-colors cursor-pointer uppercase tracking-wider"
         >
           <Plus className="w-3.5 h-3.5 text-gray-600" />
-          <span>+ INCOME DISBURS</span>
+          <span>INCOME DISBURS</span>
         </Link>
       </div>
 

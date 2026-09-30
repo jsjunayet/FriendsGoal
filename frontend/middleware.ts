@@ -48,33 +48,35 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
     if (!isAdmin) {
-      return NextResponse.redirect(new URL("/dashboard/member", request.url));
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
     return NextResponse.next();
   }
 
-  // ── /dashboard/member ─────────────────────────────────────────────────────
-  if (pathname === "/dashboard/member" || pathname.startsWith("/dashboard/member/")) {
+  // ── /dashboard/member (Directory) ─────────────────────────────────────────
+  if (pathname === "/dashboard/member" || pathname === "/dashboard/member/") {
     if (!isLoggedIn) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);
     }
+    if (!isAdmin) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
     return NextResponse.next();
   }
 
-  // ── /dashboard/** (Admin Financial Analytics) ─────────────────────────────
+  // ── /dashboard/** ─────────────────────────────
   if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
     if (!isLoggedIn) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);
     }
-    // Only 'superadmin' and 'admin' can access /dashboard.
-    // 'manager' or 'member' are redirected to /dashboard/member.
-    if (!isAdmin) {
-      return NextResponse.redirect(new URL("/dashboard/member", request.url));
-    }
+    
+    // If a member tries to access an admin-only sub-path like /dashboard/expense
+    // We let the client-side RoleGuard handle it, OR we could check here.
+    // For now, allow them to pass to let RoleGuard handle specific routes.
     return NextResponse.next();
   }
 
@@ -90,7 +92,7 @@ export function middleware(request: NextRequest) {
 
   // ── /login — bounce already-authenticated users ───────────────────────────
   if (pathname === "/login" && isLoggedIn) {
-    const dest = isAdmin ? "/dashboard" : "/dashboard/member";
+    const dest = isAdmin ? "/admin/dashboard" : "/dashboard";
     return NextResponse.redirect(new URL(dest, request.url));
   }
 

@@ -1,7 +1,11 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-dotenv.config({ path: path.join((process.cwd(), '.env.example')) });
+dotenv.config({ path: path.join(process.cwd(), '.env') });
+// Fallback if .env doesn't exist
+if (!process.env.PORT) {
+  dotenv.config({ path: path.join(process.cwd(), '.env.example') });
+}
 
 export default {
   NODE_ENV: process.env.NODE_ENV,

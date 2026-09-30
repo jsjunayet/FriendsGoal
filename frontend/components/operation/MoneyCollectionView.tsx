@@ -12,6 +12,7 @@ import {
   RefreshCw,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { fetchMembersApi, IMember } from "@/lib/memberApi";
 import {
   fetchCollectionsApi,
@@ -19,6 +20,7 @@ import {
   ICollectionRecord,
   IPaymentResult,
 } from "@/lib/operationApi";
+import { ExportDropdown } from "@/components/shared";
 
 export function MoneyCollectionView() {
   const router = useRouter();
@@ -127,11 +129,11 @@ export function MoneyCollectionView() {
     e.preventDefault();
     const amountNum = parseFloat(paidInput);
     if (!amountNum || amountNum <= 0) {
-      alert("Please enter a valid payment amount greater than 0");
+      toast.error("Please enter a valid payment amount greater than 0");
       return;
     }
     if (!selectedMemberId && !selectedMember) {
-      alert("Please select a member first");
+      toast.error("Please select a member first");
       return;
     }
 
@@ -259,7 +261,7 @@ export function MoneyCollectionView() {
   const safeHistory = Array.isArray(history) ? history : [];
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6">
+    <div className="w-full flex flex-col gap-6 p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
       {/* ─── Top Header ────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
@@ -267,14 +269,18 @@ export function MoneyCollectionView() {
           <p className="text-sm text-gray-500 mt-0.5">Record and manage member payments.</p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => router.push("/dashboard/due-list")}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 shadow-xs transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4 text-gray-500" />
-          <span>Back</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <ExportDropdown endpointUrl="/api/v1/reports/collection/export" defaultFilename="Collection_Report" />
+
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard/due-list")}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 shadow-xs transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4 text-gray-500" />
+            <span>Back</span>
+          </button>
+        </div>
       </div>
 
       {/* ─── 1. Member Selection Card matching Screenshot 2 & 3 ──────────────────── */}

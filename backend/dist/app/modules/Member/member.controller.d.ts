@@ -6,5 +6,9 @@ export declare const MemberControllers: {
     getSingleMember: (req: Request, res: Response, next: import("express").NextFunction) => void;
     updateMember: (req: Request, res: Response, next: import("express").NextFunction) => void;
     deleteMember: (req: Request, res: Response, next: import("express").NextFunction) => void;
+    getMemberDashboardSummary: (req: Request, res: Response, next: import("express").NextFunction) => void;
+    getMemberProfitBalance: (req: Request, res: Response, next: import("express").NextFunction) => void;
+    exportAllMembers: (req: Request, res: Response, next: import("express").NextFunction) => void;
+    exportSingleMember: (req: Request, res: Response, next: import("express").NextFunction) => void;
 };
 //# sourceMappingURL=member.controller.d.ts.map

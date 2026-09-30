@@ -10,6 +10,7 @@ const AppError_1 = __importDefault(require("../../errors/AppError"));
 const member_model_1 = require("../Member/member.model");
 const operation_model_1 = require("./operation.model");
 const operation_utils_1 = require("./operation.utils");
+const notification_service_1 = require("../Notification/notification.service");
 const getDueListFromDB = async (query) => {
     const { searchByCodeOrName, status = "All", page = 1, limit = 6 } = query;
     const filter = { isDeleted: false };
@@ -100,6 +101,7 @@ const getCollectionsFromDB = async (memberId) => {
             dueBalance: 0,
             advanceBalance: 0,
             data: recentCollections,
+            collections: recentCollections,
         };
     }
     // Scenario 2: Member Selected State -> Real-time balance and member history
@@ -124,11 +126,13 @@ const getCollectionsFromDB = async (memberId) => {
             mobileNo: member.mobileNo,
             dueAmount: member.dueAmount || 0,
             savingsBalance: member.savingsBalance || 0,
+            advanceBalance: member.savingsBalance || 0,
             totalDeposit: member.totalDeposit || 0,
         },
         dueBalance: member.dueAmount || 0,
         advanceBalance: member.savingsBalance || 0,
         data: memberCollections,
+        collections: memberCollections,
     };
 };
 const collectPaymentIntoDB = async (payload) => {
@@ -197,18 +201,25 @@ const collectPaymentIntoDB = async (payload) => {
     return {
         receiptNo,
         amountPaid: amount,
+        amount,
         member: `${member.memberCode} - ${member.fullName}`,
+        memberCode: member.memberCode,
+        memberName: member.fullName,
+        paymentDate: currentMonth,
         date: currentMonth,
         entryNo: totalCollectionsCount,
         status: "Paid",
         dueBalance: newDue,
         advanceBalance: newAdvance,
+        newDueAmount: newDue,
+        newAdvanceBalance: newAdvance,
+        newTotalDeposit: Number(member.totalDeposit || 0),
         collection,
     };
 };
 // ─── 5. Subscription Engine: Monthly Auto-Billing Cron (node-cron) ────────────
 const initMonthlyAutoBillingCron = () => {
-    // Run on the 1st of every month at 00:00: "0 0 1 * *"
+    // Monthly Auto-Billing Cron (runs on 1st of every month at midnight)
     node_cron_1.default.schedule("0 0 1 * *", async () => {
         console.log("⏰ Running Monthly Auto-Billing Cron Job...");
         try {
@@ -262,6 +273,26 @@ const initMonthlyAutoBillingCron = () => {
                     newAdvance,
                     description: `Monthly fee charge of ${chargeAmount} BDT for ${currentMonth}`,
                 });
+                if (billStatus === "Due") {
+                    const htmlBody = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 8px;">
+              <h2 style="color: #F59E0B;">New Monthly Due Allocated</h2>
+              <p>Dear <strong>${member.fullName}</strong>,</p>
+              <p>Your monthly due of <strong>৳${chargeAmount}</strong> for <strong>${currentMonth}</strong> has been allocated.</p>
+              <p>Your new total due balance is <strong>৳${newDue}</strong>.</p>
+              <p>Please log in to the portal to acknowledge and proceed with payment.</p>
+            </div>
+          `;
+                    await notification_service_1.NotificationServices.createNotification({
+                        recipientId: member._id,
+                        title: "New Monthly Due Allocated",
+                        message: htmlBody,
+                        type: "DUE_ALERT",
+                        channel: ["IN_APP", "EMAIL", "SMS"],
+                        requiresAction: true,
+                        metadata: { billingMonth: currentMonth, amount: chargeAmount, newDue },
+                    }).catch((err) => console.error("Failed to send due allocation alert", err));
+                }
             }
             console.log(`✅ Monthly Auto-Billing executed for ${activeMembers.length} active members.`);
         }

@@ -5,10 +5,13 @@ import { USER_ROLE } from "../User/user.constant";
 import { AuthControllers } from "./auth.controller";
 import { AuthValidation } from "./auth.validation";
 
+import { authLimiter } from "../../middlewares/security";
+
 const router = express.Router();
 
 router.post(
   "/login",
+  authLimiter,
   validateRequest(AuthValidation.loginValidationSchema),
   AuthControllers.loginUser,
 );

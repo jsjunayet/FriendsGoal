@@ -72,6 +72,43 @@ const deleteMember = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+// 7. Member Dashboard Summary (GET /api/v1/members/me/dashboard-summary)
+const getMemberDashboardSummary = (0, catchAsync_1.default)(async (req, res) => {
+    const user = req.user;
+    const identifier = user?.email || user?._id || user?.userId;
+    const result = await member_service_1.MemberServices.getMemberDashboardSummaryFromDB(identifier);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_1.default.OK,
+        success: true,
+        message: "Member dashboard summary fetched successfully!",
+        data: result,
+    });
+});
+// 8. Member Live Profit Balance (GET /api/v1/members/me/profit-balance or /:id/profit-balance)
+const getMemberProfitBalance = (0, catchAsync_1.default)(async (req, res) => {
+    const user = req.user;
+    const paramId = req.params.id || req.params.memberId;
+    const identifier = paramId && paramId !== "me"
+        ? paramId
+        : user?.email || user?._id || user?.userId;
+    const result = await member_service_1.MemberServices.getMemberProfitBalanceFromDB(identifier);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_1.default.OK,
+        success: true,
+        message: "Member profit balance fetched successfully!",
+        data: result,
+    });
+});
+// 9. Export All Members Directory (GET /api/v1/members/export-all?status=ACTIVE|INACTIVE|ALL&format=pdf|excel)
+const exportAllMembers = (0, catchAsync_1.default)(async (req, res) => {
+    await member_service_1.MemberServices.exportAllMembersFromDB(res, req.query);
+});
+// 10. Export Single Member Profile Card & Statement (GET /api/v1/members/:id/export?format=pdf|excel)
+const exportSingleMember = (0, catchAsync_1.default)(async (req, res) => {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const format = req.query.format || "pdf";
+    await member_service_1.MemberServices.exportSingleMemberFromDB(res, id, format);
+});
 exports.MemberControllers = {
     createMember,
     getAllMembers,
@@ -79,5 +116,9 @@ exports.MemberControllers = {
     getSingleMember,
     updateMember,
     deleteMember,
+    getMemberDashboardSummary,
+    getMemberProfitBalance,
+    exportAllMembers,
+    exportSingleMember,
 };
 //# sourceMappingURL=member.controller.js.map

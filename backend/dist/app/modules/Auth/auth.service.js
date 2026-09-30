@@ -9,8 +9,8 @@ const http_status_1 = __importDefault(require("http-status"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const index_1 = __importDefault(require("../../config/index"));
 const AppError_1 = __importDefault(require("../../errors/AppError"));
-const sendEmail_1 = require("../../utils/sendEmail");
 const user_model_1 = require("../User/user.model");
+const notification_service_1 = require("../Notification/notification.service");
 const auth_utils_1 = require("./auth.utils");
 const loginUser = async (payload) => {
     // checking if the user is exist
@@ -35,6 +35,7 @@ const loginUser = async (payload) => {
     //create token and sent to the  client
     const jwtPayload = {
         userId: user.id,
+        email: user.email,
         role: user.role,
     };
     const accessToken = (0, auth_utils_1.createToken)(jwtPayload, index_1.default.jwt_access_secret, index_1.default.jwt_access_expires_in);
@@ -130,9 +131,26 @@ const forgetPassword = async (userId) => {
         role: user.role,
     };
     const resetToken = (0, auth_utils_1.createToken)(jwtPayload, index_1.default.jwt_access_secret, '10m');
-    const resetUILink = `${index_1.default.reset_pass_ui_link}?id=${user.id}&token=${resetToken} `;
-    (0, sendEmail_1.sendEmail)(user.email, resetUILink);
-    console.log(resetUILink);
+    const resetUILink = `${index_1.default.reset_pass_ui_link}?id=${user.id}&token=${resetToken}`;
+    const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 8px;">
+      <h2 style="color: #00B074;">Password Reset Request</h2>
+      <p>Hello,</p>
+      <p>We received a request to reset the password for your account.</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${resetUILink}" style="background-color: #00B074; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Reset Password</a>
+      </div>
+      <p style="color: #6B7280; font-size: 14px;">If you did not request this, please ignore this email. This link will expire in 10 minutes.</p>
+    </div>
+  `;
+    await notification_service_1.NotificationServices.createNotification({
+        recipientId: user._id, // Notice we use mongo _id here for ref
+        title: "Password Reset Request",
+        message: htmlBody,
+        type: "PASSWORD_RESET",
+        channel: ["EMAIL"],
+    });
+    console.log("Password reset triggered for:", user.email);
 };
 const resetPassword = async (payload, token) => {
     // checking if the user is exist

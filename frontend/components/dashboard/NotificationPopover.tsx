@@ -1,60 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Check, Info, AlertTriangle, AlertCircle, CheckCircle2 } from "lucide-react";
 
-export interface NotificationItem {
-  id: string;
-  title: string;
-  message: string;
-  time: string;
-  unread: boolean;
-  type: "approval" | "collection" | "system" | "delete";
-}
+import { io } from "socket.io-client";
+import { fetchMyNotifications, INotification, acknowledgeNotification } from "@/lib/notificationApi";
 
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: "1",
-    title: "Withdrawal request pending",
-    message: "Fatema Begum has submitted a new withdrawal request for ৳4,554.",
-    time: "2m ago",
-    unread: true,
-    type: "approval",
-  },
-  {
-    id: "2",
-    title: "Payment recorded",
-    message: "Sajid Mahmud recorded a collection of ৳1,200 for MD Belal Hossain.",
-    time: "18m ago",
-    unread: true,
-    type: "collection",
-  },
-  {
-    id: "3",
-    title: "Interest rate changed",
-    message: "Nusrat Akter updated the system interest rate from 5.5% to 6.0%.",
-    time: "1h ago",
-    unread: true,
-    type: "system",
-  },
-  {
-    id: "4",
-    title: "Withdrawal approved",
-    message: "John Doe's request WD-C9G4H6 was approved by Nusrat Akter.",
-    time: "3h ago",
-    unread: true,
-    type: "approval",
-  },
-  {
-    id: "5",
-    title: "Member deleted",
-    message: "Sajid Mahmud removed Ali Akbar after full settlement",
-    time: "5h ago",
-    unread: false,
-    type: "delete",
-  },
-];
+const formatTimeAgo = (dateStr: string) => {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+};
 
 interface NotificationPopoverProps {
   isOpen: boolean;
@@ -63,39 +25,70 @@ interface NotificationPopoverProps {
 }
 
 export function NotificationPopover({ isOpen, onClose, onViewAll }: NotificationPopoverProps) {
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<INotification[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setLoading(true);
+      fetchMyNotifications(1, 10).then(res => {
+        setNotifications(res.data);
+      }).finally(() => setLoading(false));
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    // Socket real-time logic
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") || "http://localhost:5000";
+    const socket = io(socketUrl);
+
+    socket.on("connect", () => {
+      socket.emit("join-room", "admin-room"); 
+      // Should also join user-specific room if not admin, but admin-room for now
+    });
+
+    socket.on("new-notification", (data: INotification) => {
+      setNotifications(prev => [data, ...prev]);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   if (!isOpen) return null;
 
-  const unreadCount = notifications.filter((n) => n.unread).length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const handleMarkAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+    // Acknowledge all locally for UX, ideally API call
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
   };
 
-  const getIcon = (type: NotificationItem["type"]) => {
+  const getIcon = (type: string) => {
     switch (type) {
-      case "approval":
+      case "WITHDRAWAL_REQUEST":
         return (
           <div className="w-6 h-6 rounded-full bg-[#D1FAE5] text-[#059669] flex items-center justify-center flex-shrink-0">
             <Check className="w-3.5 h-3.5 stroke-[2.5]" />
           </div>
         );
-      case "collection":
+      case "DEPOSIT_SUCCESS":
+      case "DUE_ALERT":
         return (
           <div className="w-6 h-6 rounded-full bg-[#DBEAFE] text-[#2563EB] flex items-center justify-center flex-shrink-0">
             <Info className="w-3.5 h-3.5 stroke-[2.5]" />
           </div>
         );
-      case "system":
+      case "SUPERADMIN_SECURITY_ALERT":
         return (
           <div className="w-6 h-6 rounded-full bg-[#FEE2E2] text-[#DC2626] flex items-center justify-center flex-shrink-0">
             <AlertTriangle className="w-3.5 h-3.5 stroke-[2.5]" />
           </div>
         );
-      case "delete":
+      default:
         return (
-          <div className="w-6 h-6 rounded-full bg-[#FEE2E2] text-[#DC2626] flex items-center justify-center flex-shrink-0">
+          <div className="w-6 h-6 rounded-full bg-[#F1F5F9] text-[#64748B] flex items-center justify-center flex-shrink-0">
             <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
           </div>
         );
@@ -130,33 +123,42 @@ export function NotificationPopover({ isOpen, onClose, onViewAll }: Notification
 
         {/* List items */}
         <div className="max-h-[360px] overflow-y-auto divide-y divide-gray-50">
-          {notifications.map((item) => (
-            <div
-              key={item.id}
-              className={`p-3.5 transition-colors hover:bg-gray-50/70 flex items-start gap-3 relative ${
-                item.unread ? "bg-[#F9FBFA]" : "bg-white"
-              }`}
-            >
-              {getIcon(item.type)}
+          {loading ? (
+            <div className="p-8 text-center text-sm text-gray-500">Loading...</div>
+          ) : notifications.length === 0 ? (
+            <div className="p-8 text-center text-sm text-gray-500">No new notifications</div>
+          ) : (
+            notifications.map((item) => (
+              <div
+                key={item._id}
+                className={`p-3.5 transition-colors hover:bg-gray-50/70 flex items-start gap-3 relative ${
+                  !item.isRead ? "bg-[#F9FBFA]" : "bg-white"
+                }`}
+              >
+                {getIcon(item.type)}
 
-              <div className="flex-1 min-w-0 pr-4">
-                <div className="flex items-center justify-between gap-1 mb-0.5">
-                  <h4 className="text-[12.5px] font-semibold text-gray-900 leading-tight truncate">
-                    {item.title}
-                  </h4>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <span className="text-[11px] text-gray-400 font-normal">{item.time}</span>
-                    {item.unread && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] flex-shrink-0" />
-                    )}
+                <div className="flex-1 min-w-0 pr-4">
+                  <div className="flex items-center justify-between gap-1 mb-0.5">
+                    <h4 className="text-[12.5px] font-semibold text-gray-900 leading-tight truncate">
+                      {item.title}
+                    </h4>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className="text-[11px] text-gray-400 font-normal">
+                        {formatTimeAgo(item.createdAt)}
+                      </span>
+                      {!item.isRead && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] flex-shrink-0" />
+                      )}
+                    </div>
                   </div>
+                  <div 
+                    className="text-[11.5px] text-gray-500 leading-snug line-clamp-2"
+                    dangerouslySetInnerHTML={{ __html: item.message }}
+                  />
                 </div>
-                <p className="text-[11.5px] text-gray-500 leading-snug line-clamp-2">
-                  {item.message}
-                </p>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         {/* Footer */}

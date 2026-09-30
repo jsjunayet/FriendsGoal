@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Info,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   createDisbursementApi,
   fetchMemberProfitBalanceApi,
@@ -85,12 +86,12 @@ export function CreateDisbursementView() {
     e.preventDefault();
     const amt = parseFloat(paidAmount);
     if (isNaN(amt) || amt <= 0) {
-      alert("Please enter a valid payout amount.");
+      toast.error("Please enter a valid payout amount.");
       return;
     }
 
     if (amt > profitBalance) {
-      alert(`Paid amount ($${amt}) exceeds available profit balance ($${profitBalance}).`);
+      toast.error(`Paid amount ($${amt}) exceeds available profit balance ($${profitBalance}).`);
       return;
     }
 
@@ -108,14 +109,14 @@ export function CreateDisbursementView() {
         router.push("/dashboard/income-disbursement");
       }, 1000);
     } catch (err: any) {
-      alert("Failed to process disbursement: " + (err.message || "Unknown error"));
+      toast.error("Failed to process disbursement: " + (err.message || "Unknown error"));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1200px] mx-auto space-y-6">
+    <div className="w-full flex flex-col gap-6 p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
       {/* ─── Top Header & Back Navigation matching Screenshot 2 ──────────────────── */}
       <div className="flex items-center justify-between">
         <div>
@@ -254,12 +255,12 @@ export function CreateDisbursementView() {
             <span>Member: {selectedMemberName}</span>
           </div>
 
-          {/* Bottom-right SAVE Button matching Screenshot 2 */}
-          <div className="flex justify-end pt-2">
+          {/* Centered SAVE Button */}
+          <div className="flex justify-center pt-4">
             <button
               type="submit"
               disabled={isSubmitting || !paidAmount}
-              className="px-8 py-2.5 bg-[#86EFAC]/80 hover:bg-[#6EE7B7] text-[#065F46] hover:text-[#044E39] text-xs sm:text-sm font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer shadow-xs disabled:opacity-40 inline-flex items-center justify-center min-w-[100px]"
+              className="px-8 py-2.5 bg-[#056839] hover:bg-[#04532e] text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-md transition-colors cursor-pointer shadow-xs disabled:opacity-40 inline-flex items-center justify-center min-w-[100px]"
             >
               {isSubmitting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

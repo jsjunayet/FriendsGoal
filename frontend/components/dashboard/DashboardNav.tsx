@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, LogOut, Shield, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { NotificationPopover } from "./NotificationPopover";
+import { useEffect, useRef, useState } from "react";
+import { INotification, fetchMyNotifications } from "@/lib/notificationApi";
 
 // Role label map
 const ROLE_LABELS: Record<string, string> = {
@@ -28,6 +31,30 @@ function Initials({ userId }: { userId: string }) {
 export function DashboardNav() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setIsNotifOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Poll for unread count simply or rely on real-time inside popover
+  // We can just fetch once here to get count
+  useEffect(() => {
+    if (user) {
+      fetchMyNotifications(1, 1).then(res => {
+        // Assume API could return unread count in meta, or we just rely on popover.
+        // If popover manages real-time, we can pass state up, but for simplicity:
+      }).catch(e => console.error(e));
+    }
+  }, [user]);
 
   const isAdmin = user?.role === "admin" || user?.role === "superAdmin";
   const roleLabel = user ? (ROLE_LABELS[user.role] ?? user.role) : "Member";
@@ -79,7 +106,18 @@ export function DashboardNav() {
           )}
 
           {/* Notifications */}
-        
+          <div className="relative" ref={notifRef}>
+            <button
+              type="button"
+              onClick={() => setIsNotifOpen(!isNotifOpen)}
+              className="relative w-9 h-9 rounded-full flex items-center justify-center text-[#555555] hover:bg-[#F3F4F6] transition-colors focus:outline-none"
+            >
+              <Bell className="w-5 h-5" />
+              {/* If we had a global unread count */}
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-[#EF4444] rounded-full border-2 border-white"></span>
+            </button>
+            <NotificationPopover isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
+          </div>
 
           {/* Logout */}
           <button

@@ -21,151 +21,114 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  Cell,
-  PieChart,
-  Pie,
+  Cell
 } from "recharts";
+import { PieChart, Pie } from "recharts";
 import { NotificationPopover } from "./NotificationPopover";
+import { fetchAnalyticsOverview, fetchMonthlyCollections, IAnalyticsOverview, IMonthlyCollection } from "../../lib/analyticsApi";
+import { fetchDueListApi, IDueListItem } from "../../lib/operationApi";
+import { useEffect } from "react";
 
-// ─── Static Mock Data ────────────────────────────────────────────────────────
-
-const KPI_STATS = [
-  {
-    id: "total_amounts",
-    title: "Total Amounts",
-    value: "$2.45M",
-    icon: Wallet,
-    iconBg: "bg-[#EAF8F1] text-[#00B074]",
-    isAlert: false,
-  },
-  {
-    id: "profits",
-    title: "Profits",
-    value: "$840k",
-    icon: TrendingUp,
-    iconBg: "bg-[#EAF8F1] text-[#00B074]",
-    isAlert: false,
-  },
-  {
-    id: "members_received",
-    title: "Members Received",
-    value: "$1.15M",
-    icon: Users,
-    iconBg: "bg-[#EAF8F1] text-[#00B074]",
-    isAlert: false,
-  },
-  {
-    id: "others_received",
-    title: "others Received",
-    value: "$1.15M",
-    icon: Users2,
-    iconBg: "bg-[#EAF8F1] text-[#00B074]",
-    isAlert: false,
-  },
-  {
-    id: "due_amounts",
-    title: "Due Amounts",
-    value: "$2.45M",
-    icon: AlertTriangle,
-    iconBg: "bg-[#FEE2E2] text-[#DC2626]",
-    isAlert: true,
-  },
-  {
-    id: "expense_amounts",
-    title: "Expense Amounts",
-    value: "$2.45M",
-    icon: Receipt,
-    iconBg: "bg-[#FEE2E2] text-[#DC2626]",
-    isAlert: true,
-  },
-];
-
-const MONTHLY_COLLECTION_DATA = [
-  { month: "Jan", amount: 180000 },
-  { month: "Feb", amount: 290000 },
-  { month: "Mar", amount: 130000 },
-  { month: "Apr", amount: 395000 },
-  { month: "May", amount: 220000 },
-  { month: "Jun", amount: 395000 },
-  { month: "Jul", amount: 340000 },
-  { month: "Aug", amount: 215000 },
-  { month: "Sep", amount: 310000 },
-  { month: "Oct", amount: 495900, isCurrent: true },
-  { month: "Nov", amount: 375000 },
-  { month: "Dec", amount: 275000 },
-];
-
-const PERFORMANCE_DATA = [
-  { name: "Recieve", value: 76, color: "#00875A" },
-  { name: "Profit", value: 15, color: "#10B981" },
-  { name: "Expense", value: 9, color: "#EF4444" },
-];
-
-const MEMBER_DUE_LIST = [
-  { id: "001", name: "MD. Yousuf Mozomder", amount: "$45,200.00" },
-  { id: "001", name: "MD. Yousuf Mozomder", amount: "$45,200.00" },
-  { id: "001", name: "MD. Yousuf Mozomder", amount: "$45,200.00" },
-  { id: "001", name: "MD. Yousuf Mozomder", amount: "$45,200.00" },
-  { id: "001", name: "MD. Yousuf Mozomder", amount: "$45,200.00" },
-  { id: "001", name: "MD. Yousuf Mozomder", amount: "$45,200.00" },
-  { id: "001", name: "MD. Yousuf Mozomder", amount: "$45,200.00" },
-];
+// Static arrays removed, using state directly
 
 interface FinancialAnalyticsViewProps {
   onToggleMobileSidebar?: () => void;
 }
 
-// ─── Custom Floating Badge on Oct Bar ────────────────────────────────────────
 
-const renderCustomBarLabel = (props: any) => {
-  const { x, y, width, value, index } = props;
-  const isOct = MONTHLY_COLLECTION_DATA[index]?.isCurrent;
-
-  if (!isOct) return null;
-
-  const badgeWidth = 62;
-  const badgeHeight = 22;
-  const badgeX = x + width / 2 - badgeWidth / 2;
-  const badgeY = y - badgeHeight - 8;
-
-  return (
-    <g>
-      {/* Tooltip Background Pill */}
-      <rect
-        x={badgeX}
-        y={badgeY}
-        width={badgeWidth}
-        height={badgeHeight}
-        rx={4}
-        ry={4}
-        fill="#F3F4F6"
-        stroke="#E5E7EB"
-        strokeWidth={1}
-      />
-      {/* Downward pointer triangle */}
-      <polygon
-        points={`${badgeX + badgeWidth / 2 - 4},${badgeY + badgeHeight} ${badgeX + badgeWidth / 2 + 4},${badgeY + badgeHeight} ${badgeX + badgeWidth / 2},${badgeY + badgeHeight + 4}`}
-        fill="#F3F4F6"
-      />
-      {/* Badge Text */}
-      <text
-        x={badgeX + badgeWidth / 2}
-        y={badgeY + 15}
-        fill="#1F2937"
-        textAnchor="middle"
-        fontSize={11}
-        fontWeight="600"
-        fontFamily="sans-serif"
-      >
-        {value}
-      </text>
-    </g>
-  );
-};
 
 export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnalyticsViewProps) {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(4);
+  const [overview, setOverview] = useState<IAnalyticsOverview | null>(null);
+  const [monthlyCollections, setMonthlyCollections] = useState<IMonthlyCollection[]>([]);
+  const [dueList, setDueList] = useState<IDueListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [overviewRes, collectionsRes, dueListRes] = await Promise.all([
+          fetchAnalyticsOverview(),
+          fetchMonthlyCollections(),
+          fetchDueListApi({ status: "Due", limit: 8 })
+        ]);
+        setOverview(overviewRes);
+        setMonthlyCollections(collectionsRes);
+        setDueList(dueListRes.data || []);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const formatCurrencyLabel = (val: number) => {
+    if (val >= 1000000) return `৳${(val / 1000000).toFixed(2)}M`;
+    if (val >= 1000) return `৳${(val / 1000).toFixed(0)}k`;
+    return `৳${val}`;
+  };
+
+  const KPI_STATS = overview ? [
+    {
+      id: "total_amounts",
+      title: "Total Amounts",
+      value: formatCurrencyLabel(overview.totalAmounts),
+      icon: Wallet,
+      iconBg: "bg-[#EAF8F1] text-[#00B074]",
+      isAlert: false,
+    },
+    {
+      id: "profits",
+      title: "Profits",
+      value: formatCurrencyLabel(overview.profits),
+      icon: TrendingUp,
+      iconBg: "bg-[#EAF8F1] text-[#00B074]",
+      isAlert: false,
+    },
+    {
+      id: "members_received",
+      title: "Members Received",
+      value: formatCurrencyLabel(overview.membersReceived),
+      icon: Users,
+      iconBg: "bg-[#EAF8F1] text-[#00B074]",
+      isAlert: false,
+    },
+    {
+      id: "others_received",
+      title: "others Received",
+      value: formatCurrencyLabel(overview.othersReceived),
+      icon: Users2,
+      iconBg: "bg-[#EAF8F1] text-[#00B074]",
+      isAlert: false,
+    },
+    {
+      id: "due_amounts",
+      title: "Due Amounts",
+      value: formatCurrencyLabel(overview.dueAmounts),
+      icon: AlertTriangle,
+      iconBg: "bg-[#FEE2E2] text-[#DC2626]",
+      isAlert: true,
+    },
+    {
+      id: "expense_amounts",
+      title: "Expense Amounts",
+      value: formatCurrencyLabel(overview.expenseAmounts),
+      icon: Receipt,
+      iconBg: "bg-[#FEE2E2] text-[#DC2626]",
+      isAlert: true,
+    },
+  ] : [];
+
+  const totalPerf = overview ? (overview.membersReceived + overview.profits + overview.expenseAmounts) || 1 : 1;
+  const PERFORMANCE_DATA = overview ? [
+    { name: "Recieve", value: Math.round((overview.membersReceived / totalPerf) * 100), color: "#00875A" },
+    { name: "Profit", value: Math.round((overview.profits / totalPerf) * 100), color: "#10B981" },
+    { name: "Expense", value: Math.round((overview.expenseAmounts / totalPerf) * 100), color: "#EF4444" },
+  ] : [];
+
 
   return (
     <div className="w-full flex flex-col gap-7 p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
@@ -221,7 +184,9 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
       <section aria-label="Key Performance Indicators">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
           {/* Row 1: 4 Cards */}
-          {KPI_STATS.slice(0, 4).map((card) => {
+          {loading ? (
+            <div className="col-span-1 sm:col-span-2 lg:col-span-4 flex items-center justify-center p-10 text-sm text-gray-500">Loading metrics...</div>
+          ) : KPI_STATS.slice(0, 4).map((card) => {
             const Icon = card.icon;
             return (
               <div
@@ -248,12 +213,14 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
           })}
 
           {/* Row 2: 2 Cards (Due Amounts, Expense Amounts) */}
-          {KPI_STATS.slice(4, 6).map((card) => {
+          {loading ? (
+            <div className="col-span-1 sm:col-span-2 flex items-center justify-center p-5 text-sm text-gray-500">Loading metrics...</div>
+          ) : KPI_STATS.slice(4, 6).map((card) => {
             const Icon = card.icon;
             return (
               <div
                 key={card.id}
-                className="bg-white rounded-2xl p-5 border border-[#EDF2F7] shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col justify-between transition-all hover:shadow-[0_4px_14px_rgba(0,0,0,0.04)]"
+                className="bg-white rounded-2xl p-5 border border-[#EDF2F7] shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col justify-between transition-all hover:shadow-[0_4px_14px_rgba(0,0,0,0.04)] lg:col-span-2 sm:col-span-1 col-span-1"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] font-medium text-[#64748B]">
@@ -301,46 +268,95 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
 
             {/* Recharts Bar Chart */}
             <div className="w-full h-[250px] pt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={MONTHLY_COLLECTION_DATA}
-                  margin={{ top: 25, right: 0, left: -25, bottom: 0 }}
-                  barSize={20}
-                >
-                  <XAxis
-                    dataKey="month"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#94A3B8", fontSize: 11 }}
-                    dy={5}
-                  />
-                  <YAxis hide domain={[0, 550000]} />
-                  <Tooltip
-                    cursor={{ fill: "transparent" }}
-                    formatter={(value: any) => [`৳${Number(value).toLocaleString()}`, "Collection"]}
-                    contentStyle={{
-                      backgroundColor: "#1E293B",
-                      borderRadius: "8px",
-                      border: "none",
-                      color: "#FFFFFF",
-                      fontSize: "12px",
-                    }}
-                    itemStyle={{ color: "#10B981" }}
-                  />
-                  <Bar
-                    dataKey="amount"
-                    radius={[6, 6, 0, 0]}
-                    label={renderCustomBarLabel}
+              {loading ? (
+                <div className="flex h-full items-center justify-center text-sm text-gray-500">Loading chart...</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={monthlyCollections}
+                    margin={{ top: 25, right: 0, left: -25, bottom: 0 }}
+                    barSize={20}
                   >
-                    {MONTHLY_COLLECTION_DATA.map((entry, index) => (
-                      <Cell
-                        key={`cell-${entry.month}`}
-                        fill={entry.isCurrent ? "#10B981" : "#D1FAE5"}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+                    <XAxis
+                      dataKey="month"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#94A3B8", fontSize: 11 }}
+                      dy={5}
+                    />
+                    <YAxis hide />
+                    <Tooltip
+                      cursor={{ fill: "transparent" }}
+                      formatter={(value: any) => [`৳${Number(value).toLocaleString()}`, "Collection"]}
+                      contentStyle={{
+                        backgroundColor: "#1E293B",
+                        borderRadius: "8px",
+                        border: "none",
+                        color: "#FFFFFF",
+                        fontSize: "12px",
+                      }}
+                      itemStyle={{ color: "#10B981" }}
+                    />
+                    <Bar
+                      dataKey="amount"
+                      radius={[6, 6, 0, 0]}
+                      minPointSize={5}
+                      label={(props: any) => {
+                        const { x, y, width, value, index } = props;
+                        const isCurrent = monthlyCollections[index]?.isCurrent;
+
+                        if (!isCurrent) return null;
+
+                        const badgeWidth = 62;
+                        const badgeHeight = 22;
+                        const badgeX = x + width / 2 - badgeWidth / 2;
+                        const badgeY = Math.max(y - badgeHeight - 8, 0); // ensure it doesn't go off screen
+
+                        return (
+                          <g>
+                            {/* Tooltip Background Pill */}
+                            <rect
+                              x={badgeX}
+                              y={badgeY}
+                              width={badgeWidth}
+                              height={badgeHeight}
+                              rx={4}
+                              ry={4}
+                              fill="#F3F4F6"
+                              stroke="#E5E7EB"
+                              strokeWidth={1}
+                            />
+                            {/* Downward pointer triangle */}
+                            <polygon
+                              points={`${badgeX + badgeWidth / 2 - 4},${badgeY + badgeHeight} ${badgeX + badgeWidth / 2 + 4},${badgeY + badgeHeight} ${badgeX + badgeWidth / 2},${badgeY + badgeHeight + 4}`}
+                              fill="#F3F4F6"
+                            />
+                            {/* Badge Text */}
+                            <text
+                              x={badgeX + badgeWidth / 2}
+                              y={badgeY + 15}
+                              fill="#1F2937"
+                              textAnchor="middle"
+                              fontSize={11}
+                              fontWeight="600"
+                              fontFamily="sans-serif"
+                            >
+                              {value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}
+                            </text>
+                          </g>
+                        );
+                      }}
+                    >
+                      {monthlyCollections.map((entry, index) => (
+                        <Cell
+                          key={`cell-${entry.month}`}
+                          fill={entry.isCurrent ? "#00B074" : "#EAF8F1"}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
 
@@ -352,47 +368,53 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
 
             {/* Recharts Donut Chart */}
             <div className="relative w-full h-[190px] flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={PERFORMANCE_DATA}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={48}
-                    outerRadius={75}
-                    paddingAngle={0}
-                    dataKey="value"
-                    stroke="#FFFFFF"
-                    strokeWidth={2}
-                    startAngle={90}
-                    endAngle={-270}
-                  >
-                    {PERFORMANCE_DATA.map((entry) => (
-                      <Cell key={`pie-${entry.name}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
+              {loading ? (
+                <div className="flex h-full items-center justify-center text-sm text-gray-500">Loading...</div>
+              ) : (
+                <>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={PERFORMANCE_DATA}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={48}
+                        outerRadius={75}
+                        paddingAngle={0}
+                        dataKey="value"
+                        stroke="#FFFFFF"
+                        strokeWidth={2}
+                        startAngle={90}
+                        endAngle={-270}
+                      >
+                        {PERFORMANCE_DATA.map((entry) => (
+                          <Cell key={`pie-${entry.name}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
 
-              {/* Red Badge inside segment as seen in screenshot */}
-              <div className="absolute top-[52%] left-[26%] -translate-y-1/2 bg-[#EF4444] text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-xs pointer-events-none">
-                10%
-              </div>
+                  {/* Red Badge inside segment as seen in screenshot */}
+                  <div className="absolute top-[52%] left-[26%] -translate-y-1/2 bg-[#EF4444] text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-xs pointer-events-none">
+                    {PERFORMANCE_DATA[2]?.value || 0}%
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Custom Legend matching Screenshot 2 & 4 */}
             <div className="flex flex-col gap-2 pt-2 border-t border-gray-50">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-[2px] bg-[#00875A] flex-shrink-0" />
-                <span className="text-[12px] text-gray-700 font-medium">Recieve (76%)</span>
+                <span className="text-[12px] text-gray-700 font-medium">Recieve ({PERFORMANCE_DATA[0]?.value || 0}%)</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-[2px] bg-[#10B981] flex-shrink-0" />
-                <span className="text-[12px] text-gray-700 font-medium">Profit (15%)</span>
+                <span className="text-[12px] text-gray-700 font-medium">Profit ({PERFORMANCE_DATA[1]?.value || 0}%)</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-[2px] bg-[#EF4444] flex-shrink-0" />
-                <span className="text-[12px] text-gray-700 font-medium">Expense (9%)</span>
+                <span className="text-[12px] text-gray-700 font-medium">Expense ({PERFORMANCE_DATA[2]?.value || 0}%)</span>
               </div>
             </div>
           </div>
@@ -406,7 +428,7 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
                   Member Due List
                 </h3>
                 <Link
-                  href="/admin/dashboard/members"
+                  href="/admin/dashboard/due-list?status=Due"
                   className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#00B074] hover:text-[#059669] hover:underline px-2.5 py-0.5 rounded-full border border-[#D1FAE5] bg-[#F0FDF4] transition-colors"
                 >
                   Show More <ArrowRight className="w-3 h-3" />
@@ -424,14 +446,22 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50/80 text-[12px]">
-                    {MEMBER_DUE_LIST.map((member, idx) => (
+                    {loading ? (
+                      <tr>
+                        <td colSpan={3} className="py-4 text-center text-sm text-gray-500">Loading dues...</td>
+                      </tr>
+                    ) : dueList.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="py-4 text-center text-sm text-gray-500">No member dues found.</td>
+                      </tr>
+                    ) : dueList.map((member, idx) => (
                       <tr key={`due-member-${idx}`} className="hover:bg-gray-50/60 transition-colors">
-                        <td className="py-2.5 pr-2 text-gray-500 font-medium">{member.id}</td>
+                        <td className="py-2.5 pr-2 text-gray-500 font-medium">{member.memberCode}</td>
                         <td className="py-2.5 px-2 text-gray-800 font-medium truncate max-w-[140px]">
-                          {member.name}
+                          {member.memberName}
                         </td>
                         <td className="py-2.5 pl-2 text-right font-semibold text-gray-900 whitespace-nowrap">
-                          {member.amount}
+                          ৳{member.dueAmount.toLocaleString()}
                         </td>
                       </tr>
                     ))}

@@ -112,7 +112,7 @@ export default function ModificationHistoryView() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="w-full flex flex-col gap-6 p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
       {/* Top Header matching Screenshot 1 */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 tracking-tight">

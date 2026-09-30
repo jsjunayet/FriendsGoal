@@ -1,0 +1,2 @@
+export declare const sendEmail: (to: string, subject: string, html: string, text?: string) => Promise<import("nodemailer/lib/smtp-transport").SentMessageInfo | undefined>;
+//# sourceMappingURL=sendEmail.d.ts.map

@@ -60,10 +60,10 @@ const collectionSchema = new mongoose_1.Schema({
 }, {
     timestamps: true,
 });
+collectionSchema.index({ member: 1, month: 1 });
 collectionSchema.index({ member: 1, createdAt: -1 });
 collectionSchema.index({ memberCode: 1, createdAt: -1 });
 collectionSchema.index({ month: 1 });
-collectionSchema.index({ receiptNo: 1 });
 exports.Collection = (0, mongoose_1.model)("Collection", collectionSchema);
 // ─── 2. Monthly Bill Schema ───────────────────────────────────────────────────
 const monthlyBillSchema = new mongoose_1.Schema({

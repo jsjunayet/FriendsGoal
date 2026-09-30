@@ -1,4 +1,4 @@
-import type { IDueListItem, IExportFilterOptions } from "./operation.interface";
+import { IDueListItem, IExportFilterOptions } from "./operation.interface";
 interface DueListQueryParams {
     searchByCodeOrName?: string;
     year?: string;
@@ -32,19 +32,34 @@ declare const getCollectionsFromDB: (memberId?: string) => Promise<{
     } & {
         id: string;
     })[];
+    collections: (import("mongoose").Document<unknown, {}, import("./operation.interface").ICollection, {}, import("mongoose").DefaultSchemaOptions> & import("./operation.interface").ICollection & Required<{
+        _id: string;
+    }> & {
+        __v: number;
+    } & {
+        id: string;
+    })[];
 } | {
     memberInfo: {
         id: string;
         memberCode: string;
         memberName: string;
         mobileNo: string;
-        dueAmount: number;
-        savingsBalance: number;
-        totalDeposit: number;
+        dueAmount: any;
+        savingsBalance: any;
+        advanceBalance: any;
+        totalDeposit: any;
     };
-    dueBalance: number;
-    advanceBalance: number;
+    dueBalance: any;
+    advanceBalance: any;
     data: (import("mongoose").Document<unknown, {}, import("./operation.interface").ICollection, {}, import("mongoose").DefaultSchemaOptions> & import("./operation.interface").ICollection & Required<{
+        _id: string;
+    }> & {
+        __v: number;
+    } & {
+        id: string;
+    })[];
+    collections: (import("mongoose").Document<unknown, {}, import("./operation.interface").ICollection, {}, import("mongoose").DefaultSchemaOptions> & import("./operation.interface").ICollection & Required<{
         _id: string;
     }> & {
         __v: number;
@@ -62,12 +77,19 @@ interface CollectPaymentPayload {
 declare const collectPaymentIntoDB: (payload: CollectPaymentPayload) => Promise<{
     receiptNo: string;
     amountPaid: number;
+    amount: number;
     member: string;
+    memberCode: string;
+    memberName: string;
+    paymentDate: string;
     date: string;
     entryNo: number;
     status: string;
     dueBalance: number;
     advanceBalance: number;
+    newDueAmount: number;
+    newAdvanceBalance: number;
+    newTotalDeposit: number;
     collection: import("mongoose").Document<unknown, {}, import("./operation.interface").ICollection, {}, import("mongoose").DefaultSchemaOptions> & import("./operation.interface").ICollection & Required<{
         _id: string;
     }> & {

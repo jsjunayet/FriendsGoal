@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { fetchMemberProfitBalanceApi } from "@/lib/disbursementApi";
 import { RequestWithdrawalModal } from "./RequestWithdrawalModal";
+import { PaymentHistoryModal } from "./PaymentHistoryModal";
 import { useMemberDashboard } from "@/lib/hooks/useMemberDashboard";
 
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
@@ -37,14 +38,14 @@ function StatBar({
     color === "green"
       ? "bg-[#1FDE64]"
       : color === "red"
-      ? "bg-[#FF4545]"
-      : "bg-[#3B82F6]";
+        ? "bg-[#FF4545]"
+        : "bg-[#3B82F6]";
   const trackBg =
     color === "green"
       ? "bg-[#E8FFF2]"
       : color === "red"
-      ? "bg-[#FFF0F0]"
-      : "bg-[#EFF6FF]";
+        ? "bg-[#FFF0F0]"
+        : "bg-[#EFF6FF]";
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -52,9 +53,8 @@ function StatBar({
         {label}
       </span>
       <span
-        className={`text-[28px] font-bold tracking-tight ${
-          color === "red" ? "text-[#FF4545]" : "text-[#1A1A1A]"
-        }`}
+        className={`text-[28px] font-bold tracking-tight ${color === "red" ? "text-[#FF4545]" : "text-[#1A1A1A]"
+          }`}
       >
         {value}
       </span>
@@ -137,34 +137,23 @@ function OverviewCard({
 // ─── Main Personal Financial Status Card ─────────────────────────────────────
 function PersonalFinancialCard() {
   const { summary, profitBalance, refetchSummary, isLoading } = useMemberDashboard();
+  console.log("summary", summary);
+  console.log("profitBalance", profitBalance);
+  console.log("refetchSummary", refetchSummary);
+  console.log("isLoading", isLoading);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [isPaymentHistoryModalOpen, setIsPaymentHistoryModalOpen] = useState(false);
 
-  const totalDepositVal = summary?.totalDeposit ?? 30450;
-  const dueAmountVal = summary?.dueAmount ?? 1000;
-  const myProfitVal = profitBalance ?? summary?.profitBalance ?? 4554;
-  const memberName = summary?.fullName || "MD BELAL HOSSAIN";
-  const memberCode = summary?.memberCode || "002";
-  const memberId = summary?.memberId || "mem-002";
+  const totalDepositVal = summary?.totalDeposit ?? 0;
+  const dueAmountVal = summary?.dueAmount ?? 0;
+  const myProfitVal = profitBalance ?? summary?.profitBalance ?? 0;
+  const memberName = summary?.fullName || "Member";
+  const memberCode = summary?.memberCode || "N/A";
+  const memberId = summary?.memberId || "N/A";
 
-  const scheduleList =
-    summary?.activePaymentSchedule && summary.activePaymentSchedule.length > 0
-      ? summary.activePaymentSchedule
-      : [
-          {
-            receiptNo: "REC-2026-09",
-            month: "September 2026 Monthly Due",
-            amount: dueAmountVal > 0 ? dueAmountVal : 1200,
-            status: dueAmountVal > 0 ? "Due" : "Paid",
-            paymentDate: "15 Sept 2026",
-          },
-          {
-            receiptNo: "REC-2026-08",
-            month: "August 2026 Monthly Collection",
-            amount: 1200,
-            status: "Paid",
-            paymentDate: "12 Aug 2026",
-          },
-        ];
+  const scheduleList = Array.isArray(summary?.activePaymentSchedule)
+    ? summary.activePaymentSchedule
+    : [];
 
   return (
     <div className="bg-white rounded-[28px] border border-[#E5E5E5] shadow-xs overflow-hidden">
@@ -176,7 +165,7 @@ function PersonalFinancialCard() {
           {/* Portrait image with gap on all sides */}
           <div className="relative w-full aspect-[4/5] rounded-[14px] overflow-hidden bg-[#F0F0F0]">
             <Image
-              src="/images/about/about-1.png"
+              src={summary?.pictureUrl || "/images/about/about-1.png"}
               alt={memberName}
               fill
               className="object-cover object-top rounded-[14px]"
@@ -200,10 +189,10 @@ function PersonalFinancialCard() {
             {/* 2×2 details */}
             <div className="grid grid-cols-2 gap-y-1.5 gap-x-2 pb-1 text-[11px] text-[#555555]">
               {[
-                { icon: <MapPin className="w-3 h-3" />,    text: "Rajapur, Patuakhali" },
-                { icon: <Calendar className="w-3 h-3" />,  text: "01 Dec 1993" },
-                { icon: <Droplets className="w-3 h-3" />,  text: "O+ (Positive)" },
-                { icon: <IdCard className="w-3 h-3" />,    text: `ID-${memberCode}` },
+                { icon: <MapPin className="w-3 h-3" />, text: [summary?.thana, summary?.district].filter(Boolean).join(", ") || "N/A" },
+                { icon: <Calendar className="w-3 h-3" />, text: summary?.dateOfBirth || "N/A" },
+                { icon: <Droplets className="w-3 h-3" />, text: summary?.bloodGroup || "N/A" },
+                { icon: <IdCard className="w-3 h-3" />, text: `ID-${memberCode}` },
               ].map(({ icon, text }) => (
                 <div key={text} className="flex items-center gap-1.5 min-w-0">
                   <span className="text-[#1FDE64] flex-shrink-0">{icon}</span>
@@ -229,15 +218,8 @@ function PersonalFinancialCard() {
             <div className="flex items-center gap-2.5 flex-wrap">
               <button
                 type="button"
-                onClick={() => setIsWithdrawModalOpen(true)}
-                className="inline-flex items-center gap-1.5 h-[36px] px-3.5 rounded-full bg-[#1A1A1A] text-white text-[12px] font-bold tracking-wide whitespace-nowrap hover:bg-[#333333] transition-colors cursor-pointer flex-shrink-0 shadow-2xs"
-              >
-                <ArrowUpRight className="w-3.5 h-3.5 text-[#1FDE64]" />
-                Request Withdrawal
-              </button>
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 h-[36px] px-4 rounded-full bg-[#1FDE64] text-[#1A1A1A] text-[12px] font-bold tracking-wide whitespace-nowrap hover:bg-[#18c957] transition-colors cursor-pointer flex-shrink-0"
+                onClick={() => setIsPaymentHistoryModalOpen(true)}
+                className="inline-flex items-center gap-2 h-[36px] px-4 rounded-full bg-[#1FDE64] text-white text-[12px] font-bold tracking-wide whitespace-nowrap hover:bg-[#18c957] transition-colors cursor-pointer flex-shrink-0"
               >
                 <History className="w-3.5 h-3.5" />
                 Payment History
@@ -245,30 +227,56 @@ function PersonalFinancialCard() {
             </div>
           </div>
 
-          {/* Stat bars 3-col: MY PROFIT bound directly to member.profitBalance */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6">
-            <StatBar
-              label="Total Deposit"
-              value={`৳${(Number(totalDepositVal) || 0).toLocaleString("en-US")}`}
-              color="green"
-              pct={78}
-            />
-            <StatBar
-              label="Due Amount"
-              value={`৳${(Number(dueAmountVal) || 0).toLocaleString("en-US")}`}
-              color="red"
-              pct={Number(dueAmountVal) > 0 ? 15 : 0}
-            />
-            <StatBar
-              label="My Profit"
-              value={`৳${(Number(myProfitVal) || 0).toLocaleString("en-US", {
+          {/* Top row: Deposit and Due Amount (2 col) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+            <div className="bg-[#F6F7F6] rounded-[16px] p-6 flex flex-col items-center justify-center text-center">
+              <span className="text-[10px] font-bold tracking-[0.18em] text-[#555555] uppercase mb-1">
+                TOTAL DEPOSIT
+              </span>
+              <div className="text-[32px] font-serif text-[#2B5A27] leading-none mb-3">
+                {(Number(totalDepositVal) || 0).toLocaleString("en-US")}
+              </div>
+              <div className="w-6 h-[3px] bg-[#87A83C] rounded-full" />
+            </div>
+
+            <div className="bg-[#F6F7F6] rounded-[16px] p-6 flex flex-col items-center justify-center text-center">
+              <span className="text-[10px] font-bold tracking-[0.18em] text-[#555555] uppercase mb-1">
+                {Number(dueAmountVal) < 0 ? "ADVANCE PAYMENT" : "DUE AMOUNT"}
+              </span>
+              <div className={`text-[32px] font-serif leading-none mb-3 ${
+                Number(dueAmountVal) < 0 ? "text-[#2B5A27]" : Number(dueAmountVal) > 0 ? "text-[#D62828]" : "text-[#1A1A1A]"
+              }`}>
+                {Number(dueAmountVal) < 0 ? "Advance ৳" + Math.abs(Number(dueAmountVal)).toLocaleString("en-US") : "৳" + (Number(dueAmountVal) || 0).toLocaleString("en-US")}
+              </div>
+              <div className={`w-6 h-[3px] rounded-full ${
+                Number(dueAmountVal) < 0 ? "bg-[#87A83C]" : Number(dueAmountVal) > 0 ? "bg-[#D62828]" : "bg-[#888888]"
+              }`} />
+            </div>
+          </div>
+
+          {/* Middle row: My Profit (1 col) */}
+          <div className="bg-[#F6F7F6] rounded-[16px] p-8 flex flex-col items-center justify-center text-center mt-2">
+            <span className="text-[10px] font-bold tracking-[0.18em] text-[#555555] uppercase mb-1">
+              MY PROFIT
+            </span>
+            <div className="text-[40px] font-serif text-[#1A1A1A] leading-none mb-4">
+              {(Number(myProfitVal) || 0).toLocaleString("en-US", {
                 minimumFractionDigits: 0,
                 maximumFractionDigits: 2,
-              })}`}
-              color="blue"
-              pct={42}
-            />
+              })}
+            </div>
+            <div className="w-8 h-[3px] bg-[#1FDE64] rounded-full" />
           </div>
+
+          {/* Bottom row: Request Withdrawal Full-width button */}
+          <button
+            type="button"
+            onClick={() => setIsWithdrawModalOpen(true)}
+            className="w-full flex items-center justify-center gap-2 h-[48px] rounded-[12px] bg-[#2B3B26] text-white text-[13px] font-bold tracking-wide hover:bg-[#1f2b1c] transition-colors cursor-pointer mt-1"
+          >
+            <ArrowUpRight className="w-4 h-4 text-[#1FDE64]" />
+            Request Withdrawal
+          </button>
         </div>
       </div>
 
@@ -279,6 +287,12 @@ function PersonalFinancialCard() {
         availableProfit={myProfitVal}
         memberId={memberId}
         onWithdrawalSuccess={() => refetchSummary()}
+      />
+
+      <PaymentHistoryModal
+        isOpen={isPaymentHistoryModalOpen}
+        onClose={() => setIsPaymentHistoryModalOpen(false)}
+        memberId={memberId}
       />
 
       {/* Divider */}
@@ -308,39 +322,47 @@ function PersonalFinancialCard() {
               </tr>
             </thead>
             <tbody>
-              {scheduleList.map((row: any, idx: number) => {
-                const isPaid = row.status === "Paid";
-                const isDue = row.status === "Due";
-                const statusColor = isPaid
-                  ? "text-[#00B074] bg-[#EAF8F1] border-[#00B074]/30"
-                  : isDue
-                  ? "text-[#F59E0B] bg-[#FFFBEB] border-[#FDE68A]"
-                  : "text-[#3B82F6] bg-[#EFF6FF] border-[#BFDBFE]";
+              {scheduleList.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-[#888888] text-[13px]">
+                    No recent or upcoming schedule found.
+                  </td>
+                </tr>
+              ) : (
+                scheduleList.map((row: any, idx: number) => {
+                  const isPaid = row.status === "Paid";
+                  const isDue = row.status === "Due";
+                  const statusColor = isPaid
+                    ? "text-[#00B074] bg-[#EAF8F1] border-[#00B074]/30"
+                    : isDue
+                      ? "text-[#F59E0B] bg-[#FFFBEB] border-[#FDE68A]"
+                      : "text-[#3B82F6] bg-[#EFF6FF] border-[#BFDBFE]";
 
-                return (
-                  <tr
-                    key={row.receiptNo || idx}
-                    className="border-b border-[#F9F9F9] hover:bg-[#FAFAFA] transition-colors"
-                  >
-                    <td className="py-4 pr-6 font-medium text-[#1A1A1A]">
-                      {row.month || "Monthly Collection"}
-                    </td>
-                    <td className="py-4 pr-6 text-[#555555]">
-                      {row.paymentDate || "15th of month"}
-                    </td>
-                    <td className="py-4 pr-6 font-semibold text-[#1A1A1A]">
-                      ৳{(Number(row?.amount) || 0).toLocaleString()}
-                    </td>
-                    <td className="py-4">
-                      <span
-                        className={`inline-flex items-center h-[26px] px-3 rounded-full text-[11px] font-bold border ${statusColor}`}
-                      >
-                        {row.status}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
+                  return (
+                    <tr
+                      key={row.receiptNo || idx}
+                      className="border-b border-[#F9F9F9] hover:bg-[#FAFAFA] transition-colors"
+                    >
+                      <td className="py-4 pr-6 font-medium text-[#1A1A1A]">
+                        {row.month || "Monthly Collection"}
+                      </td>
+                      <td className="py-4 pr-6 text-[#555555]">
+                        {row.paymentDate || "15th of month"}
+                      </td>
+                      <td className="py-4 pr-6 font-semibold text-[#1A1A1A]">
+                        ৳{(Number(row?.amount) || 0).toLocaleString()}
+                      </td>
+                      <td className="py-4">
+                        <span
+                          className={`inline-flex items-center h-[26px] px-3 rounded-full text-[11px] font-bold border ${statusColor}`}
+                        >
+                          {row.status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -443,6 +465,30 @@ function OverviewSection() {
 
 // ─── Dashboard Page ───────────────────────────────────────────────────────────
 export default function DashboardContent() {
+  const { summary, isError, isLoading } = useMemberDashboard();
+
+  if (isLoading) {
+    return (
+      <div className="w-full h-[60vh] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1FDE64]"></div>
+      </div>
+    );
+  }
+
+  if (isError || !summary) {
+    return (
+      <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 xl:px-8 py-20 flex flex-col items-center justify-center text-center gap-4">
+        <h1 className="font-serif text-[28px] font-bold text-[#1A1A1A]">
+          No Member Profile Found
+        </h1>
+        <p className="text-[#555555] max-w-md">
+          We could not find a member profile associated with your login email. 
+          If you believe this is a mistake, please check that you logged in with the correct email or contact administration.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 xl:px-8 py-8 sm:py-12 flex flex-col gap-10">
       {/* Welcome Banner */}
@@ -452,7 +498,7 @@ export default function DashboardContent() {
         transition={{ duration: 0.45 }}
       >
         <h1 className="font-serif text-[#1A1A1A] text-[24px] sm:text-[30px] font-bold leading-snug">
-          Welcome back, Belal. Here&rsquo;s a summary of your financial ecosystem.
+          Welcome back, {summary?.fullName ? summary.fullName.split(" ")[0] : "Member"}. Here&rsquo;s a summary of your financial ecosystem.
         </h1>
       </motion.div>
 
@@ -465,14 +511,16 @@ export default function DashboardContent() {
         <PersonalFinancialCard />
       </motion.div>
 
-      {/* Overview Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        <OverviewSection />
-      </motion.div>
+      {/* Overview Section - Only visible to Admins/SuperAdmins */}
+      {(summary?.role === "admin" || summary?.role === "superAdmin") && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <OverviewSection />
+        </motion.div>
+      )}
     </div>
   );
 }

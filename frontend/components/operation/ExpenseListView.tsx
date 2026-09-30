@@ -18,6 +18,7 @@ import {
   TMeta,
 } from "@/lib/expenseApi";
 import { ExpenseVoucherModal } from "./ExpenseVoucherModal";
+import { ExportDropdown } from "@/components/shared";
 
 export function ExpenseListView() {
   const router = useRouter();
@@ -91,7 +92,7 @@ export function ExpenseListView() {
   };
 
   return (
-    <div className="p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6">
+    <div className="w-full flex flex-col gap-6 p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
       {/* ─── Top Header Actions matching Screenshot 1 ────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -121,13 +122,15 @@ export function ExpenseListView() {
             </button>
           </form>
 
+          <ExportDropdown endpointUrl="/api/v1/reports/expense/export" defaultFilename="Expense_Report" />
+
           {/* + ADD NEW Primary Green Button matching Screenshot 1 */}
           <Link
             href="/dashboard/expense/create"
             className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#00B074] hover:bg-[#009663] text-white rounded-lg text-xs sm:text-sm font-bold shadow-xs transition-colors cursor-pointer uppercase tracking-wider h-[38px] sm:h-[40px]"
           >
             <Plus className="w-4 h-4" />
-            <span>+ ADD NEW</span>
+            <span>ADD NEW</span>
           </Link>
         </div>
       </div>
