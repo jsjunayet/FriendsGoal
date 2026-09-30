@@ -78,7 +78,7 @@ const auth = (...requiredRoles: TUserRole[]) => {
       );
     }
 
-    req.user = { ...(decoded as any), _id: user._id, id: user.id || user._id, email: user.email };
+    (req as any).user = { ...(decoded as any), _id: user._id, id: user.id || user._id, email: user.email };
     next();
   });
 };

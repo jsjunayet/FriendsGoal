@@ -3,8 +3,9 @@ import catchAsync from "../../utils/catchAsync";
 import { NotificationServices } from "./notification.service";
 
 const getUserNotifications = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user?._id || req.user?.userId;
-  const role = req.user?.role;
+  const user = (req as any).user;
+  const userId = user?._id || user?.userId;
+  const role = user?.role;
   const result = await NotificationServices.getUserNotifications(userId, role, req.query);
 
   res.status(200).json({
@@ -15,7 +16,8 @@ const getUserNotifications = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getPendingPopups = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user?._id || req.user?.userId;
+  const user = (req as any).user;
+  const userId = user?._id || user?.userId;
   const result = await NotificationServices.getPendingPopups(userId);
 
   res.status(200).json({
@@ -27,7 +29,8 @@ const getPendingPopups = catchAsync(async (req: Request, res: Response) => {
 
 const acknowledgeNotification = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const userId = req.user?._id || req.user?.userId;
+  const user = (req as any).user;
+  const userId = user?._id || user?.userId;
   const result = await NotificationServices.acknowledgeNotification(id as string, userId);
 
   res.status(200).json({

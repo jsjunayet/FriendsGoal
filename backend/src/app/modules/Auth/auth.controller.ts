@@ -80,7 +80,7 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
 const changePassword = catchAsync(async (req: Request, res: Response) => {
   const { ...passwordData } = req.body;
 
-  const result = await AuthServices.changePassword(req.user, passwordData);
+  const result = await AuthServices.changePassword((req as any).user, passwordData);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
