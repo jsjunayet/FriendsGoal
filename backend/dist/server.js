@@ -25,8 +25,9 @@ async function main() {
         operation_service_1.OperationServices.initMonthlyAutoBillingCron();
         (0, notification_cron_1.initMonthlyDueReminderCron)();
         await (0, index_2.default)();
-        server = app_1.default.listen(5000, () => {
-            console.log(`app is listening on port ${5000}`);
+        const port = index_1.default.port || 5000;
+        server = app_1.default.listen(port, () => {
+            console.log(`app is listening on port ${port}`);
         });
         // Init socket
         (0, socket_1.initSocket)(server);

@@ -30,6 +30,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # যদি টেস্ট ফাইল থাকে তবে রান হবে, না থাকলে স্কিপ করবে
+      # Run TypeScript compilation build
+      - name: Build Project
+        run: npm run build
+
+      # Run tests if present
       - name: Run Tests
         run: npm test --if-present

@@ -25,8 +25,9 @@ async function main() {
     initMonthlyDueReminderCron();
 
     await seedSuperAdmin();
-    server = app.listen(5000, () => {
-      console.log(`app is listening on port ${5000}`);
+    const port = config.port || 5000;
+    server = app.listen(port, () => {
+      console.log(`app is listening on port ${port}`);
     });
     
     // Init socket
