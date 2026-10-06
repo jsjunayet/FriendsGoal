@@ -21,120 +21,6 @@ const EXECUTIVE_ROLES: RoleOption[] = [
   { label: "Assistant Publicity Secretary", labelBn: "সহকারী প্রচার সম্পাদক" },
 ];
 
-// ─── Members (assign role matching the pill labels above) ─────────────────────
-const EXECUTIVE_MEMBERS: DirectoryMember[] = [
-  {
-    id: "exec-1",
-    memberId: "ID-001",
-    name: "MD BELAL HOSSAIN",
-    role: "Executive Member",
-    location: "Rajapur, Patuakhali",
-    dob: "01 Dec 1993",
-    bloodGroup: "O+ (Positive)",
-    image: "/images/hero/hero-2.png",
-  },
-  {
-    id: "exec-2",
-    memberId: "ID-002",
-    name: "MD BELAL HOSSAIN",
-    role: "Executive Member",
-    location: "Rajapur, Patuakhali",
-    dob: "01 Dec 1993",
-    bloodGroup: "O+ (Positive)",
-    image: "/images/hero/hero-2.png",
-  },
-  {
-    id: "exec-3",
-    memberId: "ID-003",
-    name: "MD BELAL HOSSAIN",
-    role: "Executive Member",
-    location: "Rajapur, Patuakhali",
-    dob: "01 Dec 1993",
-    bloodGroup: "O+ (Positive)",
-    image: "/images/hero/hero-2.png",
-  },
-  {
-    id: "exec-4",
-    memberId: "ID-004",
-    name: "MD BELAL HOSSAIN",
-    role: "Founding member",
-    location: "Rajapur, Patuakhali",
-    dob: "01 Dec 1993",
-    bloodGroup: "O+ (Positive)",
-    image: "/images/hero/hero-2.png",
-  },
-  {
-    id: "exec-5",
-    memberId: "ID-005",
-    name: "MD BELAL HOSSAIN",
-    role: "President",
-    location: "Rajapur, Patuakhali",
-    dob: "01 Dec 1993",
-    bloodGroup: "O+ (Positive)",
-    image: "/images/hero/hero-2.png",
-  },
-  {
-    id: "exec-6",
-    memberId: "ID-006",
-    name: "MD BELAL HOSSAIN",
-    role: "Vice-President",
-    location: "Rajapur, Patuakhali",
-    dob: "01 Dec 1993",
-    bloodGroup: "O+ (Positive)",
-    image: "/images/hero/hero-2.png",
-  },
-  {
-    id: "exec-7",
-    memberId: "ID-007",
-    name: "MD BELAL HOSSAIN",
-    role: "General Secretary",
-    location: "Rajapur, Patuakhali",
-    dob: "01 Dec 1993",
-    bloodGroup: "O+ (Positive)",
-    image: "/images/hero/hero-2.png",
-  },
-  {
-    id: "exec-8",
-    memberId: "ID-008",
-    name: "MD BELAL HOSSAIN",
-    role: "Joint General Secretary",
-    location: "Rajapur, Patuakhali",
-    dob: "01 Dec 1993",
-    bloodGroup: "O+ (Positive)",
-    image: "/images/hero/hero-2.png",
-  },
-  {
-    id: "exec-9",
-    memberId: "ID-009",
-    name: "MD BELAL HOSSAIN",
-    role: "Office Secretary",
-    location: "Rajapur, Patuakhali",
-    dob: "01 Dec 1993",
-    bloodGroup: "O+ (Positive)",
-    image: "/images/hero/hero-2.png",
-  },
-  {
-    id: "exec-10",
-    memberId: "ID-010",
-    name: "MD BELAL HOSSAIN",
-    role: "Publicity Secretary",
-    location: "Rajapur, Patuakhali",
-    dob: "01 Dec 1993",
-    bloodGroup: "O+ (Positive)",
-    image: "/images/hero/hero-2.png",
-  },
-  {
-    id: "exec-11",
-    memberId: "ID-011",
-    name: "MD BELAL HOSSAIN",
-    role: "Assistant Publicity Secretary",
-    location: "Rajapur, Patuakhali",
-    dob: "01 Dec 1993",
-    bloodGroup: "O+ (Positive)",
-    image: "/images/hero/hero-2.png",
-  },
-];
-
 const EXECUTIVE_RESPONSIBILITIES = [
   {
     num: "1",
@@ -155,25 +41,23 @@ const EXECUTIVE_RESPONSIBILITIES = [
 export function ExecutiveCouncilPageClient() {
   const { t } = useTranslation();
 
-  const { data: dynamicMembers } = useQuery({
+  const { data: dynamicMembers = [] } = useQuery({
     queryKey: ["public-council", "core_leadership"],
     queryFn: () => fetchPublicCouncilApi({ category: "core_leadership" }),
   });
 
-  const displayMembers: DirectoryMember[] =
-    dynamicMembers && dynamicMembers.length > 0
-      ? dynamicMembers.map((m) => ({
-          id: m._id,
-          memberId: m.memberCode?.startsWith("ID-") ? m.memberCode : `ID-${m.memberCode || "001"}`,
-          name: m.fullName,
-          role: m.designation,
-          roleBn: m.designationBn,
-          location: `${m.thana ? m.thana + ", " : ""}${m.district || m.division || "Patuakhali"}`,
-          dob: m.dateOfBirth || "01 Dec 1993",
-          bloodGroup: m.bloodGroup ? `${m.bloodGroup} (Positive)` : "O+ (Positive)",
-          image: m.pictureUrl || "/images/hero/hero-2.png",
-        }))
-      : EXECUTIVE_MEMBERS;
+  const displayMembers: DirectoryMember[] = (dynamicMembers || []).map((m: any) => ({
+    id: m._id,
+    memberId: m.memberId || (m.memberCode?.startsWith("ID-") ? m.memberCode : `ID-${m.memberCode || "001"}`),
+    name: m.name?.en || m.fullName || "Member",
+    nameBn: m.name?.bn || m.fullName,
+    role: m.roleTitle?.en || m.designation || "Executive Member",
+    roleBn: m.roleTitle?.bn || m.designationBn || "নির্বাহী সদস্য",
+    location: `${m.thana ? m.thana + ", " : ""}${m.district || m.division || "Patuakhali"}`,
+    dob: m.dateOfBirth || "",
+    bloodGroup: m.bloodGroup ? `${m.bloodGroup} (Positive)` : "N/A",
+    image: m.photoUrl || m.pictureUrl || "",
+  }));
 
   return (
     <div className="w-full bg-white text-[#555555]">

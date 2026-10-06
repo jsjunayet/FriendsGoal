@@ -59,21 +59,26 @@ export function InvestmentListView() {
   };
 
   const handleCloseInvestment = async (item: IInvestmentRecord) => {
-    if (!confirm(`Are you sure you want to close investment "${item.name}"? End date will be set to today.`)) {
-      return;
-    }
-
-    try {
-      setClosingId(item._id);
-      const updated = await closeInvestmentApi(item._id || item.investmentId);
-      setInvestments((prev) =>
-        prev.map((i) => (i._id === item._id || i.investmentId === item.investmentId ? updated : i))
-      );
-    } catch (err: any) {
-      toast.error("Failed to close investment: " + (err.message || "Unknown error"));
-    } finally {
-      setClosingId(null);
-    }
+    toast("Close Investment?", {
+      description: `Are you sure you want to close investment "${item.name}"? End date will be set to today.`,
+      action: {
+        label: "Confirm Close",
+        onClick: async () => {
+          try {
+            setClosingId(item._id);
+            const updated = await closeInvestmentApi(item._id || item.investmentId);
+            setInvestments((prev) =>
+              prev.map((i) => (i._id === item._id || i.investmentId === item.investmentId ? updated : i))
+            );
+            toast.success(`Investment "${item.name}" closed successfully!`);
+          } catch (err: any) {
+            toast.error("Failed to close investment: " + (err.message || "Unknown error"));
+          } finally {
+            setClosingId(null);
+          }
+        },
+      },
+    });
   };
 
   const handleEdit = (item: IInvestmentRecord) => {

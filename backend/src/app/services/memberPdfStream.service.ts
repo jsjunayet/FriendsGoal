@@ -270,15 +270,15 @@ export async function streamMemberProfileToPdf(
   ];
 
   const drawTableHeader = (y: number): number => {
-    const rowHeight = 18;
+    const rowHeight = 20;
     doc.roundedRect(margin, y, contentWidth, rowHeight, 2).fill("#046A38");
 
     let colX = margin;
-    doc.fontSize(7.5).font("Helvetica-Bold").fillColor("#FFFFFF");
+    doc.fontSize(8).font("Helvetica-Bold").fillColor("#FFFFFF");
 
     tableColumns.forEach((col) => {
       const padX = 4;
-      doc.text(col.header, colX + padX, y + 4.5, {
+      doc.text(col.header, colX + padX, y + 5.5, {
         width: col.width - 2 * padX,
         align: col.align,
       });
@@ -289,8 +289,6 @@ export async function streamMemberProfileToPdf(
   };
 
   currentY = drawTableHeader(currentY);
-
-  const rowHeight = 17;
 
   if (transactions.length === 0) {
     doc.rect(margin, currentY, contentWidth, 24).fill("#F8FAFC");
@@ -305,7 +303,12 @@ export async function streamMemberProfileToPdf(
     currentY += 24;
   } else {
     transactions.forEach((tx, idx) => {
-      if (currentY + rowHeight > bottomBoundary) {
+      const remarksText = tx.remarks || "-";
+      doc.fontSize(7.5).font("Helvetica");
+      const remarksHeight = doc.heightOfString(remarksText, { width: 150 - 8 }) + 8;
+      const dynamicRowHeight = Math.max(18, remarksHeight);
+
+      if (currentY + dynamicRowHeight > bottomBoundary) {
         doc.addPage();
         currentY = drawHeader(false);
         currentY = drawTableHeader(currentY);
@@ -313,14 +316,14 @@ export async function streamMemberProfileToPdf(
 
       const isEven = idx % 2 === 0;
       if (isEven) {
-        doc.rect(margin, currentY, contentWidth, rowHeight).fill("#F8FAFC");
+        doc.rect(margin, currentY, contentWidth, dynamicRowHeight).fill("#F8FAFC");
       }
 
       doc
         .strokeColor("#E2E8F0")
         .lineWidth(0.5)
-        .moveTo(margin, currentY + rowHeight)
-        .lineTo(margin + contentWidth, currentY + rowHeight)
+        .moveTo(margin, currentY + dynamicRowHeight)
+        .lineTo(margin + contentWidth, currentY + dynamicRowHeight)
         .stroke();
 
       let cellX = margin;
@@ -328,15 +331,15 @@ export async function streamMemberProfileToPdf(
 
       // Date
       doc.fontSize(7.5).font("Helvetica").fillColor("#1E293B");
-      doc.text(formatDate(tx.date), cellX + 4, currentY + 4, { width: 60, ellipsis: true });
+      doc.text(formatDate(tx.date), cellX + 4, currentY + 4, { width: 68 - 8, lineBreak: true });
       cellX += 68;
 
       // Type
-      doc.text(tx.type || "-", cellX + 4, currentY + 4, { width: 72, ellipsis: true });
+      doc.text(tx.type || "-", cellX + 4, currentY + 4, { width: 80 - 8, lineBreak: true });
       cellX += 80;
 
       // Ref / Receipt
-      doc.text(tx.reference || "-", cellX + 4, currentY + 4, { width: 77, ellipsis: true });
+      doc.text(tx.reference || "-", cellX + 4, currentY + 4, { width: 85 - 8, lineBreak: true });
       cellX += 85;
 
       // Amount
@@ -344,8 +347,9 @@ export async function streamMemberProfileToPdf(
         .font("Helvetica-Bold")
         .fillColor(amountVal >= 0 ? "#046A38" : "#DC2626")
         .text(formatCurrency(amountVal), cellX + 4, currentY + 4, {
-          width: 72,
+          width: 80 - 8,
           align: "right",
+          lineBreak: true,
         });
       cellX += 80;
 
@@ -360,16 +364,17 @@ export async function streamMemberProfileToPdf(
 
       doc.font("Helvetica-Bold").fillColor(statusColor);
       doc.text(String(tx.status || "Completed").toUpperCase(), cellX + 4, currentY + 4, {
-        width: 52,
+        width: 60 - 8,
         align: "center",
+        lineBreak: true,
       });
       cellX += 60;
 
-      // Remarks
+      // Remarks (Auto-wrapped dynamic text)
       doc.font("Helvetica").fillColor("#475569");
-      doc.text(tx.remarks || "-", cellX + 4, currentY + 4, { width: 142, ellipsis: true });
+      doc.text(remarksText, cellX + 4, currentY + 4, { width: 150 - 8, align: "left", lineBreak: true });
 
-      currentY += rowHeight;
+      currentY += dynamicRowHeight;
     });
   }
 

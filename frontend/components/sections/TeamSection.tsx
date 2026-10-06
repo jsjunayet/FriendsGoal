@@ -1,49 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { TeamMemberCard } from "@/components/cards/TeamMemberCard";
+import { HomeMemberCard } from "@/components/cards/HomeMemberCard";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useTranslation } from "@/context/LanguageContext";
-
-const ALL_MEMBERS = [
-  {
-    id: "belal-1",
-    name: "MD BELAL HOSSAIN",
-    role: "SECRETARY",
-    image: "/images/hero/hero-1.png",
-    social: {},
-  },
-  {
-    id: "belal-2",
-    name: "MD BELAL HOSSAIN",
-    role: "SECRETARY",
-    image: "/images/hero/hero-3.png",
-    social: {},
-  },
-  {
-    id: "belal-3",
-    name: "MD BELAL HOSSAIN",
-    role: "SECRETARY",
-    image: "/images/about/about-1.png",
-    social: {},
-  },
-  // পেজ ২ এর ডাটা দেখানোর জন্য অতিরিক্ত উদাহরণ
-  {
-    id: "belal-4",
-    name: "MD BELAL HOSSAIN",
-    role: "SECRETARY",
-    image: "/images/about/about-2-team.png",
-    social: {},
-  },
-];
+import { getPublicMembersApi, type CMSMemberItem } from "@/lib/cmsMemberApi";
 
 export function TeamSection() {
   const [activeDot, setActiveDot] = useState(0);
   const { t } = useTranslation();
+  const [members, setMembers] = useState<CMSMemberItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // প্রতি পেজে ৩ জন করে মেম্বার ফিল্টার করার লজিক
+  useEffect(() => {
+    getPublicMembersApi()
+      .then((data) => {
+        if (data) {
+          setMembers(data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
   const ITEMS_PER_PAGE = 3;
-  const visibleMembers = ALL_MEMBERS.slice(
+  const totalPages = Math.max(1, Math.ceil(members.length / ITEMS_PER_PAGE));
+  const visibleMembers = members.slice(
     activeDot * ITEMS_PER_PAGE,
     (activeDot + 1) * ITEMS_PER_PAGE
   );
@@ -77,37 +60,48 @@ export function TeamSection() {
             {t("team_subtitle")}
           </p>
 
-          {/* Cards Grid */}
-          <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mt-12 min-h-[380px]">
-            {visibleMembers.map((member, i) => (
-              <TeamMemberCard key={member.id} member={member} index={i} />
-            ))}
-          </div>
+          {/* Cards Grid or Empty State */}
+          {members.length > 0 ? (
+            <>
+              <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mt-12 min-h-[380px]">
+                {visibleMembers.map((member: any, i: number) => (
+                  <HomeMemberCard key={member._id || member.id || i} member={member} index={i} />
+                ))}
+              </div>
 
-          {/* ── Carousel Pagination Dots (Matching Image Design) ── */}
-          <div className="flex items-center gap-2 mt-10" aria-label="Pagination">
-            {[0, 1].map((index) => {
-              const isActive = activeDot === index;
-              return (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => setActiveDot(index)}
-                  aria-label={`Page ${index + 1}`}
-                  className="p-1 focus:outline-none cursor-pointer"
-                >
-                  <motion.div
-                    layout
-                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    className={`h-2.5 rounded-full transition-colors duration-200 ${isActive
-                        ? "w-7 bg-[#2B5A27]" // Active pill shape (Deep Green)
-                        : "w-2.5 bg-[#C9D1C8] hover:bg-[#A8B5A6]" // Inactive small circle
-                      }`}
-                  />
-                </button>
-              );
-            })}
-          </div>
+              {/* Carousel Pagination Dots */}
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2 mt-10" aria-label="Pagination">
+                  {Array.from({ length: totalPages }).map((_, index) => {
+                    const isActive = activeDot === index;
+                    return (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => setActiveDot(index)}
+                        aria-label={`Page ${index + 1}`}
+                        className="p-1 focus:outline-none cursor-pointer"
+                      >
+                        <motion.div
+                          layout
+                          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                          className={`h-2.5 rounded-full transition-colors duration-200 ${
+                            isActive
+                              ? "w-7 bg-[#2B5A27]"
+                              : "w-2.5 bg-[#C9D1C8] hover:bg-[#A8B5A6]"
+                          }`}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="w-full mt-12">
+              <EmptyState />
+            </div>
+          )}
         </motion.div>
       </div>
     </section>

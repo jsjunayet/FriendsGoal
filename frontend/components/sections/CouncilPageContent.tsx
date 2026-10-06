@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Users } from "lucide-react";
 import { DirectoryMemberCard } from "@/components/cards/DirectoryMemberCard";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { DirectoryMember } from "@/types";
 import { useTranslation } from "@/context/LanguageContext";
 
@@ -80,8 +81,6 @@ export function CouncilPageContent({
       optionMatches
     );
   });
-  // If no members match the filter, show all
-  const displayMembers = filteredMembers.length > 0 ? filteredMembers : members;
 
   return (
     <section className="w-full py-14 sm:py-20 bg-white" aria-label={headingTitle}>
@@ -122,18 +121,22 @@ export function CouncilPageContent({
           {displayHeading}
         </h3>
 
-        {/* ── Member cards grid ─────────────────────────────────────────── */}
-        <motion.div
-          key={selectedRole}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8"
-        >
-          {displayMembers.map((member, index) => (
-            <DirectoryMemberCard key={member.id + index} member={member} index={index} />
-          ))}
-        </motion.div>
+        {/* ── Member cards grid or Empty State ─────────────────────────── */}
+        {filteredMembers.length > 0 ? (
+          <motion.div
+            key={selectedRole}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8"
+          >
+            {filteredMembers.map((member, index) => (
+              <DirectoryMemberCard key={member.id + index} member={member} index={index} />
+            ))}
+          </motion.div>
+        ) : (
+          <EmptyState />
+        )}
 
         {/* ── Role description + responsibilities ───────────────────────── */}
         <div className="pt-4 space-y-6 max-w-[920px]">

@@ -27,7 +27,7 @@ function statusBadge(status: string) {
 
 function roleBadge(role: string) {
   if (role === "superAdmin") return "bg-[#EFF6FF] text-[#1E40AF] border-[#BFDBFE]";
-  if (role === "admin")      return "bg-[#FFF7ED] text-[#92400E] border-[#FDE68A]";
+  if (role === "admin") return "bg-[#FFF7ED] text-[#92400E] border-[#FDE68A]";
   return "bg-[#F5F5F5] text-[#555555] border-[#E5E5E5]";
 }
 
@@ -61,7 +61,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: number)
       role="alert" aria-live="polite"
     >
       {ok ? <CheckCircle2 className="w-4 h-4 text-[#22C55E] flex-shrink-0 mt-0.5" />
-           : <AlertCircle className="w-4 h-4 text-[#EF4444] flex-shrink-0 mt-0.5" />}
+        : <AlertCircle className="w-4 h-4 text-[#EF4444] flex-shrink-0 mt-0.5" />}
       <span className="flex-1 leading-snug">{toast.message}</span>
       <button type="button" onClick={() => onDismiss(toast.id)}
         className="opacity-40 hover:opacity-70 transition-opacity flex-shrink-0" aria-label="Dismiss">
@@ -145,6 +145,7 @@ function MemberFormModal({ initial, isSuperAdmin, onSave, onClose, loading, form
     location: initial?.location ?? "",
     dob: initial?.dob ?? "",
     bloodGroup: initial?.bloodGroup ?? "",
+    councilCategory: (initial as any)?.councilCategory || (initial as any)?.councilType || "none",
     status: initial?.status ?? "active",
   });
 
@@ -159,6 +160,8 @@ function MemberFormModal({ initial, isSuperAdmin, onSave, onClose, loading, form
         location: form.location || undefined,
         dob: form.dob || undefined,
         bloodGroup: form.bloodGroup || undefined,
+        councilCategory: form.councilCategory !== "none" ? form.councilCategory : undefined,
+        councilType: form.councilCategory !== "none" ? form.councilCategory : undefined,
         status: form.status as "active" | "blocked",
       };
       onSave(payload, false);
@@ -168,6 +171,8 @@ function MemberFormModal({ initial, isSuperAdmin, onSave, onClose, loading, form
         memberId: form.memberId, name: form.name,
         location: form.location || undefined, dob: form.dob || undefined,
         bloodGroup: form.bloodGroup || undefined,
+        councilCategory: form.councilCategory !== "none" ? form.councilCategory : undefined,
+        councilType: form.councilCategory !== "none" ? form.councilCategory : undefined,
       };
       onSave(payload, true);
     }
@@ -218,15 +223,23 @@ function MemberFormModal({ initial, isSuperAdmin, onSave, onClose, loading, form
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Blood Group"><input className={inputCls} placeholder="O- (Negative)" value={form.bloodGroup} onChange={set("bloodGroup")} /></Field>
-            {isEdit && (
-              <Field label="Status">
-                <select className={selectCls} value={form.status} onChange={set("status")}>
-                  <option value="active">Active</option>
-                  <option value="blocked">Blocked</option>
-                </select>
-              </Field>
-            )}
+            <Field label="Council Role">
+              <select className={selectCls} value={form.councilCategory} onChange={set("councilCategory")}>
+                <option value="none">None (General Member)</option>
+                <option value="executive">Executive Council</option>
+                <option value="financial">Financial Council</option>
+                <option value="founding">Founding Member</option>
+              </select>
+            </Field>
           </div>
+          {isEdit && (
+            <Field label="Status">
+              <select className={selectCls} value={form.status} onChange={set("status")}>
+                <option value="active">Active</option>
+                <option value="blocked">Blocked</option>
+              </select>
+            </Field>
+          )}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} disabled={loading}
               className="flex-1 h-[48px] rounded-full border border-[#E5E5E5] text-[#555] text-[14px] font-semibold hover:bg-[#F5F5F5] transition-colors disabled:opacity-50">
@@ -381,12 +394,12 @@ export default function MembersClient() {
     .sort((a, b) => {
       let av: string, bv: string;
       switch (sortKey) {
-        case "name":      av = a.name ?? ""; bv = b.name ?? ""; break;
-        case "id":        av = a.id; bv = b.id; break;
-        case "role":      av = a.role; bv = b.role; break;
-        case "status":    av = a.status; bv = b.status; break;
+        case "name": av = a.name ?? ""; bv = b.name ?? ""; break;
+        case "id": av = a.id; bv = b.id; break;
+        case "role": av = a.role; bv = b.role; break;
+        case "status": av = a.status; bv = b.status; break;
         case "createdAt": av = a.createdAt; bv = b.createdAt; break;
-        default:          av = ""; bv = "";
+        default: av = ""; bv = "";
       }
       return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
     });

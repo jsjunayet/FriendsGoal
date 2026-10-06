@@ -156,6 +156,8 @@ export interface CreateMemberPayload {
   dob?: string;
   bloodGroup?: string;
   image?: string;
+  councilCategory?: string;
+  councilType?: string;
 }
 
 export interface CreateAdminPayload {
@@ -170,6 +172,8 @@ export interface UpdateMemberPayload {
   dob?: string;
   bloodGroup?: string;
   image?: string;
+  councilCategory?: string;
+  councilType?: string;
   status?: "active" | "blocked";
 }
 

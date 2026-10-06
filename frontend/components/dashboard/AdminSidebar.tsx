@@ -204,6 +204,26 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
               <span>Member</span>
             </Link>
 
+            {/* 2.5 CMS Manager */}
+            <Link
+              href="/admin/dashboard/cms"
+              onClick={onCloseMobile}
+              className={cn(
+                "flex items-center gap-3 h-[42px] px-3.5 rounded-xl text-[14px] transition-all relative overflow-hidden",
+                pathname.includes("/cms")
+                  ? "bg-[#E8F8F5] text-[#0E8A5A] font-bold before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-[#0E8A5A]"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium"
+              )}
+            >
+              <FileText
+                className={cn(
+                  "w-4 h-4 flex-shrink-0",
+                  pathname.includes("/cms") ? "text-[#00B074]" : "text-gray-500"
+                )}
+              />
+              <span>CMS Management</span>
+            </Link>
+
             {/* 3. Operation Accordion */}
             <div className="pt-1">
               <button

@@ -1,9 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { useTranslation } from "@/context/LanguageContext";
+import { getActiveMarqueeItemsApi, type MarqueeItem } from "@/lib/marqueeApi";
+import { getLocalizedText } from "@/lib/i18nHelpers";
+import { NoticeTickerSkeleton } from "@/components/ui/Skeletons";
 
 // ─── Hero Image Data matching Anima Pixel-Perfect Design ─────────────────────
 interface HeroPillData {
@@ -43,23 +48,67 @@ const HERO_PILLS: HeroPillData[] = [
   },
 ];
 
-// ─── Continuous Marquee Banner Component ─────────────────────────────────────
+// ─── Continuous Dynamic Marquee Banner Component ──────────────────────────────
 export function MeetingMarqueeBanner() {
-  const { t } = useTranslation();
-  const msg = t("hero_marquee");
+  const { lang } = useTranslation();
+  const [items, setItems] = useState<MarqueeItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    getActiveMarqueeItemsApi()
+      .then((data) => {
+        if (isMounted) {
+          setItems(data || []);
+          setLoaded(true);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setItems([]);
+          setLoaded(true);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Empty State Protection: If no marquee items are active, hide the ticker bar completely without empty gaps
+  if (loaded && items.length === 0) {
+    return null;
+  }
+
+  if (!loaded && items.length === 0) {
+    return <NoticeTickerSkeleton />;
+  }
+
+  // Duplicate items array to create a seamless infinite scrolling loop
+  const duplicatedItems = [...items, ...items, ...items, ...items];
+
   return (
-    <div className="w-full bg-[#FAFDEB] border-y border-[#E5E5E5] py-3.5 overflow-hidden select-none">
-      <div className="animate-marquee-slow flex">
-        {[0, 1].map((n) => (
-          <div key={n} className="flex items-center gap-8 pr-8 text-[15px] font-semibold text-[#262626] whitespace-nowrap">
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#1FDE64] flex-shrink-0" />
-            <span>{msg}</span>
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#1FDE64] flex-shrink-0" />
-            <span>{msg}</span>
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#1FDE64] flex-shrink-0" />
-            <span>{msg}</span>
-          </div>
-        ))}
+    <div className="w-full mt-16 sm:mt-20 overflow-hidden bg-[#FAFDEB] py-3.5 border-y border-[#E5E5E5] select-none flex items-center">
+      <div className="animate-marquee-slow flex items-center whitespace-nowrap">
+        {duplicatedItems.map((item, index) => {
+          const headlineText = getLocalizedText(item.headline || item.text, lang);
+          const linkUrl = item.targetLink || item.link || "#";
+
+          return (
+            <div key={`${item._id || index}-${index}`} className="inline-flex items-center gap-6 shrink-0 pr-8">
+              {/* Dynamic Link / Headline Text */}
+              <Link
+                href={linkUrl}
+                className="text-sm md:text-base font-medium text-[#262626] hover:text-[#00B074] transition-colors leading-none flex items-center"
+              >
+                {headlineText}
+              </Link>
+
+              {/* Perfectly Centered Bullet Separator */}
+              <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] shrink-0 inline-block" />
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -181,10 +230,8 @@ export function HeroSection() {
         </motion.div>
       </div>
 
-      {/* Scrolling Marquee Banner */}
-      <div className="mt-16 sm:mt-20">
-        <MeetingMarqueeBanner />
-      </div>
+      {/* Scrolling Dynamic Marquee Banner directly below Hero Banner */}
+      <MeetingMarqueeBanner />
     </section>
   );
 }

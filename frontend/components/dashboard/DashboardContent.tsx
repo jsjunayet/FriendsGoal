@@ -6,7 +6,9 @@ import Image from "next/image";
 import {
   MapPin,
   Calendar,
+  Cake,
   Droplets,
+  Droplet,
   IdCard,
   Clock,
   TrendingUp,
@@ -16,6 +18,10 @@ import {
   Banknote,
   History,
   ArrowUpRight,
+  Wallet,
+  UserPlus,
+  Hourglass,
+  HandHeart,
 } from "lucide-react";
 import { fetchMemberProfitBalanceApi } from "@/lib/disbursementApi";
 import { RequestWithdrawalModal } from "./RequestWithdrawalModal";
@@ -175,10 +181,10 @@ function PersonalFinancialCard() {
           {/* Identity info below image */}
           <div className="pt-3 pb-1 px-1 flex flex-col gap-2">
             <div>
-              <span className="text-[10px] font-bold tracking-[0.18em] text-[#888888] uppercase block">
+              <span className="text-[10px] font-bold tracking-[0.16em] text-[#4B5563] uppercase block">
                 {summary?.role === "admin" || summary?.role === "superAdmin" ? "ADMIN" : "MEMBER"}
               </span>
-              <h2 className="font-bold text-[#1A1A1A] text-[14px] uppercase leading-tight tracking-[0.06em] mt-0.5">
+              <h2 className="font-serif font-bold text-[#1A1A1A] text-[15px] uppercase leading-tight tracking-[0.01em] mt-0.5">
                 {memberName}
               </h2>
             </div>
@@ -187,15 +193,15 @@ function PersonalFinancialCard() {
             <div className="h-px bg-[#F0F0F0]" />
 
             {/* 2×2 details */}
-            <div className="grid grid-cols-2 gap-y-1.5 gap-x-2 pb-1 text-[11px] text-[#555555]">
+            <div className="grid grid-cols-2 gap-y-2 gap-x-2 pb-1 text-[11.5px] font-medium text-[#374151]">
               {[
-                { icon: <MapPin className="w-3 h-3" />, text: [summary?.thana, summary?.district].filter(Boolean).join(", ") || "N/A" },
-                { icon: <Calendar className="w-3 h-3" />, text: summary?.dateOfBirth || "N/A" },
-                { icon: <Droplets className="w-3 h-3" />, text: summary?.bloodGroup || "N/A" },
-                { icon: <IdCard className="w-3 h-3" />, text: `ID-${memberCode}` },
-              ].map(({ icon, text }) => (
-                <div key={text} className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-[#1FDE64] flex-shrink-0">{icon}</span>
+                { icon: <MapPin className="w-3.5 h-3.5" />, text: [summary?.thana, summary?.district].filter(Boolean).join(", ") || "Rajapur, Patuakhali" },
+                { icon: <Cake className="w-3.5 h-3.5" />, text: summary?.dateOfBirth || "01 Dec 1993" },
+                { icon: <Droplet className="w-3.5 h-3.5" />, text: summary?.bloodGroup ? (summary.bloodGroup.includes("(") ? summary.bloodGroup : `${summary.bloodGroup} (Positive)`) : "O+ (Positive)" },
+                { icon: <IdCard className="w-3.5 h-3.5" />, text: memberCode ? (memberCode.startsWith("ID-") ? memberCode : `ID-${memberCode}`) : "ID-002" },
+              ].map(({ icon, text }, idx) => (
+                <div key={idx} className="flex items-center gap-1.5 min-w-0" title={text}>
+                  <span className="text-[#00B074] flex-shrink-0">{icon}</span>
                   <span className="truncate">{text}</span>
                 </div>
               ))}
@@ -374,90 +380,115 @@ function PersonalFinancialCard() {
 // ─── Friends Goal Overview Section ───────────────────────────────────────────
 function OverviewSection() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <h2 className="font-serif text-[26px] sm:text-[30px] font-bold text-[#1A1A1A]">
         Friends Goal Overview
       </h2>
 
-      {/* Main 2-col big cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        <OverviewCard
-          label="Total Balance"
-          value="$3,436,736"
-          variant="dark"
-          icon={<Banknote />}
-        />
-        <div className="flex flex-col gap-5">
-          <OverviewCard
-            label="Monthly Expense"
-            value="$88,860"
-            sub="Generated 45% successfully growth"
-            variant="green"
-          />
-          {/* Status badge pill */}
-          <div className="flex items-center gap-3 bg-[#1A1A1A] rounded-[20px] px-5 py-3.5">
-            <div className="w-8 h-8 rounded-full bg-[#1FDE64] flex items-center justify-center flex-shrink-0">
-              <TrendingUp className="w-4 h-4 text-[#1A1A1A]" />
+      {/* Main Container Card */}
+      <div className="bg-white rounded-[28px] border border-[#E5E5E5] p-6 sm:p-8 flex flex-col gap-5 shadow-xs">
+        {/* Top 2 Cards: Total Balance & Monthly Expense */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Card 1: Total Balance */}
+          <div className="bg-[#F8FAF6] border border-[#E8EFE5] rounded-[22px] p-7 flex items-center justify-between relative overflow-hidden">
+            <div>
+              <span className="text-[10px] font-bold tracking-[0.18em] text-[#666666] uppercase block mb-1">
+                TOTAL BALANCE
+              </span>
+              <div className="text-[36px] sm:text-[44px] font-serif font-bold text-[#1A1A1A] leading-none">
+                $3,436,736
+              </div>
+            </div>
+            {/* Wallet Watermark Icon Box */}
+            <div className="w-16 h-16 rounded-2xl bg-white border border-[#E0E6DC] flex items-center justify-center text-gray-300 shadow-2xs shrink-0">
+              <Wallet className="w-8 h-8 text-gray-300 stroke-[1.5]" />
+            </div>
+          </div>
+
+          {/* Card 2: Monthly Expense (Dark Green) */}
+          <div className="bg-[#23341F] rounded-[22px] p-7 text-white flex flex-col justify-between relative overflow-hidden shadow-xs">
+            <div className="w-10 h-10 rounded-xl bg-[#1FDE64] text-[#1A1A1A] flex items-center justify-center mb-3 shadow-2xs">
+              <Banknote className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[10px] font-bold tracking-widest text-white/50 uppercase block">
+              <span className="text-[10px] font-bold tracking-[0.18em] text-white/60 uppercase block mb-1">
+                MONTHLY EXPENSE
+              </span>
+              <div className="text-[36px] sm:text-[42px] font-serif font-bold text-white leading-none mb-2">
+                $88,860
+              </div>
+              <p className="text-[12px] text-white/70 italic leading-snug">
+                Operational costs for community growth
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Middle Full-Width Card: Total Net Profit & Status */}
+        <div className="bg-[#1A1A1A] rounded-[24px] p-7 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative overflow-hidden shadow-xs">
+          <div>
+            <span className="text-[10px] font-bold tracking-[0.18em] text-[#1FDE64] uppercase block mb-1.5">
+              TOTAL NET PROFIT
+            </span>
+            <div className="text-[42px] sm:text-[52px] font-serif font-bold text-white leading-none">
+              $504,546
+            </div>
+          </div>
+
+          {/* Status Box */}
+          <div className="bg-[#282828] border border-white/10 rounded-[20px] px-6 py-4 flex items-center gap-4 min-w-[240px] self-stretch sm:self-auto">
+            <div className="w-10 h-10 rounded-full bg-[#1FDE64]/20 text-[#1FDE64] flex items-center justify-center shrink-0">
+              <TrendingUp className="w-5 h-5 text-[#1FDE64]" />
+            </div>
+            <div>
+              <span className="text-[10px] font-bold tracking-[0.18em] text-[#1FDE64] uppercase block mb-0.5">
                 STATUS
               </span>
-              <span className="text-[14px] font-bold text-white">
+              <span className="text-[15px] font-bold text-white">
                 Outstanding Growth
               </span>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Net Profit full-width dark card */}
-      <OverviewCard
-        label="Total Net Profit"
-        value="$504,546"
-        variant="dark"
-        icon={<TrendingUp />}
-      />
-
-      {/* Bottom 3 mini stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          {
-            icon: <Users className="w-5 h-5" />,
-            label: "Members Received",
-            value: "$2,972,000",
-            iconBg: "bg-[#1FDE64]/15 text-[#2B5A27]",
-          },
-          {
-            icon: <TrendingDown className="w-5 h-5" />,
-            label: "Members Due",
-            value: "$500,000",
-            iconBg: "bg-[#FF4545]/10 text-[#FF4545]",
-          },
-          {
-            icon: <Receipt className="w-5 h-5" />,
-            label: "Others Received",
-            value: "$49,050",
-            iconBg: "bg-[#3B82F6]/10 text-[#3B82F6]",
-          },
-        ].map((s) => (
-          <div
-            key={s.label}
-            className="bg-white border border-[#E5E5E5] rounded-[20px] p-5 flex items-center gap-4 shadow-xs"
-          >
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${s.iconBg}`}
-            >
-              {s.icon}
+        {/* Bottom 3 Mini Stat Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+          <div className="bg-white border border-[#E8EFE5] rounded-[20px] p-5 flex items-center gap-4 shadow-2xs">
+            <div className="w-11 h-11 rounded-full bg-[#1FDE64]/15 text-[#2B5A27] flex items-center justify-center shrink-0">
+              <UserPlus className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[11px] font-bold text-[#888888] uppercase tracking-wide block">
-                {s.label}
+              <span className="text-[10px] font-bold text-[#888888] uppercase tracking-[0.14em] block mb-0.5">
+                MEMBERS RECEIVED
               </span>
-              <span className="text-[18px] font-bold text-[#1A1A1A]">{s.value}</span>
+              <span className="font-serif text-[20px] font-bold text-[#1A1A1A]">$2,972,000</span>
             </div>
           </div>
-        ))}
+
+          <div className="bg-white border border-[#E8EFE5] rounded-[20px] p-5 flex items-center gap-4 shadow-2xs">
+            <div className="w-11 h-11 rounded-full bg-red-50 text-[#D62828] flex items-center justify-center shrink-0">
+              <Hourglass className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-[#888888] uppercase tracking-[0.14em] block mb-0.5">
+                MEMBERS DUE
+              </span>
+              <span className="font-serif text-[20px] font-bold text-[#1A1A1A]">$500,000</span>
+            </div>
+          </div>
+
+          <div className="bg-white border border-[#E8EFE5] rounded-[20px] p-5 flex items-center gap-4 shadow-2xs">
+            <div className="w-11 h-11 rounded-full bg-amber-50 text-[#D97706] flex items-center justify-center shrink-0">
+              <HandHeart className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-[#888888] uppercase tracking-[0.14em] block mb-0.5">
+                OTHERS RECEIVES
+              </span>
+              <span className="font-serif text-[20px] font-bold text-[#1A1A1A]">$49,050</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -511,16 +542,14 @@ export default function DashboardContent() {
         <PersonalFinancialCard />
       </motion.div>
 
-      {/* Overview Section - Only visible to Admins/SuperAdmins */}
-      {(summary?.role === "admin" || summary?.role === "superAdmin") && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <OverviewSection />
-        </motion.div>
-      )}
+      {/* Overview Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        <OverviewSection />
+      </motion.div>
     </div>
   );
 }

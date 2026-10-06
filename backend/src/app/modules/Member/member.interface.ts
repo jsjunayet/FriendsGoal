@@ -3,16 +3,26 @@ import type { Model } from "mongoose";
 export type TCouncilCategory =
   | "core_leadership"
   | "financial_leadership"
-  | "general_member";
+  | "general_member"
+  | "executive"
+  | "financial"
+  | "general";
 
 export type TMemberRole = "superadmin" | "admin" | "manager" | "member";
 
 export type TMemberStatus = "active" | "inactive" | "blocked";
 
+export interface IBilingualText {
+  bn: string;
+  en: string;
+}
+
 export interface IMember {
   _id?: string;
   memberCode: string;
+  memberId?: string;
   fullName: string;
+  name?: IBilingualText;
   email: string;
   bloodGroup?: string;
   profession?: string;
@@ -21,6 +31,7 @@ export interface IMember {
   fatherName?: string;
   motherName?: string;
   mobileNo: string;
+  phone?: string;
   dateOfBirth?: string;
   division?: string;
   district?: string;
@@ -30,7 +41,9 @@ export interface IMember {
   // Designation & Council Classification
   designation: string;
   designationBn: string;
+  roleTitle?: IBilingualText;
   councilCategory: TCouncilCategory;
+  councilType?: string;
 
   // Account Security & Savings
   role: TMemberRole;
@@ -51,6 +64,7 @@ export interface IMember {
   nomineeAddress?: string;
   nomineePictureUrl?: string;
   pictureUrl?: string;
+  photoUrl?: string;
   signatureUrl?: string;
 
   status: TMemberStatus;
@@ -63,3 +77,4 @@ export interface MemberModel extends Model<IMember> {
   isMemberExists(email: string): Promise<IMember | null>;
   generateNextMemberCode(): Promise<string>;
 }
+

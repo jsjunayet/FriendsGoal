@@ -151,7 +151,7 @@ const getAllMembersFromDB = async (query: Record<string, unknown>) => {
 // ─── 3. Get Public Council Members ────────────────────────────────────────────
 
 const getPublicCouncilMembersFromDB = async (query: Record<string, unknown>) => {
-  const { category, designation, search } = query;
+  const { category, councilType, designation, search } = query;
 
   const filterConditions: Record<string, unknown> = {
     isDeleted: false,
@@ -159,7 +159,15 @@ const getPublicCouncilMembersFromDB = async (query: Record<string, unknown>) => 
   };
 
   if (category) {
-    filterConditions.councilCategory = category;
+    filterConditions.$or = [
+      { councilCategory: category },
+      { councilType: category },
+    ];
+  } else if (councilType) {
+    filterConditions.$or = [
+      { councilType: councilType },
+      { councilCategory: councilType === "executive" ? "core_leadership" : councilType === "financial" ? "financial_leadership" : "general_member" },
+    ];
   }
 
   if (designation) {
@@ -169,14 +177,18 @@ const getPublicCouncilMembersFromDB = async (query: Record<string, unknown>) => 
   if (search) {
     filterConditions.$or = [
       { fullName: { $regex: search, $options: "i" } },
+      { "name.en": { $regex: search, $options: "i" } },
+      { "name.bn": { $regex: search, $options: "i" } },
       { designation: { $regex: search, $options: "i" } },
       { designationBn: { $regex: search, $options: "i" } },
+      { "roleTitle.en": { $regex: search, $options: "i" } },
+      { "roleTitle.bn": { $regex: search, $options: "i" } },
     ];
   }
 
   const result = await Member.find(filterConditions)
     .select(
-      "memberCode fullName designation designationBn councilCategory bloodGroup profession mobileNo dateOfBirth division district thana presentAddress pictureUrl totalDeposit savingsBalance"
+      "memberCode memberId fullName name designation designationBn roleTitle councilCategory councilType bloodGroup profession mobileNo phone dateOfBirth division district thana presentAddress pictureUrl photoUrl totalDeposit savingsBalance"
     )
     .sort("memberCode");
 
@@ -186,12 +198,15 @@ const getPublicCouncilMembersFromDB = async (query: Record<string, unknown>) => 
 // ─── 4. Get Single Member Details ─────────────────────────────────────────────
 
 const getSingleMemberFromDB = async (id: string) => {
-  // Support both Mongo _id and memberCode
+  // Support Mongo _id, memberCode, email, or custom id
   let result = null;
   if (id.match(/^[0-9a-fA-F]{24}$/)) {
     result = await Member.findById(id);
-  } else {
-    result = await Member.findOne({ memberCode: id });
+  }
+  if (!result) {
+    result = await Member.findOne({
+      $or: [{ memberCode: id }, { email: id }, { id: id }],
+    });
   }
 
   if (!result || result.isDeleted) {
@@ -208,8 +223,11 @@ const updateMemberIntoDB = async (id: string, payload: Partial<IMember>) => {
   let member = null;
   if (id.match(/^[0-9a-fA-F]{24}$/)) {
     member = await Member.findById(id);
-  } else {
-    member = await Member.findOne({ memberCode: id });
+  }
+  if (!member) {
+    member = await Member.findOne({
+      $or: [{ memberCode: id }, { email: id }, { id: id }],
+    });
   }
 
   if (!member || member.isDeleted) {
@@ -240,15 +258,16 @@ const deleteMemberFromDB = async (id: string) => {
   let member = null;
   if (id.match(/^[0-9a-fA-F]{24}$/)) {
     member = await Member.findById(id);
-  } else {
-    member = await Member.findOne({ memberCode: id });
+  }
+  if (!member) {
+    member = await Member.findOne({
+      $or: [{ memberCode: id }, { email: id }, { id: id }],
+    });
   }
 
   if (!member) {
     throw new AppError(httpStatus.NOT_FOUND, "Member not found!");
   }
-
-  // Permanently delete as requested in requirement
   const result = await Member.findByIdAndDelete(member._id);
   return result;
 };

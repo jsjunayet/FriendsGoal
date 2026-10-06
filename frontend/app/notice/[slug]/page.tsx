@@ -26,11 +26,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function NoticeDetailPage({ params }: Props) {
   const { slug } = await params;
   const article = NEWS_ARTICLES.find((a) => a.slug === slug);
-  if (!article) notFound();
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <NoticeDetailClient article={article} />
+      <NoticeDetailClient article={article} idOrSlug={slug} />
     </div>
   );
 }

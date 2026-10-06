@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Camera,
@@ -18,6 +19,8 @@ import {
   Download,
   Edit2,
   ChevronDown,
+  Loader2,
+  X,
 } from "lucide-react";
 import { z } from "zod";
 import {
@@ -76,9 +79,67 @@ interface MemberFormViewProps {
   isCreateMode?: boolean;
 }
 
+const BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:5000/api/v1";
+
 export function MemberFormView({ initialMember, isCreateMode = false }: MemberFormViewProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+
+  const [uploadingProfile, setUploadingProfile] = useState(false);
+  const [uploadingSignature, setUploadingSignature] = useState(false);
+  const [uploadingNominee, setUploadingNominee] = useState(false);
+
+  const profileInputRef = useRef<HTMLInputElement>(null);
+  const signatureInputRef = useRef<HTMLInputElement>(null);
+  const nomineeInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (
+    file: File,
+    targetField: "pictureUrl" | "signatureUrl" | "nomineePictureUrl"
+  ) => {
+    if (!file) return;
+    if (targetField === "pictureUrl") setUploadingProfile(true);
+    if (targetField === "signatureUrl") setUploadingSignature(true);
+    if (targetField === "nomineePictureUrl") setUploadingNominee(true);
+
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append("images", file);
+
+      let token = null;
+      try {
+        token =
+          sessionStorage.getItem("fg_access_token") ||
+          localStorage.getItem("fg_access_token");
+      } catch (e) {}
+
+      const res = await fetch(`${BASE_URL}/upload`, {
+        method: "POST",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formDataUpload,
+      });
+
+      const json = await res.json();
+      if (res.ok && json.success) {
+        const uploadedUrl = json.data?.url || (json.data?.urls && json.data.urls[0]);
+        if (uploadedUrl) {
+          setFormData((prev) => ({ ...prev, [targetField]: uploadedUrl }));
+          toast.success("Image uploaded successfully!");
+        }
+      } else {
+        toast.error(json.message || "Failed to upload image");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Error uploading file");
+    } finally {
+      if (targetField === "pictureUrl") setUploadingProfile(false);
+      if (targetField === "signatureUrl") setUploadingSignature(false);
+      if (targetField === "nomineePictureUrl") setUploadingNominee(false);
+    }
+  };
 
   const [formData, setFormData] = useState<Partial<IMember>>({
     fullName: initialMember?.fullName || "",
@@ -253,19 +314,33 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
           {/* Card 1: Avatar Profile Overview */}
           <div className="bg-white rounded-2xl p-6 border border-[#EDF2F7] shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col items-center text-center">
             {/* Portrait Image with Camera Badge */}
-            <div className="relative w-28 h-28 rounded-full bg-gray-100 border-4 border-white shadow-md overflow-hidden mb-3">
+            <div
+              onClick={() => profileInputRef.current?.click()}
+              className="relative w-28 h-28 rounded-full bg-gray-100 border-4 border-white shadow-md overflow-hidden mb-3 cursor-pointer group"
+            >
               <Image
                 src={formData.pictureUrl || "/images/hero/hero-2.png"}
                 alt={formData.fullName || "Profile"}
                 fill
                 className="object-cover object-top"
               />
+              <input
+                ref={profileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], "pictureUrl")}
+              />
               <button
                 type="button"
                 className="absolute bottom-1 right-1 w-7 h-7 rounded-full bg-white/90 hover:bg-white text-gray-700 shadow flex items-center justify-center transition-all cursor-pointer"
                 title="Change Photo"
               >
-                <Camera className="w-3.5 h-3.5 text-[#00B074]" />
+                {uploadingProfile ? (
+                  <Loader2 className="w-3.5 h-3.5 text-[#00B074] animate-spin" />
+                ) : (
+                  <Camera className="w-3.5 h-3.5 text-[#00B074]" />
+                )}
               </button>
             </div>
 
@@ -297,12 +372,48 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
               <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
                 Member Signature
               </label>
-              <div className="w-full h-24 border-2 border-dashed border-gray-200 rounded-xl bg-[#FAFAFA] flex flex-col items-center justify-center text-gray-400 hover:border-[#00B074] hover:bg-emerald-50/20 transition-all cursor-pointer p-2">
-                <PenTool className="w-5 h-5 text-gray-400 mb-1" />
-                <span className="text-[11.5px] font-medium text-gray-500">
-                  Click to upload signature
-                </span>
-              </div>
+              <input
+                ref={signatureInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], "signatureUrl")}
+              />
+              {formData.signatureUrl ? (
+                <div className="relative w-full h-24 border border-gray-200 rounded-xl bg-white p-2 flex items-center justify-center group overflow-hidden shadow-xs">
+                  <Image
+                    src={formData.signatureUrl}
+                    alt="Signature"
+                    fill
+                    className="object-contain p-2"
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFormData((prev) => ({ ...prev, signatureUrl: "" }));
+                    }}
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors z-10"
+                    title="Remove signature"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => signatureInputRef.current?.click()}
+                  className="w-full h-24 border-2 border-dashed border-gray-200 rounded-xl bg-[#FAFAFA] flex flex-col items-center justify-center text-gray-400 hover:border-[#00B074] hover:bg-emerald-50/20 transition-all cursor-pointer p-2"
+                >
+                  {uploadingSignature ? (
+                    <Loader2 className="w-6 h-6 text-[#00B074] animate-spin mb-1" />
+                  ) : (
+                    <PenTool className="w-5 h-5 text-gray-400 mb-1" />
+                  )}
+                  <span className="text-[11.5px] font-medium text-gray-500">
+                    {uploadingSignature ? "Uploading signature..." : "Click to upload signature"}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -708,16 +819,40 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
 
             {/* Nominee Picture Frame */}
             <div className="flex items-center gap-4 py-2">
-              <div className="w-14 h-14 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 flex-shrink-0">
-                <Upload className="w-5 h-5" />
+              <input
+                ref={nomineeInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], "nomineePictureUrl")}
+              />
+              <div
+                onClick={() => nomineeInputRef.current?.click()}
+                className="w-14 h-14 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 flex-shrink-0 relative overflow-hidden cursor-pointer hover:border-[#00B074] group"
+              >
+                {formData.nomineePictureUrl ? (
+                  <Image src={formData.nomineePictureUrl} alt="Nominee" fill className="object-cover" />
+                ) : uploadingNominee ? (
+                  <Loader2 className="w-5 h-5 text-[#00B074] animate-spin" />
+                ) : (
+                  <Upload className="w-5 h-5" />
+                )}
               </div>
               <div>
                 <span className="text-[12.5px] font-semibold text-gray-700 block">
                   Nominee Picture
                 </span>
-                <span className="text-[11px] text-gray-400">
-                  Upload a clear photo of the nominee. Max size 2MB.
-                </span>
+                <button
+                  type="button"
+                  onClick={() => nomineeInputRef.current?.click()}
+                  className="text-[11px] text-[#00B074] font-medium hover:underline cursor-pointer block text-left"
+                >
+                  {uploadingNominee
+                    ? "Uploading..."
+                    : formData.nomineePictureUrl
+                    ? "Change Nominee Photo"
+                    : "Upload a clear photo of the nominee. Max size 2MB."}
+                </button>
               </div>
             </div>
 

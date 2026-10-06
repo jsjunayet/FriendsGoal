@@ -71,11 +71,17 @@ const auth = (...requiredRoles: TUserRole[]) => {
       throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized !');
     }
 
-    if (requiredRoles && !requiredRoles.includes(role)) {
-      throw new AppError(
-        httpStatus.UNAUTHORIZED,
-        'You are not authorized  hi!',
+    if (requiredRoles && requiredRoles.length > 0) {
+      const normalizedUserRole = role ? String(role).toLowerCase() : "";
+      const hasRole = requiredRoles.some(
+        (r) => String(r).toLowerCase() === normalizedUserRole
       );
+      if (!hasRole) {
+        throw new AppError(
+          httpStatus.UNAUTHORIZED,
+          'You are not authorized!',
+        );
+      }
     }
 
     (req as any).user = { ...(decoded as any), _id: user._id, id: user.id || user._id, email: user.email };

@@ -15,6 +15,11 @@ import { AuditLogRoutes } from "../modules/AuditLog/auditLog.route";
 import { ReportRoutes } from "../modules/Report/report.route";
 import { AnalyticsRoutes } from "../modules/Analytics/analytics.route";
 import { NotificationRoutes, AdminNotificationRoutes } from "../modules/Notification/notification.route";
+import { NoticeRoutes } from "../modules/Notice/notice.route";
+import { MarqueeRoutes } from "../modules/Marquee/marquee.route";
+import { GalleryRoutes } from "../modules/Gallery/gallery.route";
+import { StatRoutes } from "../modules/Stats/stats.route";
+import { UploadRoutes } from "../modules/Upload/upload.route";
 
 const router = Router();
 
@@ -26,6 +31,26 @@ const moduleRoutes = [
   {
     path: "/members",
     route: MemberRoutes,
+  },
+  {
+    path: "/notices",
+    route: NoticeRoutes,
+  },
+  {
+    path: "/marquee",
+    route: MarqueeRoutes,
+  },
+  {
+    path: "/gallery",
+    route: GalleryRoutes,
+  },
+  {
+    path: "/stats",
+    route: StatRoutes,
+  },
+  {
+    path: "/upload",
+    route: UploadRoutes,
   },
   {
     path: "/reports",

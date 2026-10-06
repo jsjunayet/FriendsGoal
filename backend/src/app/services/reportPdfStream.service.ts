@@ -207,15 +207,24 @@ export async function streamReportToPdf(
 
   // 4. Helper: Draw Repeating Table Header
   const drawTableHeader = (startY: number): number => {
-    const rowHeight = 20;
+    // Determine header row height dynamically
+    doc.fontSize(8.5).font("Helvetica-Bold");
+    let maxHeaderHeight = 20;
+
+    for (const col of columns) {
+      const padX = 4;
+      const textW = col.width - 2 * padX;
+      const h = doc.heightOfString(col.header.toUpperCase(), { width: textW }) + 8;
+      if (h > maxHeaderHeight) maxHeaderHeight = h;
+    }
 
     // Header background #046A38
     doc
-      .roundedRect(margin, startY, contentWidth, rowHeight, 2)
+      .roundedRect(margin, startY, contentWidth, maxHeaderHeight, 2)
       .fill("#046A38");
 
     let currentX = margin;
-    doc.fontSize(8).font("Helvetica-Bold").fillColor("#FFFFFF");
+    doc.fontSize(8.5).font("Helvetica-Bold").fillColor("#FFFFFF");
 
     for (const col of columns) {
       const align = col.align || (col.isCurrency ? "right" : "left");
@@ -223,7 +232,7 @@ export async function streamReportToPdf(
       const textX = currentX + padX;
       const textW = col.width - 2 * padX;
 
-      doc.text(col.header.toUpperCase(), textX, startY + 5.5, {
+      doc.text(col.header.toUpperCase(), textX, startY + (maxHeaderHeight - doc.currentLineHeight()) / 2, {
         width: textW,
         align,
       });
@@ -231,21 +240,71 @@ export async function streamReportToPdf(
       currentX += col.width;
     }
 
-    return startY + rowHeight;
+    return startY + maxHeaderHeight;
   };
 
   // 5. Initial First Page Setup
   let currentY = drawPageHeader(true);
   currentY = drawTableHeader(currentY);
 
-  // 6. Stream Data Rows via MongoDB Cursor
-  const baseRowHeight = 18;
-
+  // 6. Stream Data Rows via MongoDB Cursor with Dynamic Row Height & Auto-Wrap
   for await (const docData of dataCursor) {
     totalRowCount++;
 
-    // Check if row exceeds printable page boundary
-    if (currentY + baseRowHeight > bottomBoundary) {
+    // Calculate formatted values and dynamic row height for multi-line text (e.g. REMARKS, NAMES)
+    doc.fontSize(8).font("Helvetica");
+    const cellValues: Array<{ displayVal: string; align: "left" | "center" | "right"; isCurr: boolean; rawNum: number; color: string }> = [];
+    let dynamicRowHeight = 18; // default min height
+
+    for (const col of columns) {
+      const rawVal = docData[col.key];
+      let displayVal = rawVal !== undefined && rawVal !== null ? String(rawVal) : "-";
+      let isCurr = false;
+      let rawNum = 0;
+
+      if (col.isDate && rawVal) {
+        displayVal = formatDateToDisplay(rawVal);
+      } else if (col.isCurrency) {
+        isCurr = true;
+        rawNum = Number(rawVal) || 0;
+        if (sumColumnKeys.includes(col.key)) {
+          totalsTracker[col.key] = (totalsTracker[col.key] || 0) + rawNum;
+        }
+        displayVal = formatCurrency(rawNum);
+      }
+
+      const align = col.align || (col.isCurrency ? "right" : "left");
+      const padX = 4;
+      const textW = col.width - 2 * padX;
+
+      // Calculate dynamic text height for auto-wrapped strings (REMARKS, MEMBER NAME, CATEGORY)
+      const textHeight = doc.heightOfString(displayVal, { width: textW }) + 8;
+      if (textHeight > dynamicRowHeight) {
+        dynamicRowHeight = textHeight;
+      }
+
+      // Color determination
+      let color = "#1E293B";
+      if (col.isCurrency && rawNum > 0) {
+        color = "#046A38";
+      } else if (col.isCurrency && rawNum < 0) {
+        color = "#DC2626";
+      } else if (col.key === "status") {
+        const s = String(rawVal).toLowerCase();
+        if (s === "active" || s === "paid" || s === "running") {
+          color = "#046A38";
+        } else if (s === "inactive" || s === "due" || s === "closed") {
+          color = "#DC2626";
+        } else {
+          color = "#475569";
+        }
+      }
+
+      cellValues.push({ displayVal, align, isCurr, rawNum, color });
+    }
+
+    // Page overflow check
+    if (currentY + dynamicRowHeight > bottomBoundary) {
       doc.addPage();
       currentPageNumber++;
       currentY = drawPageHeader(false);
@@ -254,72 +313,54 @@ export async function streamReportToPdf(
 
     const isEven = totalRowCount % 2 === 0;
     if (isEven) {
-      doc.rect(margin, currentY, contentWidth, baseRowHeight).fill("#F8FAFC");
+      doc.rect(margin, currentY, contentWidth, dynamicRowHeight).fill("#F8FAFC");
     }
 
     // Border line bottom
     doc
       .strokeColor("#E2E8F0")
       .lineWidth(0.5)
-      .moveTo(margin, currentY + baseRowHeight)
-      .lineTo(margin + contentWidth, currentY + baseRowHeight)
+      .moveTo(margin, currentY + dynamicRowHeight)
+      .lineTo(margin + contentWidth, currentY + dynamicRowHeight)
       .stroke();
 
     let cellX = margin;
-    doc.fontSize(7.8).font("Helvetica").fillColor("#1E293B");
+    doc.fontSize(8);
 
-    for (const col of columns) {
-      const rawVal = docData[col.key];
-      let displayVal = rawVal !== undefined && rawVal !== null ? String(rawVal) : "-";
+    for (let cIdx = 0; cIdx < columns.length; cIdx++) {
+      const col = columns[cIdx];
+      const cellInfo = cellValues[cIdx];
+      if (!col || !cellInfo) continue;
 
-      if (col.isDate && rawVal) {
-        displayVal = formatDateToDisplay(rawVal);
-      } else if (col.isCurrency) {
-        const num = Number(rawVal) || 0;
-        if (sumColumnKeys.includes(col.key)) {
-          totalsTracker[col.key] = (totalsTracker[col.key] || 0) + num;
-        }
-        displayVal = formatCurrency(num);
-      }
-
-      const align = col.align || (col.isCurrency ? "right" : "left");
       const padX = 4;
       const textX = cellX + padX;
       const textW = col.width - 2 * padX;
 
-      // Color coding for monetary amounts or status
-      if (col.isCurrency && Number(rawVal) > 0) {
-        doc.font("Helvetica-Bold").fillColor("#046A38");
-      } else if (col.isCurrency && Number(rawVal) < 0) {
-        doc.font("Helvetica-Bold").fillColor("#DC2626");
+      if (cellInfo.isCurr) {
+        doc.font("Helvetica-Bold");
       } else if (col.key === "status") {
-        const s = String(rawVal).toLowerCase();
-        if (s === "active" || s === "paid" || s === "running") {
-          doc.font("Helvetica-Bold").fillColor("#046A38");
-        } else if (s === "inactive" || s === "due" || s === "closed") {
-          doc.font("Helvetica-Bold").fillColor("#DC2626");
-        } else {
-          doc.font("Helvetica").fillColor("#475569");
-        }
+        doc.font("Helvetica-Bold");
       } else {
-        doc.font("Helvetica").fillColor("#1E293B");
+        doc.font("Helvetica");
       }
 
-      doc.text(displayVal, textX, currentY + 4.5, {
+      doc.fillColor(cellInfo.color);
+
+      doc.text(cellInfo.displayVal, textX, currentY + 4, {
         width: textW,
-        align,
-        ellipsis: true,
+        align: cellInfo.align,
+        lineBreak: true, // Auto-wrap text so multi-line text expands row height without overflow
       });
 
       cellX += col.width;
     }
 
-    currentY += baseRowHeight;
+    currentY += dynamicRowHeight;
   }
 
-  // 7. Auto-Apply Summary Row at the bottom of the table
+  // 7. Auto-Apply Dynamic Summary Row with Full-Width Merged colSpan Header & 6px Padding
   if (sumColumnKeys.length > 0 && totalRowCount > 0) {
-    const summaryRowHeight = 22;
+    const summaryRowHeight = 26; // Dynamic height with 6px vertical padding
     if (currentY + summaryRowHeight > bottomBoundary) {
       doc.addPage();
       currentY = drawPageHeader(false);
@@ -339,26 +380,40 @@ export async function streamReportToPdf(
       .lineTo(margin + contentWidth, currentY + summaryRowHeight)
       .stroke();
 
+    // Identify first sum column to create merged label box (colSpan equivalent)
+    const firstSumIndex = columns.findIndex((c) => sumColumnKeys.includes(c.key));
+    let mergedLabelWidth = 0;
+    const labelEndIdx = firstSumIndex > 0 ? firstSumIndex : 1;
+
+    for (let i = 0; i < labelEndIdx; i++) {
+      const col = columns[i];
+      if (col) {
+        mergedLabelWidth += col.width;
+      }
+    }
+
+    // Print merged full-width total label so multi-word headers like DIRECTORY TOTALS, TOTAL COLLECTION, TOTAL EXPENSE remain single-line
+    doc
+      .fontSize(8.5)
+      .font("Helvetica-Bold")
+      .fillColor("#046A38")
+      .text(grandTotalLabel.toUpperCase(), margin + 6, currentY + 6, {
+        width: mergedLabelWidth - 12,
+        align: "left",
+      });
+
     let sumX = margin;
     for (let cIdx = 0; cIdx < columns.length; cIdx++) {
       const col = columns[cIdx];
       if (!col) continue;
-      const padX = 4;
-      const textX = sumX + padX;
-      const textW = col.width - 2 * padX;
-      const align = col.align || (col.isCurrency ? "right" : "left");
 
-      if (cIdx === 0) {
-        doc
-          .fontSize(8.5)
-          .font("Helvetica-Bold")
-          .fillColor("#046A38")
-          .text(grandTotalLabel.toUpperCase(), textX, currentY + 6, {
-            width: textW,
-            align: "left",
-          });
-      } else if (sumColumnKeys.includes(col.key)) {
+      if (cIdx >= labelEndIdx && sumColumnKeys.includes(col.key)) {
+        const padX = 4;
+        const textX = sumX + padX;
+        const textW = col.width - 2 * padX;
+        const align = col.align || "right";
         const sumVal = totalsTracker[col.key] || 0;
+
         doc
           .fontSize(8.5)
           .font("Helvetica-Bold")
@@ -371,6 +426,8 @@ export async function streamReportToPdf(
 
       sumX += col.width;
     }
+
+    currentY += summaryRowHeight;
   }
 
   // 8. Dynamic Page Numbering & Footer Stamping ("Page X of Y")

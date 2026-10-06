@@ -60,6 +60,8 @@ export interface NewsArticle {
   date: string;
   title: string;
   titleBn?: string;
+  summary?: string;
+  summaryBn?: string;
   image?: string;
   images?: string[]; // Multiple images for the detail page slideshow
   slug: string;

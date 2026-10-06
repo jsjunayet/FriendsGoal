@@ -1,19 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { NewsCard } from "@/components/cards/NewsCard";
 import { NEWS_ARTICLES } from "@/constants/site";
+import { getNoticesApi, type NoticeItem } from "@/lib/noticeApi";
 
 const ITEMS_PER_PAGE = 9;
 
 export function NoticeFeed() {
-  const totalPages = Math.ceil(NEWS_ARTICLES.length / ITEMS_PER_PAGE);
+  const [notices, setNotices] = useState<NoticeItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
+  useEffect(() => {
+    getNoticesApi()
+      .then((data) => {
+        if (data && data.length > 0) {
+          setNotices(data);
+        }
+      })
+      .catch(() => {
+        /* fallback to static articles */
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  const totalItems = notices.length > 0 ? notices.length : NEWS_ARTICLES.length;
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+
   const start = (page - 1) * ITEMS_PER_PAGE;
-  const visible = NEWS_ARTICLES.slice(start, start + ITEMS_PER_PAGE);
+  const visibleNotices = notices.length > 0 ? notices.slice(start, start + ITEMS_PER_PAGE) : null;
+  const visibleArticles = !visibleNotices ? NEWS_ARTICLES.slice(start, start + ITEMS_PER_PAGE) : null;
 
   const goTo = (p: number) => {
     setPage(p);
@@ -35,9 +56,13 @@ export function NoticeFeed() {
 
         {/* 3-column card grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {visible.map((article, i) => (
-            <NewsCard key={article.id} article={article} index={i} />
-          ))}
+          {visibleNotices
+            ? visibleNotices.map((notice, i) => (
+                <NewsCard key={notice._id} notice={notice} index={i} />
+              ))
+            : visibleArticles?.map((article, i) => (
+                <NewsCard key={article.id} article={article} index={i} />
+              ))}
         </div>
 
         {/* Pagination */}

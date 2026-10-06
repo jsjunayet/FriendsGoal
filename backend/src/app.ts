@@ -56,6 +56,11 @@ app.use(
   })
 );
 
+import path from "path";
+
+// Serve static uploads
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
 // Application routes
 app.use("/api/v1", router);
 

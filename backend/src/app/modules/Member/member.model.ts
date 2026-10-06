@@ -10,10 +10,18 @@ const memberSchema = new Schema<IMember, MemberModel>(
       unique: true,
       trim: true,
     },
+    memberId: {
+      type: String,
+      trim: true,
+    },
     fullName: {
       type: String,
       required: [true, "Full name is required"],
       trim: true,
+    },
+    name: {
+      bn: { type: String, trim: true },
+      en: { type: String, trim: true },
     },
     email: {
       type: String,
@@ -52,6 +60,10 @@ const memberSchema = new Schema<IMember, MemberModel>(
       required: [true, "Mobile number is required"],
       trim: true,
     },
+    phone: {
+      type: String,
+      trim: true,
+    },
     dateOfBirth: {
       type: String,
       trim: true,
@@ -84,10 +96,19 @@ const memberSchema = new Schema<IMember, MemberModel>(
       trim: true,
       default: "সাধারণ সদস্য",
     },
+    roleTitle: {
+      bn: { type: String, trim: true },
+      en: { type: String, trim: true },
+    },
     councilCategory: {
       type: String,
-      enum: ["core_leadership", "financial_leadership", "general_member"],
+      enum: ["core_leadership", "financial_leadership", "general_member", "executive", "financial", "general"],
       default: "general_member",
+    },
+    councilType: {
+      type: String,
+      default: "general",
+      trim: true,
     },
 
     // Account Security & Savings
@@ -162,6 +183,10 @@ const memberSchema = new Schema<IMember, MemberModel>(
       trim: true,
     },
     pictureUrl: {
+      type: String,
+      trim: true,
+    },
+    photoUrl: {
       type: String,
       trim: true,
     },

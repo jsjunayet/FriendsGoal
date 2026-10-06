@@ -39,8 +39,7 @@ export function NotificationBlocker() {
       toast.success("Acknowledged successfully.");
     } catch (err: any) {
       console.error("Failed to acknowledge notifications:", err);
-      toast.error("Failed to acknowledge. Please try again.");
-      alert(`Error: ${err.message || "Failed to acknowledge"}`);
+      toast.error(err?.message || "Failed to acknowledge. Please try again.");
     } finally {
       setAcknowledgingId(null);
     }
