@@ -9,7 +9,7 @@ const catchAsync_1 = __importDefault(require("../../utils/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../utils/sendResponse"));
 const investmentIncome_service_1 = require("./investmentIncome.service");
 const createInvestmentIncome = (0, catchAsync_1.default)(async (req, res) => {
-    const result = await investmentIncome_service_1.InvestmentIncomeService.createInvestmentIncome(req.body, req.user?.id);
+    const result = await investmentIncome_service_1.InvestmentIncomeService.createInvestmentIncome(req.body, req.user?.id || req.user?._id);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_1.default.CREATED,
         success: true,

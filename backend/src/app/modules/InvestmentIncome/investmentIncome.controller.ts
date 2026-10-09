@@ -5,7 +5,10 @@ import sendResponse from "../../utils/sendResponse";
 import { InvestmentIncomeService } from "./investmentIncome.service";
 
 const createInvestmentIncome = catchAsync(async (req: Request, res: Response) => {
-  const result = await InvestmentIncomeService.createInvestmentIncome(req.body, req.user?.id);
+  const result = await InvestmentIncomeService.createInvestmentIncome(
+    req.body,
+    (req as any).user?.id || (req as any).user?._id
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
