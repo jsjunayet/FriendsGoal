@@ -6,7 +6,7 @@ import { Bell, LogOut, Shield, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { NotificationPopover } from "./NotificationPopover";
 import { useEffect, useRef, useState } from "react";
-import { INotification, fetchMyNotifications } from "@/lib/notificationApi";
+import { useNotifications } from "@/lib/hooks/useNotifications";
 
 // Role label map
 const ROLE_LABELS: Record<string, string> = {
@@ -15,25 +15,19 @@ const ROLE_LABELS: Record<string, string> = {
   member: "Member",
 };
 
-// Initials avatar from userId
-function Initials({ userId }: { userId: string }) {
-  const letters = userId.slice(0, 2).toUpperCase();
-  return (
-    <div
-      aria-hidden
-      className="w-9 h-9 rounded-full bg-[#1FDE64] flex items-center justify-center flex-shrink-0 text-[#1A1A1A] text-[13px] font-bold select-none"
-    >
-      {letters}
-    </div>
-  );
-}
-
 export function DashboardNav() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const notifRef = useRef<HTMLDivElement>(null);
+
+  const {
+    notifications,
+    unreadCount,
+    isLoading: isNotifLoading,
+    markAsRead,
+    markAllAsRead,
+  } = useNotifications();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -45,20 +39,9 @@ export function DashboardNav() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Poll for unread count simply or rely on real-time inside popover
-  // We can just fetch once here to get count
-  useEffect(() => {
-    if (user) {
-      fetchMyNotifications(1, 1).then(res => {
-        // Assume API could return unread count in meta, or we just rely on popover.
-        // If popover manages real-time, we can pass state up, but for simplicity:
-      }).catch(e => console.error(e));
-    }
-  }, [user]);
-
   const isAdmin = user?.role === "admin" || user?.role === "superAdmin";
   const roleLabel = user ? (ROLE_LABELS[user.role] ?? user.role) : "Member";
-  const dashboardHref = isAdmin ? "/admin/dashboard" : "/dashboard";
+  const dashboardHref = isAdmin ? "/admin/dashboard" : "/";
 
   const handleLogout = () => {
     logout();
@@ -68,7 +51,6 @@ export function DashboardNav() {
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-[#E5E5E5] shadow-xs">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 xl:px-8 h-[64px] flex items-center justify-between gap-4">
-
         {/* Logo */}
         <Link
           href={dashboardHref}
@@ -90,7 +72,6 @@ export function DashboardNav() {
 
         {/* Right actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-
           {/* Role badge — visible on sm+ */}
           {user && (
             <div className="hidden sm:flex items-center gap-1.5 h-[30px] px-3 rounded-full bg-[#F6FFED] border border-[#D4F5D2]">
@@ -105,18 +86,31 @@ export function DashboardNav() {
             </div>
           )}
 
-          {/* Notifications */}
+          {/* Real-time Dynamic Notifications Bell */}
           <div className="relative" ref={notifRef}>
             <button
               type="button"
-              onClick={() => setIsNotifOpen(!isNotifOpen)}
-              className="relative w-9 h-9 rounded-full flex items-center justify-center text-[#555555] hover:bg-[#F3F4F6] transition-colors focus:outline-none"
+              onClick={() => setIsNotifOpen((prev) => !prev)}
+              aria-label="Notifications"
+              className="relative w-9 h-9 rounded-full flex items-center justify-center text-[#555555] hover:bg-[#F3F4F6] transition-colors focus:outline-none cursor-pointer"
             >
               <Bell className="w-5 h-5" />
-              {/* If we had a global unread count */}
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-[#EF4444] rounded-full border-2 border-white"></span>
+              {/* Dynamic Unread Badge - completely hidden when 0 unread */}
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[#EF4444] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white shadow-xs animate-in zoom-in-75 duration-150">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </button>
-            <NotificationPopover isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
+            <NotificationPopover
+              isOpen={isNotifOpen}
+              onClose={() => setIsNotifOpen(false)}
+              notifications={notifications}
+              unreadCount={unreadCount}
+              isLoading={isNotifLoading}
+              onMarkAsRead={markAsRead}
+              onMarkAllAsRead={markAllAsRead}
+            />
           </div>
 
           {/* Logout */}
@@ -124,21 +118,10 @@ export function DashboardNav() {
             type="button"
             onClick={handleLogout}
             aria-label="Log out"
-            className="w-9 h-9 rounded-full flex items-center justify-center text-[#555555] hover:bg-[#FFF0F0] hover:text-[#ef4444] transition-colors"
+            className="w-9 h-9 rounded-full flex items-center justify-center text-[#555555] hover:bg-[#FFF0F0] hover:text-[#ef4444] transition-colors cursor-pointer"
           >
             <LogOut className="w-[18px] h-[18px]" />
           </button>
-
-          {/* Avatar — shows initials from userId */}
-          {user ? (
-            <div className="relative flex-shrink-0 ml-1 cursor-default" title={`${user.userId} · ${roleLabel}`}>
-              <div className="ring-2 ring-[#1FDE64] ring-offset-1 rounded-full">
-                <Initials userId={user.userId} />
-              </div>
-            </div>
-          ) : (
-            <div className="w-9 h-9 rounded-full bg-[#E5E5E5] flex-shrink-0 ml-1" />
-          )}
         </div>
       </div>
     </header>

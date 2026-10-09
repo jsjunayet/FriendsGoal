@@ -22,7 +22,7 @@ export function CreateAdjustmentView() {
     return new Date().toISOString().slice(0, 10);
   });
   const [memberId, setMemberId] = useState("");
-  const [adjustmentType, setAdjustmentType] = useState<TAdjustmentType>("debit");
+  const [adjustmentType, setAdjustmentType] = useState<TAdjustmentType>("ADD");
   const [adjustmentAmount, setAdjustmentAmount] = useState<string>("");
   const [remarks, setRemarks] = useState("");
 
@@ -51,6 +51,7 @@ export function CreateAdjustmentView() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!memberId) {
       toast.error("Please select a member");
       return;
@@ -173,13 +174,9 @@ export function CreateAdjustmentView() {
                   onChange={(e) => setAdjustmentType(e.target.value as TAdjustmentType)}
                   className="w-full appearance-none px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-800 focus:outline-hidden focus:ring-2 focus:ring-[#00B074]/30 focus:border-[#00B074] transition-all cursor-pointer"
                 >
-                  <option value="PROFIT">Profit Adjustment (PROFIT)</option>
-                  <option value="DEPOSIT">Deposit Adjustment (DEPOSIT)</option>
-                  <option value="DUE">Due Adjustment (DUE)</option>
-                  <option value="credit">Credit (Add Deposit)</option>
-                  <option value="debit">Debit (Deduct / Correction)</option>
-                  <option value="fee_reversal">Fee Reversal / Waive</option>
-                  <option value="operational">Other Operational Adjustment</option>
+                  <option value="ADD">Add Deposit</option>
+                  <option value="SUB">Deduct Balance</option>
+                  <option value="OTHER_RECEIVED">Other Received</option>
                 </select>
                 <ChevronDown className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
@@ -226,14 +223,19 @@ export function CreateAdjustmentView() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-2 px-7 py-2.5 bg-[#00684A] hover:bg-[#00523a] text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-7 py-2.5 bg-[#00684A] hover:bg-[#00523a] text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                  <span>SAVING...</span>
+                </>
               ) : (
-                <Save className="w-4 h-4" />
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>SAVE</span>
+                </>
               )}
-              <span>SAVE</span>
             </button>
 
             <button

@@ -188,6 +188,8 @@ export async function fetchPublicCouncilApi(params?: {
 
 export async function createMemberApi(payload: Partial<IMember>): Promise<IMember> {
   const urls = getApiUrlsToTry();
+  let lastErrorMessage = "Failed to create member";
+
   for (const url of urls) {
     try {
       const res = await fetch(`${url}/members`, {
@@ -202,16 +204,46 @@ export async function createMemberApi(payload: Partial<IMember>): Promise<IMembe
           return json.data;
         }
       }
-    } catch (err) {
-      // Continue
+
+      let errorJson: any = null;
+      try {
+        errorJson = await res.json();
+      } catch (e) {}
+
+      let errorMsg = errorJson?.message;
+      if (errorJson?.errorSources && Array.isArray(errorJson.errorSources) && errorJson.errorSources.length > 0) {
+        const details = errorJson.errorSources.map((es: any) => es.message).filter(Boolean);
+        if (details.length > 0) {
+          if (!errorMsg || errorMsg === "Validation Error" || errorMsg === "Something went wrong") {
+            errorMsg = details.join(". ");
+          } else if (!details.includes(errorMsg)) {
+            errorMsg = `${errorMsg}: ${details.join(", ")}`;
+          }
+        }
+      }
+
+      if (errorMsg) {
+        lastErrorMessage = errorMsg;
+      }
+
+      // If client-side / validation error (400, 409, 422, etc.), throw immediately
+      if (res.status >= 400 && res.status < 500) {
+        throw new Error(lastErrorMessage);
+      }
+    } catch (err: any) {
+      if (err instanceof Error && err.message !== "Failed to fetch") {
+        throw err;
+      }
     }
   }
 
-  throw new Error("Failed to create member");
+  throw new Error(lastErrorMessage);
 }
 
 export async function updateMemberApi(id: string, payload: Partial<IMember>): Promise<IMember> {
   const urls = getApiUrlsToTry();
+  let lastErrorMessage = "Failed to update member";
+
   for (const url of urls) {
     try {
       const res = await fetch(`${url}/members/${id}`, {
@@ -226,12 +258,40 @@ export async function updateMemberApi(id: string, payload: Partial<IMember>): Pr
           return json.data;
         }
       }
-    } catch (err) {
-      // Continue
+
+      let errorJson: any = null;
+      try {
+        errorJson = await res.json();
+      } catch (e) {}
+
+      let errorMsg = errorJson?.message;
+      if (errorJson?.errorSources && Array.isArray(errorJson.errorSources) && errorJson.errorSources.length > 0) {
+        const details = errorJson.errorSources.map((es: any) => es.message).filter(Boolean);
+        if (details.length > 0) {
+          if (!errorMsg || errorMsg === "Validation Error" || errorMsg === "Something went wrong") {
+            errorMsg = details.join(". ");
+          } else if (!details.includes(errorMsg)) {
+            errorMsg = `${errorMsg}: ${details.join(", ")}`;
+          }
+        }
+      }
+
+      if (errorMsg) {
+        lastErrorMessage = errorMsg;
+      }
+
+      // If client-side / validation error (400, 409, 422, etc.), throw immediately
+      if (res.status >= 400 && res.status < 500) {
+        throw new Error(lastErrorMessage);
+      }
+    } catch (err: any) {
+      if (err instanceof Error && err.message !== "Failed to fetch") {
+        throw err;
+      }
     }
   }
 
-  throw new Error("Failed to update member");
+  throw new Error(lastErrorMessage);
 }
 
 export async function deleteMemberApi(id: string): Promise<void> {

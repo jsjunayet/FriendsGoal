@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { NewsCard } from "@/components/cards/NewsCard";
-import { NEWS_ARTICLES } from "@/constants/site";
 import { useTranslation } from "@/context/LanguageContext";
 import { getNoticesApi, type NoticeItem } from "@/lib/noticeApi";
 import { NoticeGridSkeleton } from "@/components/ui/Skeletons";
+import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
 
 export function NewsSection() {
@@ -20,17 +20,17 @@ export function NewsSection() {
       .then((data) => {
         if (data && data.length > 0) {
           setNotices(data);
+        } else {
+          setNotices([]);
         }
       })
       .catch(() => {
-        /* fallback to static articles silently */
+        setNotices([]);
       })
       .finally(() => {
         setLoading(false);
       });
   }, []);
-
-  const displayList = notices.length > 0 ? notices.slice(0, 3) : null;
 
   return (
     <section
@@ -70,19 +70,22 @@ export function NewsSection() {
             </Link>
           </div>
 
-          {/* 3 News Cards Grid / Skeleton Fallback */}
+          {/* 3 News Cards Grid / Skeleton Fallback / Empty State */}
           {loading ? (
             <NoticeGridSkeleton count={3} />
-          ) : (
+          ) : notices.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-              {displayList
-                ? displayList.map((notice, i) => (
-                    <NewsCard key={notice._id} notice={notice} index={i} />
-                  ))
-                : NEWS_ARTICLES.slice(0, 3).map((article, i) => (
-                    <NewsCard key={article.id} article={article} index={i} />
-                  ))}
+              {notices.slice(0, 3).map((notice, i) => (
+                <NewsCard key={notice._id} notice={notice} index={i} />
+              ))}
             </div>
+          ) : (
+            <EmptyState
+              title="No notices yet"
+              titleBn="এখনো কোনো নোটিশ নেই"
+              description="All official notices and announcements will appear here once published."
+              descriptionBn="প্রকাশিত হলে সমস্ত আনুষ্ঠানিক নোটিশ ও ঘোষণা এখানে প্রদর্শিত হবে।"
+            />
           )}
         </motion.div>
       </div>

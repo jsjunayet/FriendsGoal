@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import httpStatus from "http-status";
 import type { Response } from "express";
 import ExcelJS from "exceljs";
@@ -14,13 +15,44 @@ import { streamMemberProfileToPdf } from "../../services/memberPdfStream.service
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { NotificationServices } from "../Notification/notification.service";
+import { AuditLogServices } from "../AuditLog/auditLog.service";
 
 // ─── 1. Create Member ─────────────────────────────────────────────────────────
 
 const createMemberIntoDB = async (payload: IMember) => {
-  const existingMember = await Member.findOne({ email: payload.email });
-  if (existingMember) {
-    throw new AppError(httpStatus.BAD_REQUEST, "A member with this email already exists!");
+  if (payload.email) {
+    payload.email = payload.email.trim().toLowerCase();
+    const existingMember = await Member.findOne({
+      email: { $regex: new RegExp(`^${payload.email}$`, "i") },
+    });
+    if (existingMember) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `A member with email "${payload.email}" already exists! Please use a unique email.`
+      );
+    }
+  }
+
+  if (payload.memberCode) {
+    payload.memberCode = payload.memberCode.trim();
+    const existingCode = await Member.findOne({ memberCode: payload.memberCode });
+    if (existingCode) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `Member ID "${payload.memberCode}" already exists! Please use a unique ID.`
+      );
+    }
+  }
+
+  if (payload.mobileNo) {
+    payload.mobileNo = payload.mobileNo.trim();
+    const existingMobile = await Member.findOne({ mobileNo: payload.mobileNo });
+    if (existingMobile) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `A member with mobile number "${payload.mobileNo}" already exists! Please use a unique mobile number.`
+      );
+    }
   }
 
   // Auto-map designationBn if not given
@@ -78,6 +110,15 @@ const createMemberIntoDB = async (payload: IMember) => {
     channel: ["EMAIL", "SMS"],
     metadata: { temporaryPassword: rawPassword },
   });
+
+  // Record Audit Log for Admin Action
+  await AuditLogServices.createAuditLogInDB({
+    adminName: "Super Admin",
+    adminRole: "Super Admin",
+    action: "Member Added",
+    target: `${result.fullName} (${result.memberCode})`,
+    details: `New member ${result.fullName} (ID: ${result.memberCode}) enrolled into the organization with role ${result.role}.`,
+  }).catch((err) => console.error("Failed to record member creation audit log:", err));
 
   return result;
 };
@@ -234,6 +275,48 @@ const updateMemberIntoDB = async (id: string, payload: Partial<IMember>) => {
     throw new AppError(httpStatus.NOT_FOUND, "Member not found!");
   }
 
+  if (payload.email) {
+    payload.email = payload.email.trim().toLowerCase();
+    const existingEmail = await Member.findOne({
+      _id: { $ne: member._id },
+      email: { $regex: new RegExp(`^${payload.email}$`, "i") },
+    });
+    if (existingEmail) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `A member with email "${payload.email}" already exists! Please use a unique email.`
+      );
+    }
+  }
+
+  if (payload.memberCode) {
+    payload.memberCode = payload.memberCode.trim();
+    const existingCode = await Member.findOne({
+      _id: { $ne: member._id },
+      memberCode: payload.memberCode,
+    });
+    if (existingCode) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `Member ID "${payload.memberCode}" already exists! Please use a unique ID.`
+      );
+    }
+  }
+
+  if (payload.mobileNo) {
+    payload.mobileNo = payload.mobileNo.trim();
+    const existingMobile = await Member.findOne({
+      _id: { $ne: member._id },
+      mobileNo: payload.mobileNo,
+    });
+    if (existingMobile) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `A member with mobile number "${payload.mobileNo}" already exists! Please use a unique mobile number.`
+      );
+    }
+  }
+
   // If designation is updated, auto-update designationBn if not supplied
   if (payload.designation && !payload.designationBn) {
     payload.designationBn = getDesignationBn(payload.designation);
@@ -248,6 +331,16 @@ const updateMemberIntoDB = async (id: string, payload: Partial<IMember>) => {
     new: true,
     runValidators: true,
   });
+
+  if (updatedMember) {
+    await AuditLogServices.createAuditLogInDB({
+      adminName: "Super Admin",
+      adminRole: "Super Admin",
+      action: "Settings Changed",
+      target: `${updatedMember.fullName} (${updatedMember.memberCode})`,
+      details: `Profile and role configuration updated for ${updatedMember.fullName}.`,
+    }).catch((err) => console.error("Failed to record member update audit log:", err));
+  }
 
   return updatedMember;
 };
@@ -269,6 +362,17 @@ const deleteMemberFromDB = async (id: string) => {
     throw new AppError(httpStatus.NOT_FOUND, "Member not found!");
   }
   const result = await Member.findByIdAndDelete(member._id);
+
+  if (result) {
+    await AuditLogServices.createAuditLogInDB({
+      adminName: "Super Admin",
+      adminRole: "Super Admin",
+      action: "Amount Modified",
+      target: `${result.fullName} (${result.memberCode})`,
+      details: `Member account ${result.fullName} (ID: ${result.memberCode}) deleted from the system.`,
+    }).catch((err) => console.error("Failed to record member deletion audit log:", err));
+  }
+
   return result;
 };
 
@@ -374,18 +478,34 @@ const getMemberDashboardSummaryFromDB = async (userIdOrEmail?: string) => {
 const getMemberProfitBalanceFromDB = async (userIdOrId?: string) => {
   let member = null;
   if (userIdOrId) {
-    if (userIdOrId.match(/^[0-9a-fA-F]{24}$/)) {
-      member = await Member.findById(userIdOrId);
-    } else {
+    if (mongoose.isValidObjectId(userIdOrId)) {
+      member = await Member.findOne({ _id: userIdOrId, isDeleted: false });
+    }
+    if (!member) {
+      const cleanId = decodeURIComponent(userIdOrId).trim();
       member = await Member.findOne({
-        $or: [{ email: userIdOrId }, { memberCode: userIdOrId }],
+        isDeleted: false,
+        $or: [
+          { email: cleanId },
+          { memberCode: cleanId },
+          { fullName: { $regex: new RegExp(`^${cleanId}$`, "i") } },
+        ],
       });
     }
   }
 
   if (!member) {
     if (userIdOrId && userIdOrId.includes("@")) {
-      return { profitBalance: 0 };
+      return {
+        memberId: "system",
+        fullName: "System",
+        memberName: "System",
+        memberCode: "SYSTEM",
+        profitBalance: 0,
+        totalDeposit: 0,
+        dueAmount: 0,
+        totalWithdrawn: 0,
+      };
     }
     throw new AppError(httpStatus.NOT_FOUND, "Member record not found");
   }

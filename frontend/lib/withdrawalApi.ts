@@ -54,70 +54,9 @@ export interface IRespondPayload {
   reviewerName?: string;
 }
 
-// 4 Initial Seed Records matching Screenshots 2, 3, 4
-const INITIAL_WITHDRAWALS: IWithdrawalItem[] = [
-  {
-    _id: "wd-1",
-    referenceId: "A3F9C2",
-    memberName: "MD Juwel Hasan",
-    memberInitials: "MJ",
-    avatarColor: "bg-[#2F80ED]",
-    amount: 3200,
-    method: "Mobile Banking",
-    accountDetails: "bKash 01712-334455",
-    reason: "Personal expenses",
-    submittedDate: "12 Sept 2026",
-    submittedTimeAgo: "6d ago",
-    status: "Pending",
-  },
-  {
-    _id: "wd-2",
-    referenceId: "B7D1E3",
-    memberName: "Sarah Jenkins",
-    memberInitials: "SJ",
-    avatarColor: "bg-[#5B63D3]",
-    amount: 1500,
-    method: "Bank Transfer",
-    accountDetails: "City Bank 10928374829",
-    reason: "Monthly dividend payout",
-    submittedDate: "11 Sept 2026",
-    submittedTimeAgo: "7d ago",
-    status: "Approved",
-    reviewedByName: "Rania Islam",
-  },
-  {
-    _id: "wd-3",
-    referenceId: "C9E4A1",
-    memberName: "Fatema Begum",
-    memberInitials: "FB",
-    avatarColor: "bg-[#00B074]",
-    amount: 4554,
-    method: "Mobile Banking",
-    accountDetails: "Nagad 01819-887766",
-    reason: "Emergency medical fund",
-    submittedDate: "13 Sept 2026",
-    submittedTimeAgo: "5d ago",
-    status: "Pending",
-  },
-  {
-    _id: "wd-4",
-    referenceId: "D2F8B7",
-    memberName: "MD Belal Hossain",
-    memberInitials: "MB",
-    avatarColor: "bg-[#F2994A]",
-    amount: 6000,
-    method: "Cash Pickup",
-    accountDetails: "Main Office Counter",
-    reason: "Business inventory",
-    submittedDate: "10 Sept 2026",
-    submittedTimeAgo: "8d ago",
-    status: "Rejected",
-    adminNote: "insufficient profit",
-    reviewedByName: "Tarek Farouq",
-  },
-];
+const INITIAL_WITHDRAWALS: IWithdrawalItem[] = [];
 
-let inMemoryWithdrawals: IWithdrawalItem[] = [...INITIAL_WITHDRAWALS];
+let inMemoryWithdrawals: IWithdrawalItem[] = [];
 
 export const withdrawalApi = {
   getWithdrawals: async (

@@ -6,6 +6,8 @@ import { Collection, MonthlyBill, Ledger } from "./operation.model";
 import { generateReceiptCode, formatMonthYear } from "./operation.utils";
 import { NotificationServices } from "../Notification/notification.service";
 import { IDueListItem, IExportFilterOptions } from "./operation.interface";
+import { AuditLogServices } from "../AuditLog/auditLog.service";
+import { getCronConfig } from "../../config/cron.config";
 
 // ─── 1. Get Due List (Paginated Receivables with Status Filters) ───────────────
 
@@ -29,6 +31,34 @@ const getDueListFromDB = async (query: DueListQueryParams) => {
       { fullName: { $regex: searchByCodeOrName, $options: "i" } },
       { mobileNo: { $regex: searchByCodeOrName, $options: "i" } },
     ];
+  }
+
+  if (query.year) {
+    const startOfYear = new Date(`${query.year}-01-01T00:00:00.000Z`);
+    const endOfYear = new Date(`${query.year}-12-31T23:59:59.999Z`);
+    filter.createdAt = { $gte: startOfYear, $lte: endOfYear };
+  }
+
+  if (query.dateRange) {
+    if (query.dateRange.length === 7 && query.dateRange.includes("-")) {
+      const [yearStr, monthStr] = query.dateRange.split("-");
+      const startOfMonth = new Date(Date.UTC(Number(yearStr), Number(monthStr) - 1, 1, 0, 0, 0));
+      const endOfMonth = new Date(Date.UTC(Number(yearStr), Number(monthStr), 0, 23, 59, 59, 999));
+      filter.createdAt = { 
+        ...((filter.createdAt as any) || {}),
+        $gte: startOfMonth,
+        $lte: endOfMonth,
+      };
+    } else {
+      const [start, end] = query.dateRange.split(" to ");
+      if (start && end) {
+        filter.createdAt = { 
+          ...((filter.createdAt as any) || {}),
+          $gte: new Date(`${start}T00:00:00.000Z`),
+          $lte: new Date(`${end}T23:59:59.999Z`),
+        };
+      }
+    }
   }
 
   // Fetch all matching members to categorize by status
@@ -238,6 +268,15 @@ const collectPaymentIntoDB = async (payload: CollectPaymentPayload) => {
     description: `Payment of ${amount} BDT received. Receipt: ${receiptNo}`,
   });
 
+  // Record Audit Log
+  await AuditLogServices.createAuditLogInDB({
+    adminName: "Super Admin",
+    adminRole: "Super Admin",
+    action: "Payment Recorded",
+    target: `${member.fullName} (${member.memberCode})`,
+    details: `Payment collection of ৳${Number(amount).toLocaleString()} recorded for ${currentMonth}. Receipt #${receiptNo}.`,
+  }).catch((err) => console.error("Failed to record payment audit log:", err));
+
   const totalCollectionsCount = await Collection.countDocuments();
 
   return {
@@ -263,17 +302,22 @@ const collectPaymentIntoDB = async (payload: CollectPaymentPayload) => {
 // ─── 5. Subscription Engine: Monthly Auto-Billing Cron (node-cron) ────────────
 
 const initMonthlyAutoBillingCron = () => {
-  // Monthly Auto-Billing Cron (runs on 1st of every month at midnight)
-  nodeCron.schedule("0 0 1 * *", async () => {
-    console.log("⏰ Running Monthly Auto-Billing Cron Job...");
+  const cronConfig = getCronConfig();
+  console.log(`⏰ Initializing Due Generation Cron: ${cronConfig.dueGeneration.description} [Schedule: ${cronConfig.dueGeneration.schedule}]`);
+
+  nodeCron.schedule(cronConfig.dueGeneration.schedule, async () => {
+    console.log(`⏰ Running Due Generation Cron Job (${cronConfig.dueGeneration.description})...`);
     try {
       const activeMembers = await Member.find({
         status: "active",
         isDeleted: false,
       });
 
-      const currentMonth = formatMonthYear(new Date());
-      const chargeAmount = 1000;
+      const currentMonth = cronConfig.isTestMode
+        ? `${formatMonthYear(new Date())} (${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })})`
+        : formatMonthYear(new Date());
+
+      const chargeAmount = cronConfig.dueGeneration.amount ?? 1000;
 
       for (const member of activeMembers) {
         const previousDue = Number(member.dueAmount || 0);

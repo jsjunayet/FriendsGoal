@@ -6,6 +6,7 @@ import { OperationServices } from "./app/modules/Operation/operation.service";
 import { initMonthlyDueReminderCron } from "./app/modules/Notification/notification.cron";
 import seedSuperAdmin from "./app/DB/index";
 import { initSocket } from "./shared/socket";
+// Trigger reload for TEST_MODE config
 let server: Server;
 
 async function main() {

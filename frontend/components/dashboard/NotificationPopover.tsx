@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Check, Info, AlertTriangle, AlertCircle, CheckCircle2 } from "lucide-react";
-
-import { io } from "socket.io-client";
-import { fetchMyNotifications, INotification, acknowledgeNotification } from "@/lib/notificationApi";
+import { Check, Info, AlertTriangle, AlertCircle } from "lucide-react";
+import { INotification } from "@/lib/notificationApi";
+import { useNotifications } from "@/lib/hooks/useNotifications";
 
 const formatTimeAgo = (dateStr: string) => {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -18,52 +16,36 @@ const formatTimeAgo = (dateStr: string) => {
   return `${days}d ago`;
 };
 
-interface NotificationPopoverProps {
+export interface NotificationPopoverProps {
   isOpen: boolean;
   onClose: () => void;
   onViewAll?: () => void;
+  notifications?: INotification[];
+  unreadCount?: number;
+  isLoading?: boolean;
+  onMarkAsRead?: (id: string) => void;
+  onMarkAllAsRead?: () => void;
 }
 
-export function NotificationPopover({ isOpen, onClose, onViewAll }: NotificationPopoverProps) {
-  const [notifications, setNotifications] = useState<INotification[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setLoading(true);
-      fetchMyNotifications(1, 10).then(res => {
-        setNotifications(res.data);
-      }).finally(() => setLoading(false));
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    // Socket real-time logic
-    const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") || "http://localhost:5000";
-    const socket = io(socketUrl);
-
-    socket.on("connect", () => {
-      socket.emit("join-room", "admin-room"); 
-      // Should also join user-specific room if not admin, but admin-room for now
-    });
-
-    socket.on("new-notification", (data: INotification) => {
-      setNotifications(prev => [data, ...prev]);
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
+export function NotificationPopover({
+  isOpen,
+  onClose,
+  onViewAll,
+  notifications: propsNotifications,
+  unreadCount: propsUnreadCount,
+  isLoading: propsIsLoading,
+  onMarkAsRead: propsOnMarkAsRead,
+  onMarkAllAsRead: propsOnMarkAllAsRead,
+}: NotificationPopoverProps) {
+  const internalHook = useNotifications();
 
   if (!isOpen) return null;
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
-
-  const handleMarkAllRead = () => {
-    // Acknowledge all locally for UX, ideally API call
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-  };
+  const notifications = propsNotifications ?? internalHook.notifications;
+  const unreadCount = propsUnreadCount ?? internalHook.unreadCount;
+  const isLoading = propsIsLoading ?? internalHook.isLoading;
+  const onMarkAsRead = propsOnMarkAsRead ?? internalHook.markAsRead;
+  const onMarkAllAsRead = propsOnMarkAllAsRead ?? internalHook.markAllAsRead;
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -76,8 +58,8 @@ export function NotificationPopover({ isOpen, onClose, onViewAll }: Notification
       case "DEPOSIT_SUCCESS":
       case "DUE_ALERT":
         return (
-          <div className="w-6 h-6 rounded-full bg-[#DBEAFE] text-[#2563EB] flex items-center justify-center flex-shrink-0">
-            <Info className="w-3.5 h-3.5 stroke-[2.5]" />
+          <div className="w-6 h-6 rounded-full bg-[#FEF3C7] text-[#D97706] flex items-center justify-center flex-shrink-0">
+            <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
           </div>
         );
       case "SUPERADMIN_SECURITY_ALERT":
@@ -88,8 +70,8 @@ export function NotificationPopover({ isOpen, onClose, onViewAll }: Notification
         );
       default:
         return (
-          <div className="w-6 h-6 rounded-full bg-[#F1F5F9] text-[#64748B] flex items-center justify-center flex-shrink-0">
-            <AlertCircle className="w-3.5 h-3.5 stroke-[2.5]" />
+          <div className="w-6 h-6 rounded-full bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center flex-shrink-0">
+            <Info className="w-3.5 h-3.5 stroke-[2.5]" />
           </div>
         );
     }
@@ -100,46 +82,63 @@ export function NotificationPopover({ isOpen, onClose, onViewAll }: Notification
       {/* Click-away backdrop */}
       <div className="fixed inset-0 z-40" onClick={onClose} />
 
-      {/* Popover container matching Screenshot 2 */}
+      {/* Popover container */}
       <div className="absolute right-0 top-12 z-50 w-[350px] sm:w-[380px] bg-white rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.12)] border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-white">
           <div className="flex items-center gap-2">
             <span className="text-[14px] font-bold text-gray-900">Notifications</span>
-            {unreadCount > 0 && (
-              <span className="bg-[#10B981] text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                {unreadCount} new
+            {unreadCount > 0 ? (
+              <span className="bg-[#EF4444] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs">
+                {unreadCount} unread
+              </span>
+            ) : (
+              <span className="bg-gray-100 text-gray-600 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                All caught up
               </span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={handleMarkAllRead}
-            className="text-[12px] font-medium text-[#10B981] hover:text-[#059669] hover:underline transition-colors cursor-pointer"
-          >
-            Mark all read
-          </button>
+          {unreadCount > 0 && (
+            <button
+              type="button"
+              onClick={onMarkAllAsRead}
+              className="text-[12px] font-medium text-[#10B981] hover:text-[#059669] hover:underline transition-colors cursor-pointer"
+            >
+              Mark all read
+            </button>
+          )}
         </div>
 
         {/* List items */}
         <div className="max-h-[360px] overflow-y-auto divide-y divide-gray-50">
-          {loading ? (
-            <div className="p-8 text-center text-sm text-gray-500">Loading...</div>
+          {isLoading ? (
+            <div className="p-8 text-center text-sm text-gray-500">Loading notifications...</div>
           ) : notifications.length === 0 ? (
-            <div className="p-8 text-center text-sm text-gray-500">No new notifications</div>
+            <div className="p-8 text-center text-sm text-gray-500">No notifications yet</div>
           ) : (
             notifications.map((item) => (
               <div
                 key={item._id}
-                className={`p-3.5 transition-colors hover:bg-gray-50/70 flex items-start gap-3 relative ${
-                  !item.isRead ? "bg-[#F9FBFA]" : "bg-white"
+                onClick={() => {
+                  if (!item.isRead) {
+                    onMarkAsRead(item._id);
+                  }
+                }}
+                className={`p-3.5 transition-colors flex items-start gap-3 relative cursor-pointer ${
+                  !item.isRead
+                    ? "bg-[#F4FBF7] hover:bg-[#EBF7F1] border-l-3 border-l-[#10B981]"
+                    : "bg-white hover:bg-gray-50/70 opacity-80"
                 }`}
               >
                 {getIcon(item.type)}
 
-                <div className="flex-1 min-w-0 pr-4">
+                <div className="flex-1 min-w-0 pr-2">
                   <div className="flex items-center justify-between gap-1 mb-0.5">
-                    <h4 className="text-[12.5px] font-semibold text-gray-900 leading-tight truncate">
+                    <h4
+                      className={`text-[12.5px] leading-tight truncate ${
+                        !item.isRead ? "font-bold text-gray-900" : "font-medium text-gray-700"
+                      }`}
+                    >
                       {item.title}
                     </h4>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -147,12 +146,12 @@ export function NotificationPopover({ isOpen, onClose, onViewAll }: Notification
                         {formatTimeAgo(item.createdAt)}
                       </span>
                       {!item.isRead && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] flex-shrink-0" />
+                        <span className="w-2 h-2 rounded-full bg-[#EF4444] flex-shrink-0" />
                       )}
                     </div>
                   </div>
-                  <div 
-                    className="text-[11.5px] text-gray-500 leading-snug line-clamp-2"
+                  <div
+                    className="text-[11.5px] text-gray-600 leading-snug line-clamp-2"
                     dangerouslySetInnerHTML={{ __html: item.message }}
                   />
                 </div>

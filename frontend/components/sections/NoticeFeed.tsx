@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { NewsCard } from "@/components/cards/NewsCard";
-import { NEWS_ARTICLES } from "@/constants/site";
 import { getNoticesApi, type NoticeItem } from "@/lib/noticeApi";
+
+import { EmptyState } from "@/components/ui/EmptyState";
+import { NoticeGridSkeleton } from "@/components/ui/Skeletons";
 
 const ITEMS_PER_PAGE = 9;
 
@@ -19,22 +21,23 @@ export function NoticeFeed() {
       .then((data) => {
         if (data && data.length > 0) {
           setNotices(data);
+        } else {
+          setNotices([]);
         }
       })
       .catch(() => {
-        /* fallback to static articles */
+        setNotices([]);
       })
       .finally(() => {
         setLoading(false);
       });
   }, []);
 
-  const totalItems = notices.length > 0 ? notices.length : NEWS_ARTICLES.length;
+  const totalItems = notices.length;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
   const start = (page - 1) * ITEMS_PER_PAGE;
-  const visibleNotices = notices.length > 0 ? notices.slice(start, start + ITEMS_PER_PAGE) : null;
-  const visibleArticles = !visibleNotices ? NEWS_ARTICLES.slice(start, start + ITEMS_PER_PAGE) : null;
+  const visibleNotices = notices.slice(start, start + ITEMS_PER_PAGE);
 
   const goTo = (p: number) => {
     setPage(p);
@@ -54,16 +57,24 @@ export function NoticeFeed() {
           </button>
         </div>
 
-        {/* 3-column card grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {visibleNotices
-            ? visibleNotices.map((notice, i) => (
-                <NewsCard key={notice._id} notice={notice} index={i} />
-              ))
-            : visibleArticles?.map((article, i) => (
-                <NewsCard key={article.id} article={article} index={i} />
-              ))}
-        </div>
+        {/* 3-column card grid or Empty State */}
+        {loading ? (
+          <NoticeGridSkeleton count={6} />
+        ) : visibleNotices.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            {visibleNotices.map((notice, i) => (
+              <NewsCard key={notice._id} notice={notice} index={i} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="No Notices Published"
+            titleBn="কোনো নোটিশ প্রকাশিত হয়নি"
+            description="There are currently no notices or announcements available."
+            descriptionBn="এই মুহূর্তে কোনো আনুষ্ঠানিক নোটিশ বা তথ্য উপলব্ধ নেই।"
+          />
+        )}
+
 
         {/* Pagination */}
         {totalPages > 1 && (

@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import httpStatus from 'http-status';
 import jwt, { type JwtPayload } from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import config from '../config/index';
 import AppError from '../errors/AppError';
 import type { TUserRole } from '../modules/User/user.interface';
@@ -32,7 +33,10 @@ const auth = (...requiredRoles: TUserRole[]) => {
     // checking if user exists in User or Member
     let user = await User.isUserExistsByCustomId(userId);
     if (!user) {
-      const member = await (await import("../modules/Member/member.model")).Member.findById(userId);
+      const { Member } = await import("../modules/Member/member.model");
+      const member = mongoose.Types.ObjectId.isValid(userId)
+        ? await Member.findById(userId)
+        : await Member.findOne({ memberCode: userId });
       if (member) {
         user = {
           _id: member._id,

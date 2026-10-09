@@ -11,6 +11,7 @@ import {
 import { InvestmentRoutes } from "../modules/Investment/investment.route";
 import { DisbursementRoutes } from "../modules/Disbursement/disbursement.route";
 import { WithdrawalRoutes } from "../modules/Withdrawal/withdrawal.route";
+import { InvestmentIncomeRoutes } from "../modules/InvestmentIncome/investmentIncome.route";
 import { AuditLogRoutes } from "../modules/AuditLog/auditLog.route";
 import { ReportRoutes } from "../modules/Report/report.route";
 import { AnalyticsRoutes } from "../modules/Analytics/analytics.route";
@@ -20,6 +21,8 @@ import { MarqueeRoutes } from "../modules/Marquee/marquee.route";
 import { GalleryRoutes } from "../modules/Gallery/gallery.route";
 import { StatRoutes } from "../modules/Stats/stats.route";
 import { UploadRoutes } from "../modules/Upload/upload.route";
+import { NoticeScheduleRoutes } from "../modules/NoticeSchedule/noticeSchedule.route";
+import { GoogleFormRoutes } from "../modules/GoogleForm/googleForm.route";
 
 const router = Router();
 
@@ -77,6 +80,10 @@ const moduleRoutes = [
     route: InvestmentRoutes,
   },
   {
+    path: "/investment-incomes",
+    route: InvestmentIncomeRoutes,
+  },
+  {
     path: "/disbursements",
     route: DisbursementRoutes,
   },
@@ -107,6 +114,22 @@ const moduleRoutes = [
   {
     path: "/admin/notifications",
     route: AdminNotificationRoutes,
+  },
+  {
+    path: "/notice-schedules",
+    route: NoticeScheduleRoutes,
+  },
+  {
+    path: "/admin/notice-schedules",
+    route: NoticeScheduleRoutes,
+  },
+  {
+    path: "/google-forms",
+    route: GoogleFormRoutes,
+  },
+  {
+    path: "/admin/google-forms",
+    route: GoogleFormRoutes,
   },
 ];
 

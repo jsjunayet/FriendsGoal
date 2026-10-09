@@ -67,65 +67,16 @@ const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:5000/api/v1";
 
 // ─── Initial Mock Investments matching Screenshot 1 ───────────────────────────
-export const INITIAL_INVESTMENTS: IInvestmentRecord[] = [
-  {
-    _id: "inv-1",
-    investmentId: "001",
-    numericId: 1,
-    name: "The Barik Brother's",
-    startDate: "2025-01-05",
-    endDate: "2026-03-09",
-    amount: 500000,
-    remarks: "Business Development",
-    status: "Closed",
-    isActive: false,
-  },
-  {
-    _id: "inv-2",
-    investmentId: "002",
-    numericId: 2,
-    name: "WIN Homes Limited (Land Share)",
-    startDate: "2025-06-24",
-    endDate: "2025-12-23",
-    amount: 1350000,
-    remarks: "First 200000 and second 1000000...",
-    status: "Closed",
-    isActive: false,
-  },
-  {
-    _id: "inv-3",
-    investmentId: "003",
-    numericId: 3,
-    name: "WIN Homes Limited (Land Share 2)",
-    startDate: "2025-12-25",
-    endDate: "2026-05-03",
-    amount: 1200000,
-    remarks: "1200000tk Transfer from Previous...",
-    status: "Closed",
-    isActive: false,
-  },
-  {
-    _id: "inv-4",
-    investmentId: "004",
-    numericId: 4,
-    name: "WIN Homes Limited (3nos Share)",
-    startDate: "2026-05-07",
-    endDate: null,
-    amount: 1350000,
-    remarks: "C.S.A&C.A 139, R.S 683, DHAKA 41<",
-    status: "Running",
-    isActive: true,
-  },
-];
+export const INITIAL_INVESTMENTS: IInvestmentRecord[] = [];
 
-let inMemoryInvestments = [...INITIAL_INVESTMENTS];
+let inMemoryInvestments: IInvestmentRecord[] = [];
 
 function getAuthHeaders(): HeadersInit {
   const headers: HeadersInit = { "Content-Type": "application/json" };
   if (typeof window !== "undefined") {
     const token = sessionStorage.getItem("fg_access_token");
     if (token) {
-      headers["Authorization"] = token;
+      headers["Authorization"] = `Bearer ${token.replace(/^Bearer\s+/i, "")}`;
     }
   }
   return headers;
@@ -219,11 +170,20 @@ export async function createInvestmentApi(
       }
     }
     const errJson = await res.json().catch(() => null);
-    if (errJson && errJson.message) {
-      throw new Error(errJson.message);
+    let errorMsg = errJson?.message;
+    if (errJson?.errorSources && Array.isArray(errJson.errorSources) && errJson.errorSources.length > 0) {
+      const details = errJson.errorSources.map((es: any) => es.message).filter(Boolean);
+      if (details.length > 0) {
+        if (!errorMsg || errorMsg === "Validation Error" || errorMsg === "Something went wrong") {
+          errorMsg = details.join(". ");
+        } else if (!details.includes(errorMsg)) {
+          errorMsg = `${errorMsg}: ${details.join(", ")}`;
+        }
+      }
     }
+    throw new Error(errorMsg || `Request failed with status ${res.status}`);
   } catch (err: any) {
-    if (err.message && !err.message.includes("fetch")) {
+    if (err instanceof Error && !err.message.includes("Failed to fetch")) {
       throw err;
     }
     console.warn("Backend create investment failed, fallback to client memory", err);

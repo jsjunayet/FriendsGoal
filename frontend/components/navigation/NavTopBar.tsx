@@ -50,22 +50,23 @@ export function NavTopBar() {
       .catch(() => {});
   }, [lang]);
 
-  const defaultTickerList = isBn
-    ? [
-        { text: "বার্ষিক সাধারণ সভা: আগামী ১৫ আগস্ট ২০২৬ তারিখ সন্ধ্যা ৬:০০ টায় অনুষ্ঠিত হবে", link: "/notice/annual-general-assembly-2026" },
-        { text: "মাসিক সঞ্চয় জমা ও মুনাফা বন্টন বিবরণী আপডেট হয়েছে", link: "/notice/monthly-savings-update" },
-        { text: "নতুন তরুণ উদ্যোক্তা তহবিল শুভ সূচনা — আবেদনপত্র গ্রহণ চলছে", link: "/notice/youth-entrepreneurship-fund-launch" },
-      ]
-    : [
-        { text: "Upcoming General Meeting: Join us on 15 August 2026 at 6:00 PM", link: "/notice/annual-general-assembly-2026" },
-        { text: "Monthly Savings Deposit & Profit Distribution Statement Updated", link: "/notice/monthly-savings-update" },
-        { text: "Youth Entrepreneurship Growth Fund — Open for Member Applications", link: "/notice/youth-entrepreneurship-fund-launch" },
-      ];
+  const defaultTickerList = [
+    {
+      text: isBn
+        ? `${SITE_CONFIG.nameBn} — ${SITE_CONFIG.tagline}`
+        : `${SITE_CONFIG.name} — ${SITE_CONFIG.tagline}`,
+      link: "/",
+    },
+  ];
 
   const itemsToDisplay = marqueeItems.length > 0 ? marqueeItems : defaultTickerList;
 
   // Duplicate list to create a seamless infinite scrolling marquee loop
-  const duplicatedItems = [...itemsToDisplay, ...itemsToDisplay, ...itemsToDisplay, ...itemsToDisplay];
+  const duplicatedItems =
+    itemsToDisplay.length > 0
+      ? [...itemsToDisplay, ...itemsToDisplay, ...itemsToDisplay, ...itemsToDisplay]
+      : [];
+
 
   return (
     <div className="bg-[#F8FAF5] text-[#262626] text-[12px] border-b border-[#E3EBDC]">

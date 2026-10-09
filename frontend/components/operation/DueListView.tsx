@@ -18,24 +18,26 @@ import {
   IDueListFilterParams,
   TMeta,
 } from "@/lib/operationApi";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TableRowsSkeleton } from "@/components/ui/Skeletons";
 
 export function DueListView({ initialStatus }: { initialStatus?: string }) {
   // State for filters
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState("");
-  const [year, setYear] = useState("2024");
-  
-  const defaultStatus = initialStatus && ["All", "Advance", "Due", "Zero"].includes(initialStatus) 
-    ? (initialStatus as "All" | "Advance" | "Due" | "Zero") 
+  const [year, setYear] = useState("");
+
+  const defaultStatus = initialStatus && ["All", "Advance", "Due", "Zero"].includes(initialStatus)
+    ? (initialStatus as "All" | "Advance" | "Due" | "Zero")
     : "All";
-    
+
   const [statusFilter, setStatusFilter] = useState<"All" | "Advance" | "Due" | "Zero">(defaultStatus);
 
   // State for data
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<IDueListItem[]>([]);
-  const [meta, setMeta] = useState<TMeta>({ page: 1, limit: 6, total: 24, totalPage: 4 });
-  const [counts, setCounts] = useState({ total: 24, advance: 8, due: 8, zero: 8 });
+  const [meta, setMeta] = useState<TMeta>({ page: 1, limit: 6, total: 0, totalPage: 1 });
+  const [counts, setCounts] = useState({ total: 0, advance: 0, due: 0, zero: 0 });
 
   // Download menu dropdown state
   const [downloadOpen, setDownloadOpen] = useState(false);
@@ -68,7 +70,21 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
       const res = await fetchDueListApi(filters);
       setData(res.data);
       setMeta(res.meta);
-      if (res.counts) setCounts(res.counts);
+      if (res.counts) {
+        setCounts({
+          total: res.counts.total || 0,
+          advance: res.counts.advance || 0,
+          due: res.counts.due || 0,
+          zero: res.counts.zero || 0,
+        });
+      } else if (res.meta) {
+        setCounts({
+          total: res.meta.total || 0,
+          advance: 0,
+          due: 0,
+          zero: 0,
+        });
+      }
     } catch (err) {
       console.error("Failed to load due list", err);
     } finally {
@@ -180,17 +196,15 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
             </div>
           </div>
 
-          {/* Date Range */}
+          {/* Select Month */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Date Range</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Select Month</label>
             <div className="relative">
-              <Calendar className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
-                type="text"
+                type="month"
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
-                placeholder="Select date range"
-                className="w-full pl-9 pr-3.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-[#00B074]/30 focus:border-[#00B074] transition-all"
+                className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-[#00B074]/30 focus:border-[#00B074] transition-all"
               />
             </div>
           </div>
@@ -204,6 +218,7 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
                 onChange={(e) => setYear(e.target.value)}
                 className="w-full appearance-none px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 focus:outline-hidden focus:ring-2 focus:ring-[#00B074]/30 focus:border-[#00B074] transition-all cursor-pointer"
               >
+                <option value="">All Years</option>
                 <option value="2024">2024</option>
                 <option value="2025">2025</option>
                 <option value="2026">2026</option>
@@ -220,17 +235,15 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
         <button
           type="button"
           onClick={() => setStatusFilter("All")}
-          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-            statusFilter === "All"
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${statusFilter === "All"
               ? "bg-[#00B074] text-white shadow-xs"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
+            }`}
         >
           <span>All</span>
           <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-              statusFilter === "All" ? "bg-white/25 text-white" : "bg-gray-200 text-gray-700"
-            }`}
+            className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${statusFilter === "All" ? "bg-white/25 text-white" : "bg-gray-200 text-gray-700"
+              }`}
           >
             {counts.total}
           </span>
@@ -240,17 +253,15 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
         <button
           type="button"
           onClick={() => setStatusFilter("Advance")}
-          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-            statusFilter === "Advance"
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${statusFilter === "Advance"
               ? "bg-[#00B074] text-white shadow-xs"
               : "bg-[#EAF8F1] text-[#00B074] hover:bg-[#d8f3e5]"
-          }`}
+            }`}
         >
           <span>Advance</span>
           <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-              statusFilter === "Advance" ? "bg-white/25 text-white" : "bg-[#00B074]/15 text-[#00B074]"
-            }`}
+            className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${statusFilter === "Advance" ? "bg-white/25 text-white" : "bg-[#00B074]/15 text-[#00B074]"
+              }`}
           >
             {counts.advance}
           </span>
@@ -260,17 +271,15 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
         <button
           type="button"
           onClick={() => setStatusFilter("Due")}
-          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-            statusFilter === "Due"
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${statusFilter === "Due"
               ? "bg-[#DC2626] text-white shadow-xs"
               : "bg-[#FEE2E2] text-[#DC2626] hover:bg-[#fed2d2]"
-          }`}
+            }`}
         >
           <span>Due</span>
           <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-              statusFilter === "Due" ? "bg-white/25 text-white" : "bg-[#DC2626]/15 text-[#DC2626]"
-            }`}
+            className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${statusFilter === "Due" ? "bg-white/25 text-white" : "bg-[#DC2626]/15 text-[#DC2626]"
+              }`}
           >
             {counts.due}
           </span>
@@ -280,17 +289,15 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
         <button
           type="button"
           onClick={() => setStatusFilter("Zero")}
-          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-            statusFilter === "Zero"
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${statusFilter === "Zero"
               ? "bg-gray-800 text-white shadow-xs"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
+            }`}
         >
           <span>Zero</span>
           <span
-            className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-              statusFilter === "Zero" ? "bg-white/25 text-white" : "bg-gray-200 text-gray-700"
-            }`}
+            className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${statusFilter === "Zero" ? "bg-white/25 text-white" : "bg-gray-200 text-gray-700"
+              }`}
           >
             {counts.zero}
           </span>
@@ -312,16 +319,18 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr>
-                  <td colSpan={5} className="py-12 text-center text-gray-400">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-[#00B074] mb-2" />
-                    Loading receivable records...
-                  </td>
-                </tr>
+                <TableRowsSkeleton cols={5} rows={6} />
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-gray-400">
-                    No receivable records match your filter criteria.
+                  <td colSpan={5} className="py-12">
+                    <EmptyState
+                      title="No receivable records found"
+                      description={
+                        search
+                          ? "No member records match your search criteria."
+                          : "No member receivable or due records are currently available."
+                      }
+                    />
                   </td>
                 </tr>
               ) : (
@@ -347,23 +356,22 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
 
                     {/* Due Amount */}
                     <td
-                      className={`py-4 px-6 text-right font-bold ${
-                        item.status === "Due"
+                      className={`py-4 px-6 text-right font-bold ${item.status === "Due"
                           ? "text-[#EF4444]"
                           : item.status === "Advance"
-                          ? "text-gray-900"
-                          : "text-gray-800"
-                      }`}
+                            ? "text-gray-900"
+                            : "text-gray-800"
+                        }`}
                     >
                       {item.status === "Advance"
                         ? (Number(item.advanceBalance) || 0).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })
                         : (Number(item.dueAmount) || 0).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                     </td>
 
                     {/* Status Badge */}
@@ -420,11 +428,10 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
                   key={p}
                   type="button"
                   onClick={() => loadDueList(p)}
-                  className={`w-7 h-7 rounded-md flex items-center justify-center font-semibold transition-all cursor-pointer ${
-                    isActive
+                  className={`w-7 h-7 rounded-md flex items-center justify-center font-semibold transition-all cursor-pointer ${isActive
                       ? "bg-[#00B074] text-white shadow-xs"
                       : "text-gray-600 hover:bg-gray-100"
-                  }`}
+                    }`}
                 >
                   {p}
                 </button>

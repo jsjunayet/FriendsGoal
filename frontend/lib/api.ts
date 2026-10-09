@@ -56,14 +56,46 @@ async function request<T>(
   }
 
   if (!res.ok) {
-    const message =
-      (body as { message?: string })?.message ??
-      `Request failed with status ${res.status}`;
+    const errorBody = body as {
+      message?: string;
+      errorSources?: Array<{ path: string; message: string }>;
+    } | null;
+
+    let message = errorBody?.message;
+    if (errorBody?.errorSources && errorBody.errorSources.length > 0) {
+      const detailedMessages = errorBody.errorSources
+        .map((es) => es.message)
+        .filter(Boolean);
+      if (detailedMessages.length > 0) {
+        if (!message || message === "Validation Error" || message === "Something went wrong") {
+          message = detailedMessages.join(". ");
+        } else if (!detailedMessages.includes(message)) {
+          message = `${message}: ${detailedMessages.join(", ")}`;
+        }
+      }
+    }
+
+    message = message || `Request failed with status ${res.status}`;
     throw new ApiError(res.status, message);
   }
 
   return (body as { data: T }).data;
 }
+
+export function extractApiErrorMessage(error: unknown, fallback = "An unexpected error occurred"): string {
+  if (!error) return fallback;
+  if (typeof error === "string") return error;
+  if (error instanceof ApiError) return error.message;
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object") {
+    const anyErr = error as any;
+    if (anyErr?.response?.data?.message) return anyErr.response.data.message;
+    if (anyErr?.data?.message) return anyErr.data.message;
+    if (anyErr?.message) return anyErr.message;
+  }
+  return fallback;
+}
+
 
 // ─── Auth endpoints ───────────────────────────────────────────────────────────
 

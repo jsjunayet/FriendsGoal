@@ -21,26 +21,21 @@ export function StatsSection() {
       .catch(() => {});
   }, []);
 
-  const DEFAULT_STATS = [
-    { value: 111, suffix: "+", displayVal: "111+", labelText: lang === "bn" ? "সক্রিয় সদস্য" : "ACTIVE MEMBERS" },
-    { value: 70, suffix: "+", displayVal: "70+", labelText: lang === "bn" ? "প্রকল্পসমূহ" : "TOTAL PROJECTS" },
-    { value: 3, suffix: "+", displayVal: "3+", labelText: lang === "bn" ? "সেবার বছর" : "YEARS OF SERVICE" },
-  ];
+  if (!stats || stats.length === 0) {
+    return null;
+  }
 
-  const statList =
-    stats.length > 0
-      ? stats.map((s) => {
-          const numMatch = s.value.match(/(\d+)(.*)/);
-          const valNum = numMatch ? parseInt(numMatch[1], 10) : 0;
-          const suff = numMatch ? numMatch[2] : "";
-          return {
-            value: valNum,
-            suffix: suff,
-            displayVal: s.value,
-            labelText: getLocalizedText(s.label, lang, s.key).toUpperCase(),
-          };
-        })
-      : DEFAULT_STATS;
+  const statList = stats.map((s) => {
+    const numMatch = s.value.match(/(\d+)(.*)/);
+    const valNum = numMatch ? parseInt(numMatch[1], 10) : 0;
+    const suff = numMatch ? numMatch[2] : "";
+    return {
+      value: valNum,
+      suffix: suff,
+      displayVal: s.value,
+      labelText: getLocalizedText(s.label, lang, s.key).toUpperCase(),
+    };
+  });
 
   return (
     <section

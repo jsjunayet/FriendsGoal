@@ -11,12 +11,13 @@ import {
   Shield,
 } from "lucide-react";
 import { auditLogApi, IAuditLogItem, TAuditAction } from "@/lib/auditLogApi";
+import { TableRowsSkeleton } from "@/components/ui/Skeletons";
 
 export default function ModificationHistoryView() {
   const [logs, setLogs] = useState<IAuditLogItem[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(3);
-  const [totalEntries, setTotalEntries] = useState(18);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalEntries, setTotalEntries] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [actionFilter, setActionFilter] = useState("All");
   const [isLoading, setIsLoading] = useState(true);
@@ -208,14 +209,7 @@ export default function ModificationHistoryView() {
             </thead>
             <tbody className="divide-y divide-gray-50 text-sm">
               {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-gray-400">
-                    <div className="flex items-center justify-center gap-2">
-                      <RefreshCw className="w-4 h-4 animate-spin text-[#00B074]" />
-                      <span>Loading audit history...</span>
-                    </div>
-                  </td>
-                </tr>
+                <TableRowsSkeleton cols={6} rows={8} />
               ) : logs.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-gray-400">
@@ -240,9 +234,8 @@ export default function ModificationHistoryView() {
                       <td className="py-4 px-6 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <div
-                            className={`w-8 h-8 rounded-full ${
-                              item.avatarColor || "bg-[#00B074]"
-                            } text-white flex items-center justify-center text-xs font-bold shadow-xs flex-shrink-0`}
+                            className={`w-8 h-8 rounded-full ${item.avatarColor || "bg-[#00B074]"
+                              } text-white flex items-center justify-center text-xs font-bold shadow-xs flex-shrink-0`}
                           >
                             {item.adminAvatar}
                           </div>
@@ -312,11 +305,10 @@ export default function ModificationHistoryView() {
               <button
                 key={pg}
                 onClick={() => setCurrentPage(pg)}
-                className={`w-7 h-7 rounded-md font-semibold text-xs flex items-center justify-center transition-colors ${
-                  currentPage === pg
+                className={`w-7 h-7 rounded-md font-semibold text-xs flex items-center justify-center transition-colors ${currentPage === pg
                     ? "bg-[#00B074] text-white shadow-xs"
                     : "text-gray-600 hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 {pg}
               </button>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import {
@@ -22,11 +24,28 @@ import {
   UserPlus,
   Hourglass,
   HandHeart,
+  ChevronRight,
+  ChevronLeft,
+  CircleDollarSign,
+  Mail,
+  Bell,
+  FileSpreadsheet,
+  Globe,
+  X,
+  Check,
+  Copy,
+  Eye,
+  ExternalLink,
 } from "lucide-react";
 import { fetchMemberProfitBalanceApi } from "@/lib/disbursementApi";
 import { RequestWithdrawalModal } from "./RequestWithdrawalModal";
 import { PaymentHistoryModal } from "./PaymentHistoryModal";
 import { useMemberDashboard } from "@/lib/hooks/useMemberDashboard";
+import { printMemberProfilePdf } from "@/lib/memberProfilePdfGenerator";
+import { MemberDashboardSkeleton } from "@/components/ui/Skeletons";
+import { fetchAnalyticsOverview, IAnalyticsOverview } from "@/lib/analyticsApi";
+import { fetchNoticeSchedulesApi, INoticeScheduleItem } from "@/lib/noticeScheduleApi";
+import { fetchGoogleFormsApi, IGoogleFormItem, cleanGoogleFormEmbedUrl } from "@/lib/googleFormApi";
 
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
 function StatBar({
@@ -143,12 +162,11 @@ function OverviewCard({
 // ─── Main Personal Financial Status Card ─────────────────────────────────────
 function PersonalFinancialCard() {
   const { summary, profitBalance, refetchSummary, isLoading } = useMemberDashboard();
-  console.log("summary", summary);
-  console.log("profitBalance", profitBalance);
-  console.log("refetchSummary", refetchSummary);
-  console.log("isLoading", isLoading);
+  const router = useRouter();
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isPaymentHistoryModalOpen, setIsPaymentHistoryModalOpen] = useState(false);
+  const [schedulePage, setSchedulePage] = useState(1);
+  const SCHEDULE_PER_PAGE = 5;
 
   const totalDepositVal = summary?.totalDeposit ?? 0;
   const dueAmountVal = summary?.dueAmount ?? 0;
@@ -156,6 +174,33 @@ function PersonalFinancialCard() {
   const memberName = summary?.fullName || "Member";
   const memberCode = summary?.memberCode || "N/A";
   const memberId = summary?.memberId || "N/A";
+
+  const { data: notices = [], isLoading: isNoticesLoading } = useQuery<INoticeScheduleItem[]>({
+    queryKey: ["notice-schedules", "member-feed", memberId],
+    queryFn: () => fetchNoticeSchedulesApi({ memberId: memberId !== "N/A" ? memberId : undefined }),
+    staleTime: 60000,
+  });
+
+  const totalSchedulePages = Math.ceil(notices.length / SCHEDULE_PER_PAGE) || 1;
+  const paginatedNotices = notices.slice(
+    (schedulePage - 1) * SCHEDULE_PER_PAGE,
+    schedulePage * SCHEDULE_PER_PAGE
+  );
+
+  const formatScheduleDate = (dateStr?: string) => {
+    if (!dateStr) return "TBD";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch {
+      return dateStr;
+    }
+  };
 
   const scheduleList = Array.isArray(summary?.activePaymentSchedule)
     ? summary.activePaymentSchedule
@@ -195,10 +240,10 @@ function PersonalFinancialCard() {
             {/* 2×2 details */}
             <div className="grid grid-cols-2 gap-y-2 gap-x-2 pb-1 text-[11.5px] font-medium text-[#374151]">
               {[
-                { icon: <MapPin className="w-3.5 h-3.5" />, text: [summary?.thana, summary?.district].filter(Boolean).join(", ") || "Rajapur, Patuakhali" },
-                { icon: <Cake className="w-3.5 h-3.5" />, text: summary?.dateOfBirth || "01 Dec 1993" },
-                { icon: <Droplet className="w-3.5 h-3.5" />, text: summary?.bloodGroup ? (summary.bloodGroup.includes("(") ? summary.bloodGroup : `${summary.bloodGroup} (Positive)`) : "O+ (Positive)" },
-                { icon: <IdCard className="w-3.5 h-3.5" />, text: memberCode ? (memberCode.startsWith("ID-") ? memberCode : `ID-${memberCode}`) : "ID-002" },
+                { icon: <MapPin className="w-3.5 h-3.5" />, text: [summary?.thana, summary?.district].filter(Boolean).join(", ") || "N/A" },
+                { icon: <Cake className="w-3.5 h-3.5" />, text: summary?.dateOfBirth || "N/A" },
+                { icon: <Droplet className="w-3.5 h-3.5" />, text: summary?.bloodGroup ? (summary.bloodGroup.includes("(") ? summary.bloodGroup : `${summary.bloodGroup} (Positive)`) : "N/A" },
+                { icon: <IdCard className="w-3.5 h-3.5" />, text: memberCode && memberCode !== "N/A" ? (memberCode.startsWith("ID-") ? memberCode : `ID-${memberCode}`) : (memberId && memberId !== "N/A" ? memberId : "N/A") },
               ].map(({ icon, text }, idx) => (
                 <div key={idx} className="flex items-center gap-1.5 min-w-0" title={text}>
                   <span className="text-[#00B074] flex-shrink-0">{icon}</span>
@@ -222,6 +267,21 @@ function PersonalFinancialCard() {
               </p>
             </div>
             <div className="flex items-center gap-2.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  if (summary) {
+                    printMemberProfilePdf({
+                      ...summary,
+                      profitBalance: myProfitVal
+                    });
+                  }
+                }}
+                className="inline-flex items-center gap-2 h-[36px] px-4 rounded-full bg-[#2B3B26] text-white text-[12px] font-bold tracking-wide whitespace-nowrap hover:bg-[#1f2b1c] transition-colors cursor-pointer flex-shrink-0"
+              >
+                <IdCard className="w-3.5 h-3.5" />
+                Download Profile
+              </button>
               <button
                 type="button"
                 onClick={() => setIsPaymentHistoryModalOpen(true)}
@@ -299,86 +359,201 @@ function PersonalFinancialCard() {
         isOpen={isPaymentHistoryModalOpen}
         onClose={() => setIsPaymentHistoryModalOpen(false)}
         memberId={memberId}
+        defaultSchedule={scheduleList}
       />
 
       {/* Divider */}
       <div className="border-t border-[#E5E5E5]" />
 
-      {/* Upcoming Schedule Table */}
+      {/* Upcoming Schedule Feed (Screenshot 1 & 7) */}
       <div className="p-6 sm:p-8">
-        <div className="flex items-center gap-2 mb-5">
-          <Clock className="w-4 h-4 text-[#2B5A27]" />
-          <h4 className="font-bold text-[14px] text-[#1A1A1A] uppercase tracking-[0.12em]">
+        <div className="flex items-center gap-2.5 mb-6">
+          <div className="w-6 h-6 rounded-md bg-[#2B5A27]/10 flex items-center justify-center">
+            <Calendar className="w-3.5 h-3.5 text-[#2B5A27]" />
+          </div>
+          <h4 className="font-bold text-[12.5px] sm:text-[13px] text-[#1A1A1A] uppercase tracking-[0.14em]">
             Upcoming Schedule
           </h4>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-[13px]">
-            <thead>
-              <tr className="border-b border-[#F0F0F0]">
-                {["Description", "Due Date", "Amount", "Status"].map((col) => (
-                  <th
-                    key={col}
-                    className="pb-3 pr-6 text-[11px] font-bold tracking-[0.14em] text-[#888888] uppercase"
-                  >
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {scheduleList.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="py-8 text-center text-[#888888] text-[13px]">
-                    No recent or upcoming schedule found.
-                  </td>
-                </tr>
-              ) : (
-                scheduleList.map((row: any, idx: number) => {
-                  const isPaid = row.status === "Paid";
-                  const isDue = row.status === "Due";
-                  const statusColor = isPaid
-                    ? "text-[#00B074] bg-[#EAF8F1] border-[#00B074]/30"
-                    : isDue
-                      ? "text-[#F59E0B] bg-[#FFFBEB] border-[#FDE68A]"
-                      : "text-[#3B82F6] bg-[#EFF6FF] border-[#BFDBFE]";
+        {isNoticesLoading ? (
+          <div className="space-y-3 py-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-16 bg-gray-50/80 animate-pulse rounded-2xl border border-gray-100" />
+            ))}
+          </div>
+        ) : notices.length === 0 ? (
+          <div className="py-8 text-center text-[#888888] text-[13px] bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+            No upcoming notices or scheduled events at this time.
+          </div>
+        ) : (
+          <>
+            <div className="divide-y divide-[#F0F0F0]">
+              {paginatedNotices.map((notice) => {
+                const isFeeReminder = notice.type === "Fee Reminder";
+                const isMeeting = notice.type === "Meeting";
+                const isInvitation = notice.type === "Invitation";
 
-                  return (
-                    <tr
-                      key={row.receiptNo || idx}
-                      className="border-b border-[#F9F9F9] hover:bg-[#FAFAFA] transition-colors"
-                    >
-                      <td className="py-4 pr-6 font-medium text-[#1A1A1A]">
-                        {row.month || "Monthly Collection"}
-                      </td>
-                      <td className="py-4 pr-6 text-[#555555]">
-                        {row.paymentDate || "15th of month"}
-                      </td>
-                      <td className="py-4 pr-6 font-semibold text-[#1A1A1A]">
-                        ৳{(Number(row?.amount) || 0).toLocaleString()}
-                      </td>
-                      <td className="py-4">
-                        <span
-                          className={`inline-flex items-center h-[26px] px-3 rounded-full text-[11px] font-bold border ${statusColor}`}
-                        >
-                          {row.status}
+                return (
+                  <div
+                    key={notice._id}
+                    onClick={() => router.push(`/dashboard/notice-schedule/${notice._id}`)}
+                    className="py-4 hover:bg-[#F9FAFB] transition-all cursor-pointer rounded-2xl px-3 -mx-3 flex flex-col md:flex-row md:items-center justify-between gap-3 group"
+                  >
+                    {/* Left: Icon + Title & Type badge */}
+                    <div className="flex items-center gap-3.5 min-w-0 md:w-[40%]">
+                      {isFeeReminder ? (
+                        <div className="w-11 h-11 rounded-full bg-[#FEF3C7] text-[#D97706] flex items-center justify-center shrink-0 border border-[#FDE68A]/60 shadow-xs">
+                          <CircleDollarSign className="w-5 h-5" />
+                        </div>
+                      ) : isMeeting ? (
+                        <div className="w-11 h-11 rounded-full bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center shrink-0 border border-[#BFDBFE]/60 shadow-xs">
+                          <Calendar className="w-5 h-5" />
+                        </div>
+                      ) : isInvitation ? (
+                        <div className="w-11 h-11 rounded-full bg-[#F3E8FF] text-[#7E22CE] flex items-center justify-center shrink-0 border border-[#E9D5FF]/60 shadow-xs">
+                          <Mail className="w-5 h-5" />
+                        </div>
+                      ) : (
+                        <div className="w-11 h-11 rounded-full bg-[#FFE4E6] text-[#BE123C] flex items-center justify-center shrink-0 border border-[#FECDD3]/60 shadow-xs">
+                          <Bell className="w-5 h-5" />
+                        </div>
+                      )}
+
+                      <div className="min-w-0">
+                        <h5 className="font-serif font-bold text-[15px] sm:text-[16px] text-[#1A1A1A] leading-snug group-hover:text-[#2B5A27] transition-colors truncate">
+                          {notice.title}
+                        </h5>
+                        {isFeeReminder ? (
+                          <span className="inline-block mt-1 text-[10px] font-semibold text-[#92400E] bg-[#FEF3C7] px-2.5 py-0.5 rounded-full border border-[#FDE68A]/70">
+                            Fee Reminder
+                          </span>
+                        ) : isMeeting ? (
+                          <span className="inline-block mt-1 text-[10px] font-semibold text-[#1D4ED8] bg-[#EFF6FF] px-2.5 py-0.5 rounded-full border border-[#BFDBFE]/70">
+                            Meeting
+                          </span>
+                        ) : isInvitation ? (
+                          <span className="inline-block mt-1 text-[10px] font-semibold text-[#7E22CE] bg-[#F3E8FF] px-2.5 py-0.5 rounded-full border border-[#E9D5FF]/70">
+                            Invitation
+                          </span>
+                        ) : (
+                          <span className="inline-block mt-1 text-[10px] font-semibold text-[#BE123C] bg-[#FFE4E6] px-2.5 py-0.5 rounded-full border border-[#FECDD3]/70">
+                            Important Notice
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Middle: Date & Time */}
+                    <div className="pl-14 md:pl-0 md:text-center md:w-[22%]">
+                      <div className="text-[13px] font-medium text-[#1A1A1A]">
+                        {formatScheduleDate(notice.eventDate || notice.dueDate || notice.createdAt)}
+                      </div>
+                      {notice.time && (
+                        <div className="text-[11px] text-[#888888] font-medium mt-0.5">
+                          {notice.time}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right: Amount or Location/Agenda */}
+                    <div className="pl-14 md:pl-0 md:text-right md:w-[22%]">
+                      {isFeeReminder ? (
+                        <div className="font-bold text-[15px] text-[#1A1A1A] font-serif">
+                          {notice.feeCurrency === "USD" ? "$" : "৳"}
+                          {Number(notice.feeAmount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </div>
+                      ) : (
+                        <div className="text-[12px] text-[#666666] truncate">
+                          {notice.location || notice.agenda || "Friends Goal Community"}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Far Right: Status/Read button + Chevron */}
+                    <div className="pl-14 md:pl-0 flex items-center justify-between md:justify-end gap-3 md:w-[16%]">
+                      {isFeeReminder ? (
+                        <span className="inline-flex items-center text-[11px] font-semibold text-[#B45309] bg-[#FFFBEB] border border-[#FDE68A] px-3 py-1 rounded-full whitespace-nowrap shadow-2xs">
+                          {notice.paymentStatus || "Payment due"}
                         </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/dashboard/notice-schedule/${notice._id}`);
+                          }}
+                          className="inline-flex items-center text-[11px] font-semibold text-[#374151] bg-white border border-[#E5E7EB] hover:bg-gray-100 hover:border-gray-300 px-3.5 py-1 rounded-full whitespace-nowrap shadow-2xs transition-colors cursor-pointer"
+                        >
+                          Read
+                        </button>
+                      )}
+                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-700 group-hover:translate-x-0.5 transition-all shrink-0" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Pagination Controls (5 items per page) */}
+            {totalSchedulePages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-5 mt-3 border-t border-[#F0F0F0]">
+                <span className="text-[12px] text-gray-500 font-medium">
+                  Showing {(schedulePage - 1) * SCHEDULE_PER_PAGE + 1}–{Math.min(schedulePage * SCHEDULE_PER_PAGE, notices.length)} of {notices.length} schedules
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setSchedulePage((p) => Math.max(1, p - 1))}
+                    disabled={schedulePage === 1}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Prev</span>
+                  </button>
+                  {Array.from({ length: totalSchedulePages }, (_, i) => i + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      onClick={() => setSchedulePage(pageNum)}
+                      className={`w-7 h-7 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                        schedulePage === pageNum
+                          ? "bg-[#2B5A27] text-white shadow-xs"
+                          : "text-gray-600 hover:bg-gray-100 border border-gray-200"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setSchedulePage((p) => Math.min(totalSchedulePages, p + 1))}
+                    disabled={schedulePage === totalSchedulePages}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
 }
 
 // ─── Friends Goal Overview Section ───────────────────────────────────────────
-function OverviewSection() {
+function OverviewSection({ overview }: { overview: IAnalyticsOverview | null }) {
+  const totalBalance = overview ? `৳${Number(overview.totalAmounts || 0).toLocaleString()}` : "৳0";
+  const monthlyExpense = overview ? `৳${Number(overview.expenseAmounts || 0).toLocaleString()}` : "৳0";
+  const totalNetProfit = overview ? `৳${Number(overview.profits || 0).toLocaleString()}` : "৳0";
+  const statusLabel = overview && overview.profits >= 0 ? "Outstanding Growth" : "Active & Stable";
+  const membersReceived = overview ? `৳${Number(overview.membersReceived || 0).toLocaleString()}` : "৳0";
+  const membersDue = overview ? `৳${Number(overview.dueAmounts || 0).toLocaleString()}` : "৳0";
+  const othersReceived = overview ? `৳${Number(overview.othersReceived || 0).toLocaleString()}` : "৳0";
+
   return (
     <div className="flex flex-col gap-4">
       <h2 className="font-serif text-[26px] sm:text-[30px] font-bold text-[#1A1A1A]">
@@ -396,7 +571,7 @@ function OverviewSection() {
                 TOTAL BALANCE
               </span>
               <div className="text-[36px] sm:text-[44px] font-serif font-bold text-[#1A1A1A] leading-none">
-                $3,436,736
+                {totalBalance}
               </div>
             </div>
             {/* Wallet Watermark Icon Box */}
@@ -415,7 +590,7 @@ function OverviewSection() {
                 MONTHLY EXPENSE
               </span>
               <div className="text-[36px] sm:text-[42px] font-serif font-bold text-white leading-none mb-2">
-                $88,860
+                {monthlyExpense}
               </div>
               <p className="text-[12px] text-white/70 italic leading-snug">
                 Operational costs for community growth
@@ -431,7 +606,7 @@ function OverviewSection() {
               TOTAL NET PROFIT
             </span>
             <div className="text-[42px] sm:text-[52px] font-serif font-bold text-white leading-none">
-              $504,546
+              {totalNetProfit}
             </div>
           </div>
 
@@ -445,7 +620,7 @@ function OverviewSection() {
                 STATUS
               </span>
               <span className="text-[15px] font-bold text-white">
-                Outstanding Growth
+                {statusLabel}
               </span>
             </div>
           </div>
@@ -461,7 +636,7 @@ function OverviewSection() {
               <span className="text-[10px] font-bold text-[#888888] uppercase tracking-[0.14em] block mb-0.5">
                 MEMBERS RECEIVED
               </span>
-              <span className="font-serif text-[20px] font-bold text-[#1A1A1A]">$2,972,000</span>
+              <span className="font-serif text-[20px] font-bold text-[#1A1A1A]">{membersReceived}</span>
             </div>
           </div>
 
@@ -473,7 +648,7 @@ function OverviewSection() {
               <span className="text-[10px] font-bold text-[#888888] uppercase tracking-[0.14em] block mb-0.5">
                 MEMBERS DUE
               </span>
-              <span className="font-serif text-[20px] font-bold text-[#1A1A1A]">$500,000</span>
+              <span className="font-serif text-[20px] font-bold text-[#1A1A1A]">{membersDue}</span>
             </div>
           </div>
 
@@ -485,7 +660,7 @@ function OverviewSection() {
               <span className="text-[10px] font-bold text-[#888888] uppercase tracking-[0.14em] block mb-0.5">
                 OTHERS RECEIVES
               </span>
-              <span className="font-serif text-[20px] font-bold text-[#1A1A1A]">$49,050</span>
+              <span className="font-serif text-[20px] font-bold text-[#1A1A1A]">{othersReceived}</span>
             </div>
           </div>
         </div>
@@ -494,16 +669,317 @@ function OverviewSection() {
   );
 }
 
-// ─── Dashboard Page ───────────────────────────────────────────────────────────
-export default function DashboardContent() {
-  const { summary, isError, isLoading } = useMemberDashboard();
+// ─── Google Forms Table & Direct In-Page Embed Viewer ────────────────────────
+function MemberGoogleFormsSection() {
+  const [selectedDirectForm, setSelectedDirectForm] = useState<IGoogleFormItem | null>(null);
+  const [page, setPage] = useState(1);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const FORMS_PER_PAGE = 5;
+
+  const { data: forms = [], isLoading } = useQuery<IGoogleFormItem[]>({
+    queryKey: ["google-forms", "member-dashboard-table"],
+    queryFn: () => fetchGoogleFormsApi(),
+    staleTime: 60000,
+  });
+
+  const totalPages = Math.ceil(forms.length / FORMS_PER_PAGE) || 1;
+  const paginatedForms = forms.slice((page - 1) * FORMS_PER_PAGE, page * FORMS_PER_PAGE);
+
+  const handleCopyLink = (id: string, url: string) => {
+    if (typeof window !== "undefined" && navigator?.clipboard) {
+      navigator.clipboard.writeText(url);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
+  };
 
   if (isLoading) {
     return (
-      <div className="w-full h-[60vh] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1FDE64]"></div>
+      <div className="bg-white border border-[#E5E5E5] rounded-[22px] p-6 shadow-xs flex flex-col gap-4">
+        <div className="h-6 w-56 bg-gray-100 animate-pulse rounded-md" />
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-12 bg-gray-50 animate-pulse rounded-xl" />
+          ))}
+        </div>
       </div>
     );
+  }
+
+  if (forms.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      <div className="bg-white border border-[#E5E5E5] rounded-[22px] overflow-hidden shadow-xs flex flex-col">
+        {/* Header */}
+        <div className="p-6 border-b border-[#F0F0F0] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#2B5A27]/10 flex items-center justify-center text-[#2B5A27] shrink-0">
+              <FileSpreadsheet className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="font-serif text-[20px] sm:text-[22px] font-bold text-[#1A1A1A]">
+                Google Forms & Surveys
+              </h2>
+              <p className="text-[12.5px] text-[#666666]">
+                Official community registrations and surveys. Click to view or fill directly on this page.
+              </p>
+            </div>
+          </div>
+          <span className="self-start sm:self-auto text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
+            {forms.length} {forms.length === 1 ? "Form" : "Forms"}
+          </span>
+        </div>
+
+        {/* Table View */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm border-collapse">
+            <thead>
+              <tr className="bg-[#F9FAFB] border-b border-[#E5E5E5] text-[11px] font-bold text-[#666666] uppercase tracking-[0.1em]">
+                <th className="py-3.5 px-4 w-12 text-center">#</th>
+                <th className="py-3.5 px-6 min-w-[240px]">Title & Description</th>
+                <th className="py-3.5 px-5 w-32">Status</th>
+                <th className="py-3.5 px-6 min-w-[220px]">Google Form Link</th>
+                <th className="py-3.5 px-6 w-36 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F0F0F0]">
+              {paginatedForms.map((form, index) => {
+                const serialNumber = (page - 1) * FORMS_PER_PAGE + index + 1;
+                const isActive = form.status === "Active";
+
+                return (
+                  <tr
+                    key={form._id}
+                    className={`hover:bg-[#F9FAFB] transition-colors ${isActive ? "cursor-pointer" : ""}`}
+                    onClick={() => {
+                      if (isActive) setSelectedDirectForm(form);
+                    }}
+                  >
+                    <td className="py-4 px-4 text-center text-xs font-semibold text-gray-400">
+                      {serialNumber}
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex flex-col">
+                        <span className="font-serif font-bold text-[15px] text-[#1A1A1A] hover:text-[#2B5A27] transition-colors line-clamp-1">
+                          {form.title}
+                        </span>
+                        {form.description && (
+                          <span className="text-[12px] text-[#666666] line-clamp-1 mt-0.5">
+                            {form.description}
+                          </span>
+                        )}
+                        {form.createdAt && (
+                          <span className="text-[10.5px] text-[#999999] mt-1">
+                            Published {new Date(form.createdAt).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-4 px-5 whitespace-nowrap">
+                      {isActive ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#EAF8F1] text-[#00B074] border border-[#A7F3D0]">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#00B074] animate-pulse" />
+                          Active
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-gray-100 text-gray-500 border border-gray-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                          Inactive
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-4 px-6">
+                      <div
+                        className="flex items-center gap-2 max-w-[260px]"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span
+                          className="text-[12px] text-gray-500 truncate select-all font-mono"
+                          title={cleanGoogleFormEmbedUrl(form.embedUrl)}
+                        >
+                          {cleanGoogleFormEmbedUrl(form.embedUrl)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyLink(form._id, cleanGoogleFormEmbedUrl(form.embedUrl))}
+                          className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors shrink-0 cursor-pointer"
+                          title="Copy Form Link"
+                        >
+                          {copiedId === form._id ? (
+                            <Check className="w-3.5 h-3.5 text-[#00B074]" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      {isActive ? (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDirectForm(form)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#2B5A27] hover:bg-[#1f2b1c] text-white text-[12px] font-bold transition-all cursor-pointer shadow-2xs hover:shadow-xs"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Fill Form</span>
+                        </button>
+                      ) : (
+                        <span className="text-[12px] font-medium text-gray-400 italic">
+                          Closed
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination (5 per page) */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 sm:p-5 border-t border-[#F0F0F0] bg-white">
+            <span className="text-[12px] text-gray-500 font-medium">
+              Showing {(page - 1) * FORMS_PER_PAGE + 1}–{Math.min(page * FORMS_PER_PAGE, forms.length)} of {forms.length} forms
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Prev</span>
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  type="button"
+                  onClick={() => setPage(pageNum)}
+                  className={`w-7 h-7 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                    page === pageNum
+                      ? "bg-[#2B5A27] text-white shadow-xs"
+                      : "text-gray-600 hover:bg-gray-100 border border-gray-200"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:pointer-events-none transition-colors cursor-pointer"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Direct In-Page Form Embed Modal */}
+      {selectedDirectForm && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto"
+          onClick={() => setSelectedDirectForm(null)}
+        >
+          <div
+            className="bg-white w-full max-w-5xl rounded-[24px] shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-4 sm:p-5 border-b border-gray-200 flex items-center justify-between gap-4 bg-white sticky top-0 z-10">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-[#2B5A27]/10 flex items-center justify-center text-[#2B5A27] shrink-0">
+                  <FileSpreadsheet className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-serif text-[17px] sm:text-[19px] font-bold text-gray-900 truncate">
+                      {selectedDirectForm.title}
+                    </h3>
+                    <span className="hidden sm:inline-block text-[10px] font-bold tracking-[0.14em] uppercase text-[#00B074] bg-[#EAF8F1] px-2 py-0.5 rounded-full border border-[#00B074]/30">
+                      Direct In-Page View
+                    </span>
+                  </div>
+                  {selectedDirectForm.description && (
+                    <p className="text-xs text-gray-500 truncate mt-0.5">
+                      {selectedDirectForm.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={cleanGoogleFormEmbedUrl(selectedDirectForm.embedUrl)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 text-xs font-semibold transition-colors shadow-2xs"
+                  title="Open directly in new tab if needed"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Open in new tab</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDirectForm(null)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Close Form</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Embedded Iframe Direct in Page */}
+            <div className="flex-1 w-full bg-[#F8FAFC] overflow-y-auto min-h-[600px] max-h-[calc(92vh-80px)]">
+              <iframe
+                src={cleanGoogleFormEmbedUrl(selectedDirectForm.embedUrl)}
+                width="100%"
+                height="750px"
+                title={selectedDirectForm.title}
+                className="w-full min-h-[750px] border-0 bg-white"
+              >
+                Loading Google Form...
+              </iframe>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ─── Dashboard Page ───────────────────────────────────────────────────────────
+export default function DashboardContent() {
+  const { summary, isError, isLoading } = useMemberDashboard();
+  const [overview, setOverview] = useState<IAnalyticsOverview | null>(null);
+
+  useEffect(() => {
+    async function loadOverview() {
+      try {
+        const data = await fetchAnalyticsOverview();
+        setOverview(data);
+      } catch (err) {
+        console.error("Failed to load analytics overview for member dashboard", err);
+      }
+    }
+    loadOverview();
+  }, []);
+
+  if (isLoading) {
+    return <MemberDashboardSkeleton />;
   }
 
   if (isError || !summary) {
@@ -542,13 +1018,22 @@ export default function DashboardContent() {
         <PersonalFinancialCard />
       </motion.div>
 
+      {/* Active Google Forms Section for Members */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.15 }}
+      >
+        <MemberGoogleFormsSection />
+      </motion.div>
+
       {/* Overview Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        <OverviewSection />
+        <OverviewSection overview={overview} />
       </motion.div>
     </div>
   );

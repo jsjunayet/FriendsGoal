@@ -2,7 +2,13 @@ const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/
 
 const getAuthToken = () => {
   if (typeof window === "undefined") return "";
-  return sessionStorage.getItem("fg_access_token") || "";
+  return (
+    sessionStorage.getItem("fg_access_token") ||
+    localStorage.getItem("fg_access_token") ||
+    sessionStorage.getItem("accessToken") ||
+    localStorage.getItem("accessToken") ||
+    ""
+  );
 };
 
 const getHeaders = () => {
@@ -21,46 +27,117 @@ export interface INotification {
   isRead: boolean;
   requiresAction: boolean;
   isAcknowledged: boolean;
+  metadata?: Record<string, any>;
   createdAt: string;
 }
 
-export const fetchMyNotifications = async (page = 1, limit = 10) => {
-  const token = getAuthToken();
-  if (!token) return { data: [], meta: { page: 1, limit: 10, total: 0 } };
+export interface INotificationsResponse {
+  success: boolean;
+  message: string;
+  data: INotification[];
+  unreadCount?: number;
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPage: number;
+    unreadCount?: number;
+  };
+}
 
-  const res = await fetch(`${BASE_URL}/notifications/me?page=${page}&limit=${limit}`, {
-    headers: getHeaders(),
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("Failed to fetch notifications");
-  return res.json();
+export const fetchMyNotifications = async (page = 1, limit = 10): Promise<INotificationsResponse> => {
+  const token = getAuthToken();
+  const emptyFallback: INotificationsResponse = {
+    success: true,
+    message: "Empty notifications",
+    data: [],
+    unreadCount: 0,
+    meta: { page: 1, limit, total: 0, totalPage: 1, unreadCount: 0 },
+  };
+
+  if (!token) return emptyFallback;
+
+  try {
+    const res = await fetch(`${BASE_URL}/notifications/me?page=${page}&limit=${limit}`, {
+      headers: getHeaders(),
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      return emptyFallback;
+    }
+
+    if (!res.ok) {
+      return emptyFallback;
+    }
+
+    return await res.json();
+  } catch (err) {
+    console.warn("fetchMyNotifications network warning:", err);
+    return emptyFallback;
+  }
 };
 
-export const fetchPendingPopups = async () => {
+export const fetchPendingPopups = async (): Promise<INotification[]> => {
   const token = getAuthToken();
   if (!token) return [];
 
-  const res = await fetch(`${BASE_URL}/notifications/me/pending-popups`, {
+  try {
+    const res = await fetch(`${BASE_URL}/notifications/me/pending-popups`, {
+      headers: getHeaders(),
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      // Unauthenticated or token expired — safely return empty array
+      return [];
+    }
+
+    if (!res.ok) {
+      console.warn("fetchPendingPopups returned status:", res.status);
+      return [];
+    }
+
+    const data = await res.json();
+    return (data.data || []) as INotification[];
+  } catch (err) {
+    console.warn("fetchPendingPopups error (safe fallback):", err);
+    return [];
+  }
+};
+
+export const markNotificationAsRead = async (id: string): Promise<{ success: boolean; data: INotification; unreadCount: number }> => {
+  const res = await fetch(`${BASE_URL}/notifications/${id}/read`, {
+    method: "PATCH",
     headers: getHeaders(),
     credentials: "include",
   });
   if (!res.ok) {
-    const errorBody = await res.text();
-    console.error("fetchPendingPopups Error Status:", res.status, errorBody);
-    throw new Error(`Failed to fetch popups. Status: ${res.status}. Body: ${errorBody}`);
+    throw new Error("Failed to mark notification as read");
   }
-  const data = await res.json();
-  return data.data as INotification[];
+  return res.json();
 };
 
-export const acknowledgeNotification = async (id: string) => {
-  console.log("acknowledgeNotification called with ID:", id);
+export const markAllNotificationsAsRead = async (): Promise<{ success: boolean; unreadCount: number }> => {
+  const res = await fetch(`${BASE_URL}/notifications/mark-all-read`, {
+    method: "PATCH",
+    headers: getHeaders(),
+    credentials: "include",
+  });
+  if (!res.ok) {
+    throw new Error("Failed to mark all notifications as read");
+  }
+  return res.json();
+};
+
+export const acknowledgeNotification = async (id: string): Promise<any> => {
   const res = await fetch(`${BASE_URL}/notifications/${id}/acknowledge`, {
     method: "PATCH",
     headers: getHeaders(),
     credentials: "include",
   });
-  console.log("acknowledgeNotification response status:", res.status);
   if (!res.ok) {
     const errText = await res.text();
     console.error("acknowledgeNotification failed:", res.status, errText);
@@ -69,7 +146,13 @@ export const acknowledgeNotification = async (id: string) => {
   return res.json();
 };
 
-export const sendDirectNotification = async (payload: { recipientIds: string[], title: string, message: string, channel: string[], requiresAction: boolean }) => {
+export const sendDirectNotification = async (payload: {
+  recipientIds: string[];
+  title: string;
+  message: string;
+  channel: string[];
+  requiresAction: boolean;
+}): Promise<any> => {
   const res = await fetch(`${BASE_URL}/admin/notifications/send-direct`, {
     method: "POST",
     headers: getHeaders(),

@@ -21,13 +21,15 @@ import {
   TMeta,
 } from "@/lib/investmentApi";
 import { ExportDropdown } from "@/components/shared";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TableRowsSkeleton } from "@/components/ui/Skeletons";
 
 export function InvestmentListView() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [investments, setInvestments] = useState<IInvestmentRecord[]>([]);
-  const [meta, setMeta] = useState<TMeta>({ page: 1, limit: 10, total: 4, totalPage: 1 });
+  const [meta, setMeta] = useState<TMeta>({ page: 1, limit: 10, total: 0, totalPage: 1 });
   const [closingId, setClosingId] = useState<string | null>(null);
 
   const loadInvestments = async (pageNumber: number = 1, searchVal: string = searchTerm) => {
@@ -168,16 +170,18 @@ export function InvestmentListView() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr>
-                  <td colSpan={9} className="py-16 text-center text-gray-400">
-                    <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#00B074] mb-2" />
-                    Loading investments...
-                  </td>
-                </tr>
+                <TableRowsSkeleton cols={9} rows={6} />
               ) : investments.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-16 text-center text-gray-400">
-                    No investment records found.
+                  <td colSpan={9} className="py-12">
+                    <EmptyState
+                      title="No investments found"
+                      description={
+                        searchTerm
+                          ? "No investment records match your search criteria."
+                          : "No investment portfolios have been created yet."
+                      }
+                    />
                   </td>
                 </tr>
               ) : (

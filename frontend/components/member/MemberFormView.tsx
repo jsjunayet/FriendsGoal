@@ -21,6 +21,7 @@ import {
   ChevronDown,
   Loader2,
   X,
+  AlertCircle,
 } from "lucide-react";
 import { z } from "zod";
 import {
@@ -30,7 +31,7 @@ import {
   type IMember,
 } from "@/lib/memberApi";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
-import { ExportDropdown } from "@/components/shared";
+import { printMemberProfilePdf } from "@/lib/memberProfilePdfGenerator";
 
 // Predefined designation mapping to Bangla
 const DESIGNATION_PRESETS: Record<string, string> = {
@@ -180,6 +181,7 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
   const [customDesignation, setCustomDesignation] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [successToast, setSuccessToast] = useState("");
+  const [errorToast, setErrorToast] = useState("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Sync designation with Bangla mapping
@@ -209,19 +211,32 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
       throw new Error("Missing ID");
     },
     onSuccess: (result) => {
+      setErrorToast("");
       queryClient.invalidateQueries({ queryKey: ["members"] });
       queryClient.invalidateQueries({ queryKey: ["member", result._id] });
-      setSuccessToast(
-        isCreateMode
-          ? "Member registered successfully!"
-          : "Member profile updated successfully!"
-      );
+      const msg = isCreateMode
+        ? "Member registered successfully!"
+        : "Member profile updated successfully!";
+      setSuccessToast(msg);
+      toast.success(msg);
       setTimeout(() => {
         setSuccessToast("");
         if (isCreateMode) {
           router.push("/dashboard/member");
         }
       }, 1500);
+    },
+    onError: (err: any) => {
+      const errorMsg = err?.message || "Failed to save member profile";
+      setErrorToast(errorMsg);
+      toast.error(errorMsg, { duration: 6000 });
+      if (errorMsg.toLowerCase().includes("email")) {
+        setFormErrors((prev) => ({ ...prev, email: errorMsg }));
+      } else if (errorMsg.toLowerCase().includes("mobile") || errorMsg.toLowerCase().includes("phone")) {
+        setFormErrors((prev) => ({ ...prev, mobileNo: errorMsg }));
+      } else if (errorMsg.toLowerCase().includes("id") || errorMsg.toLowerCase().includes("code")) {
+        setFormErrors((prev) => ({ ...prev, memberCode: errorMsg }));
+      }
     },
   });
 
@@ -235,23 +250,37 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["members"] });
       setIsDeleteModalOpen(false);
+      toast.success("Member deleted successfully");
       router.push("/dashboard/member");
+    },
+    onError: (err: any) => {
+      const errorMsg = err?.message || "Failed to delete member";
+      setErrorToast(errorMsg);
+      toast.error(errorMsg);
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (saveMutation.isPending) return;
     setFormErrors({});
+    setErrorToast("");
 
     const result = memberFormSchema.safeParse(formData);
     if (!result.success) {
       const errors: Record<string, string> = {};
+      const missingList: string[] = [];
       result.error.issues.forEach((issue) => {
         if (issue.path[0]) {
-          errors[issue.path[0].toString()] = issue.message;
+          const field = issue.path[0].toString();
+          errors[field] = issue.message;
+          missingList.push(issue.message);
         }
       });
       setFormErrors(errors);
+      const firstError = missingList[0] || "Please check the form for invalid or missing required fields.";
+      setErrorToast(firstError);
+      toast.error(firstError, { duration: 5000 });
       return;
     }
 
@@ -291,10 +320,38 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
 
         <div className="flex items-center gap-3">
           {!isCreateMode && (
-            <ExportDropdown 
-              endpointUrl={`/api/v1/members/${initialMember?._id || formData.memberCode}/export`} 
-              defaultFilename={`Member_${formData.memberCode}_Statement`} 
-            />
+            <button
+              type="button"
+              onClick={() => {
+                const summaryMock = {
+                  memberId: initialMember?._id || "",
+                  fullName: formData.fullName || "",
+                  memberCode: formData.memberCode || initialMember?.memberCode || "",
+                  email: formData.email || "",
+                  role: formData.role || "member",
+                  status: formData.status || "active",
+                  bloodGroup: formData.bloodGroup,
+                  dateOfBirth: formData.dateOfBirth,
+                  division: formData.division,
+                  district: formData.district,
+                  thana: formData.thana,
+                  pictureUrl: formData.pictureUrl,
+                  totalDeposit: 0,
+                  dueAmount: 0,
+                  profitBalance: 0,
+                  totalWithdrawn: 0,
+                  savingsBalance: 0,
+                  depositBalance: 0,
+                  pendingWithdrawal: 0,
+                  activePaymentSchedule: [],
+                };
+                printMemberProfilePdf(summaryMock);
+              }}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-white border border-[#E5E7EB] text-[#0F172A] text-[13px] font-semibold hover:bg-gray-50 transition-colors shadow-sm"
+            >
+              <Download className="w-4 h-4 text-red-500" />
+              Download ID Card
+            </button>
           )}
         </div>
       </div>
@@ -304,6 +361,23 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
         <div className="bg-[#EAF8F1] border border-[#00B074]/30 text-[#00B074] px-4 py-3 rounded-xl text-[13px] font-semibold flex items-center gap-2 animate-in fade-in">
           <Check className="w-4 h-4" />
           <span>{successToast}</span>
+        </div>
+      )}
+
+      {/* Error Notification Alert */}
+      {(errorToast || saveMutation.isError) && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-[13px] font-semibold flex items-center justify-between gap-2 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <span>{errorToast || (saveMutation.error as any)?.message || "Failed to save member profile."}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorToast("")}
+            className="text-red-500 hover:text-red-800 p-1 rounded-md cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
@@ -946,7 +1020,7 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
             <button
               type="submit"
               disabled={saveMutation.isPending}
-              className="h-10 px-6 rounded-xl bg-[#00B074] hover:bg-[#009663] text-white text-[13px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
+              className="h-10 px-6 rounded-xl bg-[#00B074] hover:bg-[#009663] text-white text-[13px] font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed"
             >
               {saveMutation.isPending ? (
                 <>

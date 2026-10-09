@@ -11,6 +11,7 @@ import {
   Info,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   createDisbursementApi,
   fetchMemberProfitBalanceApi,
@@ -19,11 +20,12 @@ import { fetchMembersApi, IMember } from "@/lib/memberApi";
 
 export function CreateDisbursementView() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [members, setMembers] = useState<IMember[]>([]);
-  const [selectedMemberName, setSelectedMemberName] = useState("MD BELAL HOSSAIN");
+  const [selectedMemberName, setSelectedMemberName] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState("");
-  const [profitBalance, setProfitBalance] = useState<number>(4554.0);
+  const [profitBalance, setProfitBalance] = useState<number>(0);
   const [paidAmount, setPaidAmount] = useState<string>("");
   const [loadingProfit, setLoadingProfit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,12 +37,7 @@ export function CreateDisbursementView() {
         const res = await fetchMembersApi({ limit: 100 });
         setMembers(res.data);
         if (res.data.length > 0) {
-          const defaultMember =
-            res.data.find(
-              (m) =>
-                m.fullName.toUpperCase().includes("BELAL") ||
-                m.fullName.toUpperCase().includes("MD")
-            ) || res.data[0];
+          const defaultMember = res.data[0];
           setSelectedMemberName(defaultMember.fullName);
           setSelectedMemberId(defaultMember._id || "");
           fetchProfit(defaultMember._id || defaultMember.fullName);
@@ -65,25 +62,35 @@ export function CreateDisbursementView() {
     }
   };
 
-  const handleMemberSelect = (name: string) => {
-    setSelectedMemberName(name);
-    const m = members.find((mem) => mem.fullName === name);
+  const handleMemberSelect = (id: string) => {
+    setSelectedMemberId(id);
+    const m = members.find((mem) => mem._id === id);
     if (m) {
-      setSelectedMemberId(m._id || "");
-      fetchProfit(m._id || name);
+      setSelectedMemberName(m.fullName);
+      fetchProfit(m._id);
     } else {
-      fetchProfit(name);
+      fetchProfit(id);
     }
   };
 
   const handleShowClick = (e: React.FormEvent) => {
     e.preventDefault();
-    const m = members.find((mem) => mem.fullName === selectedMemberName);
-    fetchProfit(m?._id || selectedMemberName);
+    if (selectedMemberId) {
+      fetchProfit(selectedMemberId);
+    } else if (selectedMemberName) {
+      const m = members.find((mem) => mem.fullName === selectedMemberName);
+      fetchProfit(m?._id || selectedMemberName);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
+    if (!selectedMemberId && !selectedMemberName) {
+      toast.error("Please select a member before submitting.");
+      return;
+    }
     const amt = parseFloat(paidAmount);
     if (isNaN(amt) || amt <= 0) {
       toast.error("Please enter a valid payout amount.");
@@ -91,7 +98,7 @@ export function CreateDisbursementView() {
     }
 
     if (amt > profitBalance) {
-      toast.error(`Paid amount ($${amt}) exceeds available profit balance ($${profitBalance}).`);
+      toast.error(`Paid amount (৳${amt}) exceeds available profit balance (৳${profitBalance}).`);
       return;
     }
 
@@ -101,10 +108,19 @@ export function CreateDisbursementView() {
         memberId: selectedMemberId || selectedMemberName,
         paidAmount: amt,
         disbursDate: new Date().toISOString().slice(0, 10),
-        remarks: "Profit Disbursement Payout",
+        remarks: "Profit Disbursement Payout - Merged into Deposit",
       });
 
-      setSuccessMessage("Disbursement payout recorded and profit balance updated!");
+      // Invalidate relevant React Query caches across the app
+      queryClient.invalidateQueries({ queryKey: ["member"] });
+      queryClient.invalidateQueries({ queryKey: ["members"] });
+      queryClient.invalidateQueries({ queryKey: ["disbursements"] });
+      queryClient.invalidateQueries({ queryKey: ["analytics-overview"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-overview"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+
+      toast.success("Disbursement payout recorded and merged into Total Deposit!");
+      setSuccessMessage("Disbursement payout recorded! Profit merged into Total Deposit.");
       setTimeout(() => {
         router.push("/dashboard/income-disbursement");
       }, 1000);
@@ -162,24 +178,18 @@ export function CreateDisbursementView() {
             <div className="flex items-center gap-3 max-w-xl">
               <div className="relative flex-1">
                 <select
-                  value={selectedMemberName}
+                  value={selectedMemberId}
                   onChange={(e) => handleMemberSelect(e.target.value)}
                   className="w-full appearance-none px-4 py-2.5 text-xs sm:text-sm bg-white border border-gray-300 rounded-lg text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#00B074] focus:border-[#00B074] cursor-pointer"
                 >
                   {members.length > 0 ? (
                     members.map((m) => (
-                      <option key={m._id} value={m.fullName}>
-                        {m.fullName}
+                      <option key={m._id} value={m._id}>
+                        {m.fullName} {m.memberCode ? `(${m.memberCode})` : ""}
                       </option>
                     ))
                   ) : (
-                    <>
-                      <option value="MD BELAL HOSSAIN">MD BELAL HOSSAIN</option>
-                      <option value="MD JUWEL HASAN">MD JUWEL HASAN</option>
-                      <option value="SARAH JENKINS">SARAH JENKINS</option>
-                      <option value="JOHN DOE">JOHN DOE</option>
-                      <option value="FATEMA BEGUM">FATEMA BEGUM</option>
-                    </>
+                    <option value="" disabled>No registered members found</option>
                   )}
                 </select>
                 <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -260,10 +270,13 @@ export function CreateDisbursementView() {
             <button
               type="submit"
               disabled={isSubmitting || !paidAmount}
-              className="px-8 py-2.5 bg-[#056839] hover:bg-[#04532e] text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-md transition-colors cursor-pointer shadow-xs disabled:opacity-40 inline-flex items-center justify-center min-w-[100px]"
+              className="px-8 py-2.5 bg-[#056839] hover:bg-[#04532e] text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-md transition-colors cursor-pointer shadow-xs disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 min-w-[110px]"
             >
               {isSubmitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>SAVING...</span>
+                </>
               ) : (
                 "SAVE"
               )}

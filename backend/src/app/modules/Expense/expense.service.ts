@@ -10,6 +10,7 @@ import {
   ICreateCategoryPayload,
   IReorderCategoriesPayload,
 } from "./expense.interface";
+import { AuditLogServices } from "../AuditLog/auditLog.service";
 
 // ─── Default seed categories matching Screenshot 3 ────────────────────────────
 const DEFAULT_CATEGORIES = [
@@ -21,73 +22,6 @@ const DEFAULT_CATEGORIES = [
   { name: "Tax & Compliance", order: 5 },
   { name: "Utilities", order: 6 },
   { name: "Training", order: 7 },
-];
-
-// ─── Default seed expenses matching Screenshot 1 ──────────────────────────────
-const DEFAULT_EXPENSES = [
-  {
-    expenseId: 1,
-    memberName: "MD. JUWEL HASAN",
-    expenseHead: "Software Cost",
-    expenseDate: new Date("2025-10-22"),
-    amount: 60000.0,
-    remarks: "FG Website and ERP Software Development",
-    voucherNo: "EXP-00001",
-  },
-  {
-    expenseId: 2,
-    memberName: "MD. JUWEL HASAN",
-    expenseHead: "Office Goods",
-    expenseDate: new Date("2024-09-07"),
-    amount: 4200.0,
-    remarks: "Letter Head(120gms)",
-    voucherNo: "EXP-00002",
-  },
-  {
-    expenseId: 3,
-    memberName: "MD. JUWEL HASAN",
-    expenseHead: "Office Goods",
-    expenseDate: new Date("2024-09-07"),
-    amount: 3200.0,
-    remarks: "Money Receipt(1000pcs)",
-    voucherNo: "EXP-00003",
-  },
-  {
-    expenseId: 4,
-    memberName: "MD. JUWEL HASAN",
-    expenseHead: "Office Goods",
-    expenseDate: new Date("2024-09-07"),
-    amount: 420.0,
-    remarks: "Auto Round Seal",
-    voucherNo: "EXP-00004",
-  },
-  {
-    expenseId: 5,
-    memberName: "MD. JUWEL HASAN",
-    expenseHead: "Office Goods",
-    expenseDate: new Date("2024-09-07"),
-    amount: 840.0,
-    remarks: "Auto Seal 3Pcs",
-    voucherNo: "EXP-00005",
-  },
-  {
-    expenseId: 6,
-    memberName: "MD. JUWEL HASAN",
-    expenseHead: "Office Goods",
-    expenseDate: new Date("2024-09-24"),
-    amount: 330.0,
-    remarks: "Stamp(100tk) 3pcs",
-    voucherNo: "EXP-00006",
-  },
-  {
-    expenseId: 7,
-    memberName: "MD. JUWEL HASAN",
-    expenseHead: "Office Goods",
-    expenseDate: new Date("2024-09-24"),
-    amount: 1230.0,
-    remarks: "Stamp Cartige 41pcs",
-    voucherNo: "EXP-00007",
-  },
 ];
 
 /**
@@ -143,6 +77,16 @@ const createExpenseInDB = async (
   }
 
   const createdExpense = await Expense.create(expenseData);
+
+  // Record Audit Log
+  await AuditLogServices.createAuditLogInDB({
+    adminName: "Super Admin",
+    adminRole: "Super Admin",
+    action: "Amount Modified",
+    target: `${payload.expenseHead}`,
+    details: `Expense voucher ${voucherNo} of ৳${Number(payload.amount).toLocaleString()} recorded for ${payload.expenseHead}.`,
+  }).catch((err) => console.error("Failed to record expense audit log:", err));
+
   return createdExpense;
 };
 
@@ -150,12 +94,6 @@ const createExpenseInDB = async (
  * 2. Get Expenses with Search & Pagination
  */
 const getExpensesFromDB = async (query: IExpenseFilterQuery) => {
-  // Ensure default seed data exists if DB is empty
-  const count = await Expense.countDocuments({ isDeleted: false });
-  if (count === 0) {
-    await Expense.insertMany(DEFAULT_EXPENSES).catch(() => {});
-  }
-
   const filter: Record<string, any> = { isDeleted: false };
 
   // Search filter (Search For...)

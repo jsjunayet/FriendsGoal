@@ -11,6 +11,7 @@ import type { NewsArticle } from "@/types";
 import { getSingleNoticeApi, type NoticeItem } from "@/lib/noticeApi";
 import { getLocalizedText } from "@/lib/i18nHelpers";
 import { NoticeDetailSkeleton } from "@/components/ui/Skeletons";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export interface NoticePreviewData {
   categoryText: string;
@@ -27,17 +28,7 @@ interface NoticeDetailClientProps {
   previewData?: NoticePreviewData;
 }
 
-const DEFAULT_AGENDA_BN = [
-  { num: 1, title: "বার্ষিক কর্মক্ষমতা পর্যালোচনা", text: "২০২৫ সালের প্রভাব মেট্রিক্স এবং আর্থিক বিবরণীর বিশদ বিবরণ।" },
-  { num: 2, title: "পর্ষদ নির্বাচন", text: "নেতৃত্ব কাউন্সিলে তিনটি শূন্য পদের জন্য মনোনয়ন ও ভোটাভুটি।" },
-  { num: 3, title: "উপ-আইন সংশোধন", text: "ডিজিটাল গভর্ন্যান্স কাঠামোতে প্রস্তাবিত পরিবর্তন পর্যালোচনা।" },
-];
 
-const DEFAULT_AGENDA_EN = [
-  { num: 1, title: "Annual Performance Review", text: "Detailed walkthrough of the 2025 impact metrics and financial statements." },
-  { num: 2, title: "Board Elections", text: "Nomination and voting for three upcoming vacancies in the leadership council." },
-  { num: 3, title: "Bylaw Amendments", text: "Reviewing proposed changes to the digital governance framework." },
-];
 
 // ─── Image Slider ─────────────────────────────────────────────────────────────
 interface ImageSliderProps {
@@ -307,8 +298,6 @@ export function NoticeDetailClient({ article, idOrSlug, previewData }: NoticeDet
     ? previewData.categoryText
     : notice?.category
     ? getLocalizedText(notice.category, lang)
-    : isBn
-    ? "OFFICIAL NOTICE"
     : "OFFICIAL NOTICE";
 
   // Title
@@ -320,7 +309,7 @@ export function NoticeDetailClient({ article, idOrSlug, previewData }: NoticeDet
     ? isBn && article.titleBn
       ? article.titleBn
       : article.title
-    : "Annual General Meeting 2026 — All Members Invited";
+    : "";
 
   // Date
   const rawDate = notice?.publishedDate || notice?.createdAt || article?.date;
@@ -332,9 +321,7 @@ export function NoticeDetailClient({ article, idOrSlug, previewData }: NoticeDet
         month: "long",
         year: "numeric",
       })
-    : isBn
-    ? "১২ অক্টোবর, ২০২৫"
-    : "October 12, 2025";
+    : "";
 
   // Agenda List
   const agendaList = previewData
@@ -345,9 +332,7 @@ export function NoticeDetailClient({ article, idOrSlug, previewData }: NoticeDet
         title: getLocalizedText(ag.title, lang),
         text: getLocalizedText(ag.text, lang),
       }))
-    : isBn
-    ? DEFAULT_AGENDA_BN
-    : DEFAULT_AGENDA_EN;
+    : [];
 
   // Images
   const rawImages = previewData
@@ -356,22 +341,41 @@ export function NoticeDetailClient({ article, idOrSlug, previewData }: NoticeDet
     ? notice.images
     : article?.images || (article?.image ? [article.image] : []);
   const images: string[] =
-    rawImages && rawImages.length > 0 ? rawImages : ["/images/news/news-1.svg"];
+    rawImages && rawImages.length > 0 ? rawImages : [];
 
   // Content body
   const rawContent = previewData
     ? previewData.htmlContent
     : notice
     ? getLocalizedText(notice.content, lang) || getLocalizedText(notice.description, lang)
-    : isBn
-    ? "<p>আমরা অত্যন্ত আনন্দের সাথে ২০২৬ সালের ফ্রেন্ডস গোল বার্ষিক সাধারণ সভা (এজিএম) ঘোষণা করছি। এই সমাবেশটি স্বচ্ছতা, সামগ্রিক সিদ্ধান্ত গ্রহণ এবং বিগত বারো মাসে আমরা একসাথে অর্জিত মাইলফলকগুলো উদযাপনের প্রাথমিক ফোরাম হিসেবে কাজ করবে।</p><p>আমাদের সাংগঠনিক উপ-আইন অনুসারে, সমস্ত নিবন্ধিত সদস্যদের অংশগ্রহণ করার, মূল প্রস্তাবগুলোতে ভোট দেওয়ার এবং পরিচালনা পর্ষদের সাথে সরাসরি যুক্ত হওয়ার জন্য আমন্ত্রণ জানানো হচ্ছে।</p>"
-    : "<p>We are pleased to formally announce the Friends Goal Annual General Meeting (AGM) for the year 2026. This gathering serves as our primary forum for transparency, collective decision-making, and celebrating the milestones we have achieved together over the past twelve months.</p><p>In accordance with our organizational bylaws, all registered members are invited to participate, vote on key resolutions, and engage directly with the Board of Directors.</p>";
+    : "";
 
   // Clean sanitized HTML
   const sanitizedHtml = DOMPurify.sanitize(rawContent);
 
   if (loading) {
     return <NoticeDetailSkeleton />;
+  }
+
+  if (!notice && !article && !previewData) {
+    return (
+      <div className="flex-1 w-full max-w-[780px] mx-auto px-4 sm:px-6 py-16 flex flex-col items-center justify-center">
+        <EmptyState
+          title="Notice Not Found"
+          titleBn="নোটিশটি পাওয়া যায়নি"
+          description="The requested notice or announcement could not be found."
+          descriptionBn="অনুরোধকৃত নোটিশ বা ঘোষণাটি খুঁজে পাওয়া যায়নি বা অপসারণ করা হয়েছে।"
+          actionButton={
+            <Link
+              href="/notice"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#00B074] text-white rounded-xl text-sm font-semibold hover:bg-[#009663] transition-colors"
+            >
+              {backText}
+            </Link>
+          }
+        />
+      </div>
+    );
   }
 
   return (

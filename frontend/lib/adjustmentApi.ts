@@ -1,4 +1,4 @@
-export type TAdjustmentType = "credit" | "debit" | "fee_reversal" | "operational";
+export type TAdjustmentType = "ADD" | "SUB" | "OTHER_RECEIVED";
 
 export interface IAdjustmentRecord {
   _id: string;
@@ -27,7 +27,7 @@ export interface IAdjustmentRecord {
 
 export interface ICreateAdjustmentPayload {
   memberId: string;
-  adjustmentType: "credit" | "debit" | "fee_reversal" | "operational";
+  adjustmentType: TAdjustmentType | "credit" | "debit" | "fee_reversal" | "operational";
   adjustmentDate?: string;
   adjustmentAmount: number;
   remarks: string;
@@ -58,56 +58,9 @@ const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:5000/api/v1";
 
 // ─── Initial Mock Adjustments matching Screenshot 2 ──────────────────────────
-export const INITIAL_MOCK_ADJUSTMENTS: IAdjustmentRecord[] = [
-  {
-    _id: "adj-130",
-    adjustmentId: "130",
-    memberId: "mem-130",
-    memberCode: "130",
-    memberName: "MD MAFUF HOSSAIN",
-    adjustmentType: "debit",
-    adjustmentTypeName: "Balance Adjustment",
-    adjustmentDate: "2026-07-17",
-    adjustmentAmount: 1000,
-    signedAmount: -1000,
-    previousBalance: { totalDeposit: 25000, savingsBalance: 1000, dueAmount: 0 },
-    updatedBalance: { totalDeposit: 24000, savingsBalance: 0, dueAmount: 0 },
-    remarks: "__Balance Adjustment _ Double input",
-  },
-  {
-    _id: "adj-131",
-    adjustmentId: "131",
-    memberId: "mem-131",
-    memberCode: "131",
-    memberName: "SARAH JENKINS",
-    adjustmentType: "fee_reversal",
-    adjustmentTypeName: "Fee Reversal",
-    adjustmentDate: "2026-07-18",
-    adjustmentAmount: 150,
-    signedAmount: 150,
-    previousBalance: { totalDeposit: 15000, savingsBalance: 0, dueAmount: 150 },
-    updatedBalance: { totalDeposit: 15000, savingsBalance: 0, dueAmount: 0 },
-    remarks: "Waived late fee per CS request",
-  },
-  {
-    _id: "adj-132",
-    adjustmentId: "132",
-    memberId: "mem-132",
-    memberCode: "132",
-    memberName: "JOHN DOE",
-    adjustmentType: "debit",
-    adjustmentTypeName: "Balance Adjustment",
-    adjustmentDate: "2026-07-19",
-    adjustmentAmount: 50,
-    signedAmount: -50,
-    previousBalance: { totalDeposit: 10000, savingsBalance: 50, dueAmount: 0 },
-    updatedBalance: { totalDeposit: 9950, savingsBalance: 0, dueAmount: 0 },
-    remarks: "Correction for overpayment",
-  },
-];
+export const INITIAL_MOCK_ADJUSTMENTS: IAdjustmentRecord[] = [];
 
-// In-memory cache for optimistic state during session
-let inMemoryAdjustments = [...INITIAL_MOCK_ADJUSTMENTS];
+let inMemoryAdjustments: IAdjustmentRecord[] = [];
 
 /**
  * 1. GET /api/v1/adjustments

@@ -40,6 +40,35 @@ const acknowledgeNotification = catchAsync(async (req: Request, res: Response) =
   });
 });
 
+const markNotificationAsRead = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const user = (req as any).user;
+  const userId = user?._id || user?.userId;
+  const role = user?.role;
+  const result = await NotificationServices.markNotificationAsRead(id as string, userId, role);
+
+  res.status(200).json({
+    success: true,
+    message: "Notification marked as read successfully",
+    data: result.notification,
+    unreadCount: result.unreadCount,
+  });
+});
+
+const markAllNotificationsAsRead = catchAsync(async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const userId = user?._id || user?.userId;
+  const role = user?.role;
+  const result = await NotificationServices.markAllNotificationsAsRead(userId, role);
+
+  res.status(200).json({
+    success: true,
+    message: "All notifications marked as read successfully",
+    data: result,
+    unreadCount: 0,
+  });
+});
+
 const sendDirectNotification = catchAsync(async (req: Request, res: Response) => {
   // Admin targeted notification
   const { recipientIds, title, message, channel, requiresAction } = req.body;
@@ -68,5 +97,7 @@ export const NotificationControllers = {
   getUserNotifications,
   getPendingPopups,
   acknowledgeNotification,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
   sendDirectNotification,
 };

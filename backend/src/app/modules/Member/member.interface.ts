@@ -55,6 +55,7 @@ export interface IMember {
   totalWithdrawn?: number | any;
   depositBalance?: number | any;
   pendingWithdrawal?: number | any;
+  othersReceived?: number | any;
 
   // Nominee Details & Media
   nomineeName?: string;

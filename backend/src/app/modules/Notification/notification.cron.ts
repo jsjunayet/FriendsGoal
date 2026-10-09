@@ -1,12 +1,15 @@
 import cron from "node-cron";
 import { Member } from "../Member/member.model";
 import { NotificationServices } from "./notification.service";
+import { getCronConfig } from "../../config/cron.config";
 
 export const initMonthlyDueReminderCron = () => {
-  // Monthly Due Reminder Cron (runs on 15th of every month at 9 AM)
-  cron.schedule("0 9 15 * *", async () => {
+  const cronConfig = getCronConfig();
+  console.log(`🔔 Initializing Due Reminder Cron: ${cronConfig.dueReminder.description} [Schedule: ${cronConfig.dueReminder.schedule}]`);
+
+  cron.schedule(cronConfig.dueReminder.schedule, async () => {
     try {
-      console.log("Running monthly due reminder cron job...");
+      console.log(`🔔 Running Due Reminder Cron Job (${cronConfig.dueReminder.description})...`);
       
       const dueMembers = await Member.find({ dueAmount: { $gt: 0 }, isDeleted: false });
       

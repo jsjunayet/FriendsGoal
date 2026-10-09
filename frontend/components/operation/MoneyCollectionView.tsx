@@ -21,6 +21,8 @@ import {
   IPaymentResult,
 } from "@/lib/operationApi";
 import { ExportDropdown } from "@/components/shared";
+import { printMoneyReceipt } from "@/lib/receiptGenerator";
+import { TableRowsSkeleton } from "@/components/ui/Skeletons";
 
 export function MoneyCollectionView() {
   const router = useRouter();
@@ -127,6 +129,8 @@ export function MoneyCollectionView() {
   // Handle Payment Submit
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     const amountNum = parseFloat(paidInput);
     if (!amountNum || amountNum <= 0) {
       toast.error("Please enter a valid payment amount greater than 0");
@@ -163,99 +167,32 @@ export function MoneyCollectionView() {
 
       // Open Success Popup Modal
       setSuccessModalData(result);
+      toast.success(`Payment of ৳${amountNum.toLocaleString()} recorded successfully!`);
     } catch (err: any) {
       console.error("Payment failed", err);
-      // Fallback optimistic update for demo
-      const simulatedReceipt = `RCP-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-      const newDue = Math.max(0, dueBalance - amountNum);
-      const excess = Math.max(0, amountNum - dueBalance);
-      const newAdv = advanceBalance + excess;
-      setDueBalance(newDue);
-      setAdvanceBalance(newAdv);
-
-      const newRecord: ICollectionRecord = {
-        _id: "col-" + Date.now(),
-        receiptNo: simulatedReceipt,
-        memberId: selectedMemberId,
-        memberCode: selectedMember?.memberCode || selectedMemberId,
-        memberName: selectedMember?.fullName || "Tarek Abdulla",
-        amount: amountNum,
-        paymentMethod: "cash",
-        paymentDate: new Date().toISOString().slice(0, 10),
-        month: new Date().toLocaleString("en-US", { month: "short", year: "numeric" }),
-        status: "Paid",
-      };
-      setHistory((prev) => [newRecord, ...(Array.isArray(prev) ? prev : [])]);
-      setPaidInput("");
-
-      setSuccessModalData({
-        receiptNo: simulatedReceipt,
-        amount: amountNum,
-        memberCode: selectedMember?.memberCode || selectedMemberId,
-        memberName: selectedMember?.fullName || "Tarek Abdulla",
-        paymentDate: new Date().toLocaleString("en-US", { month: "long", year: "numeric" }),
-        newDueAmount: newDue,
-        newAdvanceBalance: newAdv,
-        newTotalDeposit: (selectedMember?.totalDeposit || 0) + amountNum,
-        status: "Paid",
-      });
+      toast.error(err?.message || "Payment processing failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Printable receipt slip trigger
+  // Printable receipt slip trigger using exact official PDF design template
   const handlePrintReceipt = (receipt: {
     receiptNo: string;
     amount: number;
     memberName: string;
     memberCode: string;
     date: string;
+    month?: string;
   }) => {
-    const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.write(`
-      <html>
-        <head>
-          <title>Receipt ${receipt.receiptNo} - Friends Goal</title>
-          <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #1f2937; }
-            .receipt-card { max-width: 480px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-            .brand { text-align: center; border-bottom: 2px dashed #00B074; padding-bottom: 16px; margin-bottom: 16px; }
-            .brand h2 { margin: 0; color: #00B074; font-size: 24px; }
-            .brand p { margin: 4px 0 0 0; color: #6b7280; font-size: 13px; }
-            .badge { display: inline-block; background: #eaf8f1; color: #00B074; padding: 4px 12px; border-radius: 9999px; font-weight: bold; font-size: 12px; margin-top: 8px; }
-            .amount-box { background: #f9fafb; border-radius: 8px; padding: 16px; text-align: center; margin: 20px 0; }
-            .amount-box .label { font-size: 11px; text-transform: uppercase; color: #6b7280; letter-spacing: 1px; font-weight: 600; }
-            .amount-box .value { font-size: 28px; font-weight: 800; color: #00B074; margin-top: 4px; }
-            .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
-            .row .k { color: #6b7280; }
-            .row .v { font-weight: 600; color: #111827; }
-            .footer { text-align: center; font-size: 12px; color: #9ca3af; margin-top: 24px; border-top: 1px solid #f3f4f6; padding-top: 16px; }
-            @media print { body { padding: 0; } .receipt-card { border: none; box-shadow: none; } }
-          </style>
-        </head>
-        <body>
-          <div class="receipt-card">
-            <div class="brand">
-              <h2>Friends Goal Organization</h2>
-              <p>Official Collection & Deposit Receipt</p>
-              <div class="badge">${receipt.receiptNo}</div>
-            </div>
-            <div class="amount-box">
-              <div class="label">Amount Paid</div>
-              <div class="value">${(Number(receipt?.amount) || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })} BDT</div>
-            </div>
-            <div class="row"><span class="k">Member:</span><span class="v">${receipt.memberCode} - ${receipt.memberName}</span></div>
-            <div class="row"><span class="k">Payment Date:</span><span class="v">${receipt.date}</span></div>
-            <div class="row"><span class="k">Status:</span><span class="v" style="color: #00B074;">Received & Confirmed</span></div>
-            <div class="footer">Thank you for your active participation in Friends Goal!</div>
-          </div>
-          <script>window.print();</script>
-        </body>
-      </html>
-    `);
-    win.document.close();
+    printMoneyReceipt({
+      receiptNo: receipt.receiptNo,
+      amount: receipt.amount,
+      memberName: receipt.memberName,
+      memberCode: receipt.memberCode,
+      date: receipt.date,
+      month: receipt.month || receipt.date,
+    });
   };
 
   const safeHistory = Array.isArray(history) ? history : [];
@@ -350,14 +287,19 @@ export function MoneyCollectionView() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#00B074] hover:bg-[#009e67] text-white font-semibold text-sm rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex-shrink-0"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#00B074] hover:bg-[#009e67] text-white font-semibold text-sm rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed flex-shrink-0"
                 >
                   {isSubmitting ? (
-                    <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                      <span>SAVING...</span>
+                    </>
                   ) : (
-                    <Save className="w-4 h-4" />
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>SAVE</span>
+                    </>
                   )}
-                  <span>SAVE</span>
                 </button>
               </div>
             </div>
@@ -392,12 +334,7 @@ export function MoneyCollectionView() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loadingHistory ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-gray-400">
-                    <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#00B074] mb-2" />
-                    Loading history entries...
-                  </td>
-                </tr>
+                <TableRowsSkeleton cols={6} rows={6} />
               ) : safeHistory.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-gray-400">

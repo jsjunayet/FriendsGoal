@@ -156,6 +156,11 @@ const memberSchema = new Schema<IMember, MemberModel>(
       default: 0.0,
       get: (v: any) => (v != null ? parseFloat(v.toString()) : 0),
     },
+    othersReceived: {
+      type: Schema.Types.Decimal128,
+      default: 0.0,
+      get: (v: any) => (v != null ? parseFloat(v.toString()) : 0),
+    },
 
     // Nominee Details & Media
     nomineeName: {

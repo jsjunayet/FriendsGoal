@@ -19,6 +19,7 @@ import {
   Radio,
   Eye,
   Volume2,
+  Loader2,
 } from "lucide-react";
 import { getNoticesApi, createNoticeApi, updateNoticeApi, deleteNoticeApi, type NoticeItem } from "@/lib/noticeApi";
 import {
@@ -47,6 +48,7 @@ export default function CMSManagerPage() {
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Notice Filtering & Ticker Toggle state
   const [noticeSearchQuery, setNoticeSearchQuery] = useState("");
@@ -150,6 +152,8 @@ export default function CMSManagerPage() {
 
   // Save Stats Counter Item
   const handleSaveStat = async (id: string) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await updateStatApi(id, {
         value: statForm.value,
@@ -160,12 +164,16 @@ export default function CMSManagerPage() {
       loadData();
     } catch (err: any) {
       toast.error(err.message || "Failed to update stat counter");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Handle Notice Save
   const handleSaveNotice = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const payload = {
         category: { bn: noticeForm.categoryBn, en: noticeForm.categoryEn },
@@ -194,12 +202,16 @@ export default function CMSManagerPage() {
       loadData();
     } catch (err: any) {
       toast.error(err.message || "Failed to save notice");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Handle Gallery Save
   const handleSaveGallery = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const payload = {
         title: { bn: galleryForm.titleBn, en: galleryForm.titleEn },
@@ -219,12 +231,16 @@ export default function CMSManagerPage() {
       loadData();
     } catch (err: any) {
       toast.error(err.message || "Failed to save gallery item");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // Handle Marquee Save
   const handleSaveMarquee = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const payload = {
         headline: { bn: marqueeForm.textBn, en: marqueeForm.textEn },
@@ -245,6 +261,8 @@ export default function CMSManagerPage() {
       loadData();
     } catch (err: any) {
       toast.error(err.message || "Failed to save marquee item");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -424,7 +442,7 @@ export default function CMSManagerPage() {
   });
 
   return (
-    <div className="p-6 sm:p-8 max-w-[1400px] mx-auto space-y-8">
+    <div className="w-full flex flex-col gap-6 p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
       {/* Toast alert */}
       {actionSuccess && (
         <div className="fixed top-6 right-6 z-50 bg-[#00B074] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-sm font-bold animate-bounce">
@@ -1100,9 +1118,17 @@ export default function CMSManagerPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-[#00B074] hover:bg-[#0E8A5A] text-white font-bold text-sm shadow-md cursor-pointer"
+                    disabled={isSubmitting}
+                    className="px-6 py-2.5 rounded-xl bg-[#00B074] hover:bg-[#0E8A5A] text-white font-bold text-sm shadow-md cursor-pointer disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed inline-flex items-center gap-2"
                   >
-                    Save Marquee Headline
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Saving Headline...</span>
+                      </>
+                    ) : (
+                      "Save Marquee Headline"
+                    )}
                   </button>
                 </div>
               </form>
@@ -1340,9 +1366,17 @@ export default function CMSManagerPage() {
                       </button>
                       <button
                         type="submit"
-                        className="h-10 px-6 rounded-xl bg-[#00B074] hover:bg-[#0E8A5A] text-white font-bold text-sm shadow-sm"
+                        disabled={isSubmitting}
+                        className="h-10 px-6 rounded-xl bg-[#00B074] hover:bg-[#0E8A5A] text-white font-bold text-sm shadow-sm cursor-pointer disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed inline-flex items-center gap-2"
                       >
-                        Save Notice
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Saving Notice...</span>
+                          </>
+                        ) : (
+                          "Save Notice"
+                        )}
                       </button>
                     </div>
                   </form>
@@ -1390,10 +1424,18 @@ export default function CMSManagerPage() {
                       </button>
                       <button
                         type="button"
+                        disabled={isSubmitting}
                         onClick={(e) => handleSaveNotice(e)}
-                        className="h-10 px-6 rounded-xl bg-[#00B074] hover:bg-[#0E8A5A] text-white font-bold text-sm shadow-sm cursor-pointer"
+                        className="h-10 px-6 rounded-xl bg-[#00B074] hover:bg-[#0E8A5A] text-white font-bold text-sm shadow-sm cursor-pointer disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed inline-flex items-center gap-2"
                       >
-                        Publish / Save Notice
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Publishing...</span>
+                          </>
+                        ) : (
+                          "Publish / Save Notice"
+                        )}
                       </button>
                     </div>
                   </div>
@@ -1484,9 +1526,17 @@ export default function CMSManagerPage() {
                   </button>
                   <button
                     type="submit"
-                    className="h-10 px-6 rounded-xl bg-[#00B074] text-white font-bold text-sm shadow-sm"
+                    disabled={isSubmitting}
+                    className="h-10 px-6 rounded-xl bg-[#00B074] hover:bg-[#0E8A5A] text-white font-bold text-sm shadow-sm cursor-pointer disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed inline-flex items-center gap-2"
                   >
-                    Save Photo Set
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Saving Photos...</span>
+                      </>
+                    ) : (
+                      "Save Photo Set"
+                    )}
                   </button>
                 </div>
               </form>

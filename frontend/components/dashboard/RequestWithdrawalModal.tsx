@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { X, Loader2, CheckCircle2, AlertCircle, Banknote, Landmark, Smartphone, Wallet } from "lucide-react";
+import { X, Loader2, CheckCircle2, AlertCircle, Banknote, Landmark, Smartphone, Wallet, ShieldAlert } from "lucide-react";
+import { toast } from "sonner";
 import { memberDashboardApi } from "@/lib/memberDashboardApi";
 
 interface RequestWithdrawalModalProps {
@@ -45,7 +46,7 @@ export function RequestWithdrawalModal({
       
       memberDashboardApi.getDashboardSummary().then((summary) => {
         setLiveProfit(summary.profitBalance || 0);
-        setLiveDeposit(summary.depositBalance || summary.totalDeposit || 0);
+        setLiveDeposit(summary.totalDeposit ?? summary.depositBalance ?? 0);
         setPendingWithdrawal(summary.pendingWithdrawal || 0);
         setMemberName(summary.fullName || "Member");
       }).catch(() => {});
@@ -54,24 +55,30 @@ export function RequestWithdrawalModal({
 
   if (!isOpen) return null;
 
-  const totalEligibleBalance = Math.max(0, liveDeposit + liveProfit - pendingWithdrawal);
+  const allowableDepositLimit = Math.max(0, liveDeposit - pendingWithdrawal);
 
   const handleNextStep = () => {
     setErrorMsg(null);
     const withdrawAmt = parseFloat(amount);
     
     if (isNaN(withdrawAmt) || withdrawAmt <= 0) {
-      setErrorMsg("Please enter a valid positive withdrawal amount.");
+      const msg = "Please enter a valid positive withdrawal amount.";
+      setErrorMsg(msg);
+      toast.error(msg);
       return;
     }
     
-    if (withdrawAmt > totalEligibleBalance) {
-      setErrorMsg(`Amount exceeds your total available limit (Deposit + Profit).`);
+    if (withdrawAmt > liveDeposit || withdrawAmt > allowableDepositLimit) {
+      const errorText = `You can only request withdrawal from your total deposit amount (৳ ${liveDeposit.toLocaleString()}). Profit balance cannot be withdrawn.`;
+      setErrorMsg(errorText);
+      toast.error(errorText);
       return;
     }
     
     if (!accountNumber.trim()) {
-      setErrorMsg("Please provide your account details.");
+      const msg = "Please provide your account details.";
+      setErrorMsg(msg);
+      toast.error(msg);
       return;
     }
 
@@ -79,8 +86,16 @@ export function RequestWithdrawalModal({
   };
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
     setErrorMsg(null);
     const withdrawAmt = parseFloat(amount);
+
+    if (withdrawAmt > liveDeposit || withdrawAmt > allowableDepositLimit) {
+      const errorText = `You can only request withdrawal from your total deposit amount (৳ ${liveDeposit.toLocaleString()}). Profit balance cannot be withdrawn.`;
+      setErrorMsg(errorText);
+      toast.error(errorText);
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -101,14 +116,17 @@ export function RequestWithdrawalModal({
         date: new Date().toLocaleString(),
       });
 
+      toast.success("Withdrawal request submitted successfully!");
+
       if (onWithdrawalSuccess) {
-        onWithdrawalSuccess(Math.max(0, liveProfit - (res.profitDeduction || 0)));
+        onWithdrawalSuccess(liveProfit);
       }
       
       setStep(3);
     } catch (err: any) {
-      setErrorMsg(err.message || "Failed to submit withdrawal request");
-      setStep(1);
+      const errMsg = err.message || "Failed to submit withdrawal request";
+      setErrorMsg(errMsg);
+      toast.error(errMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -122,15 +140,15 @@ export function RequestWithdrawalModal({
   };
 
   const setPresetAmount = (percentage: number) => {
-    if (totalEligibleBalance > 0) {
-      const val = (totalEligibleBalance * percentage).toFixed(2);
-      setAmount(percentage === 1 ? totalEligibleBalance.toString() : val);
+    if (allowableDepositLimit > 0) {
+      const val = (allowableDepositLimit * percentage).toFixed(2);
+      setAmount(percentage === 1 ? allowableDepositLimit.toString() : val);
     }
   };
 
   const withdrawAmt = parseFloat(amount) || 0;
-  const profitDeduction = Math.min(liveProfit, withdrawAmt);
-  const depositDeduction = withdrawAmt - profitDeduction;
+  const depositDeduction = withdrawAmt;
+  const profitDeduction = 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs transition-opacity animate-in fade-in duration-200">
@@ -143,7 +161,7 @@ export function RequestWithdrawalModal({
           <div>
             <h3 className="text-xl font-bold font-serif text-gray-900 leading-tight">Request Withdrawal</h3>
             <p className="text-sm text-gray-500 mt-1">
-              Available Eligible: ৳{totalEligibleBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              Max Withdrawable Deposit: ৳{allowableDepositLimit.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </p>
           </div>
           <button
@@ -199,18 +217,25 @@ export function RequestWithdrawalModal({
             <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
               {/* Balances */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
-                  <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Deposit Balance</span>
+                <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase">Total Deposit</span>
+                    <span className="text-[9px] bg-emerald-200/80 text-emerald-800 px-1.5 py-0.5 rounded font-medium">Withdrawable</span>
+                  </div>
                   <span className="text-base font-bold text-gray-900">৳{liveDeposit.toLocaleString()}</span>
                 </div>
-                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
-                  <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Profit Balance</span>
+                <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-amber-800 uppercase">My Profit</span>
+                    <span className="text-[9px] bg-amber-200/80 text-amber-800 px-1.5 py-0.5 rounded font-medium">Non-withdrawable</span>
+                  </div>
                   <span className="text-base font-bold text-gray-900">৳{liveProfit.toLocaleString()}</span>
                 </div>
                 <div className="col-span-2 bg-[#EAF8F1] border border-[#00B074]/30 rounded-xl p-3 flex justify-between items-center">
                   <div>
-                    <span className="text-[10px] font-bold text-[#00B074] uppercase block mb-0.5">Total Eligible Limit</span>
-                    <span className="text-lg font-bold text-[#00B074]">৳{totalEligibleBalance.toLocaleString()}</span>
+                    <span className="text-[10px] font-bold text-[#00B074] uppercase block mb-0.5">Allowable Withdrawal Limit</span>
+                    <span className="text-lg font-bold text-[#00B074]">৳{allowableDepositLimit.toLocaleString()}</span>
+                    <span className="text-[10px] text-gray-500 block mt-0.5">Profit balance cannot be withdrawn</span>
                   </div>
                   {pendingWithdrawal > 0 && (
                     <div className="text-right">
@@ -223,7 +248,7 @@ export function RequestWithdrawalModal({
 
               {/* Amount Input */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-2">Withdrawal Amount</label>
+                <label className="block text-xs font-bold text-gray-700 mb-2">Withdrawal Amount (Max: ৳{allowableDepositLimit.toLocaleString()})</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">৳</span>
                   <input
@@ -232,7 +257,7 @@ export function RequestWithdrawalModal({
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
-                    max={totalEligibleBalance}
+                    max={allowableDepositLimit}
                     className="w-full pl-9 pr-4 py-3 text-lg font-bold bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#3C5B42] focus:border-[#3C5B42] transition-all"
                   />
                 </div>
@@ -352,18 +377,18 @@ export function RequestWithdrawalModal({
                 <div className="p-4 bg-gray-50">
                   <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-2">Deduction Breakdown</span>
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs text-gray-600">From Profit:</span>
-                    <span className="text-xs font-bold text-gray-900">৳{profitDeduction.toLocaleString()}</span>
+                    <span className="text-xs text-gray-600">From Deposit:</span>
+                    <span className="text-xs font-bold text-emerald-700">৳{depositDeduction.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">From Deposit:</span>
-                    <span className="text-xs font-bold text-gray-900">৳{depositDeduction.toLocaleString()}</span>
+                    <span className="text-xs text-gray-600">From Profit:</span>
+                    <span className="text-xs font-bold text-gray-400">৳0.00 (Untouched)</span>
                   </div>
                 </div>
 
                 <div className="flex justify-between items-center p-4">
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Available After</span>
-                  <span className="text-sm font-bold text-gray-900">৳{Math.max(0, totalEligibleBalance - withdrawAmt).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Deposit After Withdrawal</span>
+                  <span className="text-sm font-bold text-gray-900">৳{Math.max(0, allowableDepositLimit - withdrawAmt).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
                 </div>
               </div>
 
@@ -384,9 +409,16 @@ export function RequestWithdrawalModal({
                   type="button"
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="flex-1 py-3.5 bg-[#3C5B42] hover:bg-[#2c4230] text-white text-sm font-bold rounded-xl transition-colors shadow-xs flex justify-center items-center"
+                  className="flex-1 py-3.5 bg-[#3C5B42] hover:bg-[#2c4230] text-white text-sm font-bold rounded-xl transition-colors shadow-xs flex justify-center items-center gap-2 cursor-pointer disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Confirm & Submit"}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    "Confirm & Submit"
+                  )}
                 </button>
               </div>
             </div>

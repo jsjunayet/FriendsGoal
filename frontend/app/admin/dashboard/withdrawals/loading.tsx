@@ -1,5 +1,5 @@
-import { DataTableSkeleton } from "@/components/ui/Skeletons";
+import { OperationPageSkeleton } from "@/components/ui/Skeletons";
 
 export default function Loading() {
-  return <DataTableSkeleton rows={6} cols={5} />;
+  return <OperationPageSkeleton />;
 }

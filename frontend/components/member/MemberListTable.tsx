@@ -23,7 +23,9 @@ import {
 } from "@/lib/memberApi";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import { NotificationPopover } from "@/components/dashboard/NotificationPopover";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ExportDropdown } from "@/components/shared";
+import { useNotifications } from "@/lib/hooks/useNotifications";
 
 interface MemberListTableProps {
   onToggleMobileSidebar?: () => void;
@@ -35,6 +37,13 @@ export function MemberListTable({ onToggleMobileSidebar }: MemberListTableProps)
   const [page, setPage] = useState(1);
   const [limit] = useState(6);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const {
+    notifications,
+    unreadCount,
+    isLoading: isNotifLoading,
+    markAsRead,
+    markAllAsRead,
+  } = useNotifications();
   const [selectedMemberForDelete, setSelectedMemberForDelete] = useState<IMember | null>(null);
 
   // TanStack React Query
@@ -98,14 +107,21 @@ export function MemberListTable({ onToggleMobileSidebar }: MemberListTableProps)
             aria-label="Toggle notifications"
           >
             <Bell className="w-4 h-4 text-gray-700" />
-            <span className="absolute -top-1 -right-1 w-[18px] h-[18px] rounded-full bg-[#EF4444] text-white text-[10px] font-bold flex items-center justify-center border-2 border-white shadow-xs">
-              4
-            </span>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#EF4444] text-white text-[10px] font-bold flex items-center justify-center border-2 border-white shadow-xs">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
           </button>
 
           <NotificationPopover
             isOpen={isNotificationOpen}
             onClose={() => setIsNotificationOpen(false)}
+            notifications={notifications}
+            unreadCount={unreadCount}
+            isLoading={isNotifLoading}
+            onMarkAsRead={markAsRead}
+            onMarkAllAsRead={markAllAsRead}
           />
         </div>
       </header>
@@ -169,8 +185,15 @@ export function MemberListTable({ onToggleMobileSidebar }: MemberListTableProps)
                 </tr>
               ) : members.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-gray-400">
-                    No members found matching &quot;{searchTerm}&quot;
+                  <td colSpan={8} className="py-12">
+                    <EmptyState
+                      title="No members found"
+                      description={
+                        searchTerm
+                          ? `No members found matching "${searchTerm}".`
+                          : "No registered members found in the organization."
+                      }
+                    />
                   </td>
                 </tr>
               ) : (

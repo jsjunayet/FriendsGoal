@@ -28,6 +28,8 @@ import { NotificationPopover } from "./NotificationPopover";
 import { fetchAnalyticsOverview, fetchMonthlyCollections, IAnalyticsOverview, IMonthlyCollection } from "../../lib/analyticsApi";
 import { fetchDueListApi, IDueListItem } from "../../lib/operationApi";
 import { useEffect } from "react";
+import { AdminDashboardSkeleton } from "@/components/ui/Skeletons";
+import { useNotifications } from "@/lib/hooks/useNotifications";
 
 // Static arrays removed, using state directly
 
@@ -35,11 +37,15 @@ interface FinancialAnalyticsViewProps {
   onToggleMobileSidebar?: () => void;
 }
 
-
-
 export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnalyticsViewProps) {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(4);
+  const {
+    notifications,
+    unreadCount,
+    isLoading: isNotifLoading,
+    markAsRead,
+    markAllAsRead,
+  } = useNotifications();
   const [overview, setOverview] = useState<IAnalyticsOverview | null>(null);
   const [monthlyCollections, setMonthlyCollections] = useState<IMonthlyCollection[]>([]);
   const [dueList, setDueList] = useState<IDueListItem[]>([]);
@@ -129,6 +135,9 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
     { name: "Expense", value: Math.round((overview.expenseAmounts / totalPerf) * 100), color: "#EF4444" },
   ] : [];
 
+  if (loading) {
+    return <AdminDashboardSkeleton />;
+  }
 
   return (
     <div className="w-full flex flex-col gap-7 p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
@@ -164,9 +173,9 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
             aria-label="Toggle notifications"
           >
             <Bell className="w-4 h-4 text-gray-700" />
-            {notificationCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-[18px] h-[18px] rounded-full bg-[#EF4444] text-white text-[10px] font-bold flex items-center justify-center border-2 border-white shadow-xs">
-                {notificationCount}
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#EF4444] text-white text-[10px] font-bold flex items-center justify-center border-2 border-white shadow-xs">
+                {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}
           </button>
@@ -176,6 +185,11 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
             isOpen={isNotificationOpen}
             onClose={() => setIsNotificationOpen(false)}
             onViewAll={() => setIsNotificationOpen(false)}
+            notifications={notifications}
+            unreadCount={unreadCount}
+            isLoading={isNotifLoading}
+            onMarkAsRead={markAsRead}
+            onMarkAllAsRead={markAllAsRead}
           />
         </div>
       </header>
@@ -184,9 +198,7 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
       <section aria-label="Key Performance Indicators">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
           {/* Row 1: 4 Cards */}
-          {loading ? (
-            <div className="col-span-1 sm:col-span-2 lg:col-span-4 flex items-center justify-center p-10 text-sm text-gray-500">Loading metrics...</div>
-          ) : KPI_STATS.slice(0, 4).map((card) => {
+          {KPI_STATS.slice(0, 4).map((card) => {
             const Icon = card.icon;
             return (
               <div
@@ -213,9 +225,7 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
           })}
 
           {/* Row 2: 2 Cards (Due Amounts, Expense Amounts) */}
-          {loading ? (
-            <div className="col-span-1 sm:col-span-2 flex items-center justify-center p-5 text-sm text-gray-500">Loading metrics...</div>
-          ) : KPI_STATS.slice(4, 6).map((card) => {
+          {KPI_STATS.slice(4, 6).map((card) => {
             const Icon = card.icon;
             return (
               <div
@@ -268,15 +278,12 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
 
             {/* Recharts Bar Chart */}
             <div className="w-full h-[250px] pt-4">
-              {loading ? (
-                <div className="flex h-full items-center justify-center text-sm text-gray-500">Loading chart...</div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={monthlyCollections}
-                    margin={{ top: 25, right: 0, left: -25, bottom: 0 }}
-                    barSize={20}
-                  >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={monthlyCollections}
+                  margin={{ top: 25, right: 0, left: -25, bottom: 0 }}
+                  barSize={20}
+                >
                     <XAxis
                       dataKey="month"
                       axisLine={false}
@@ -356,7 +363,6 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
-              )}
             </div>
           </div>
 
@@ -368,38 +374,32 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
 
             {/* Recharts Donut Chart */}
             <div className="relative w-full h-[190px] flex items-center justify-center">
-              {loading ? (
-                <div className="flex h-full items-center justify-center text-sm text-gray-500">Loading...</div>
-              ) : (
-                <>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={PERFORMANCE_DATA}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={48}
-                        outerRadius={75}
-                        paddingAngle={0}
-                        dataKey="value"
-                        stroke="#FFFFFF"
-                        strokeWidth={2}
-                        startAngle={90}
-                        endAngle={-270}
-                      >
-                        {PERFORMANCE_DATA.map((entry) => (
-                          <Cell key={`pie-${entry.name}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={PERFORMANCE_DATA}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={48}
+                    outerRadius={75}
+                    paddingAngle={0}
+                    dataKey="value"
+                    stroke="#FFFFFF"
+                    strokeWidth={2}
+                    startAngle={90}
+                    endAngle={-270}
+                  >
+                    {PERFORMANCE_DATA.map((entry) => (
+                      <Cell key={`pie-${entry.name}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
 
-                  {/* Red Badge inside segment as seen in screenshot */}
-                  <div className="absolute top-[52%] left-[26%] -translate-y-1/2 bg-[#EF4444] text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-xs pointer-events-none">
-                    {PERFORMANCE_DATA[2]?.value || 0}%
-                  </div>
-                </>
-              )}
+              {/* Red Badge inside segment as seen in screenshot */}
+              <div className="absolute top-[52%] left-[26%] -translate-y-1/2 bg-[#EF4444] text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-xs pointer-events-none">
+                {PERFORMANCE_DATA[2]?.value || 0}%
+              </div>
             </div>
 
             {/* Custom Legend matching Screenshot 2 & 4 */}
@@ -446,11 +446,7 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50/80 text-[12px]">
-                    {loading ? (
-                      <tr>
-                        <td colSpan={3} className="py-4 text-center text-sm text-gray-500">Loading dues...</td>
-                      </tr>
-                    ) : dueList.length === 0 ? (
+                    {dueList.length === 0 ? (
                       <tr>
                         <td colSpan={3} className="py-4 text-center text-sm text-gray-500">No member dues found.</td>
                       </tr>

@@ -19,6 +19,8 @@ import {
   IWithdrawalCounts,
   TWithdrawalStatus,
 } from "@/lib/withdrawalApi";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TableRowsSkeleton } from "@/components/ui/Skeletons";
 
 type TabType = "All" | "Pending" | "Approved" | "Rejected";
 
@@ -27,10 +29,10 @@ export default function WithdrawalRequestsView() {
   const [searchQuery, setSearchQuery] = useState("");
   const [withdrawals, setWithdrawals] = useState<IWithdrawalItem[]>([]);
   const [counts, setCounts] = useState<IWithdrawalCounts>({
-    all: 4,
-    pending: 2,
-    approved: 1,
-    rejected: 1,
+    all: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -262,21 +264,18 @@ export default function WithdrawalRequestsView() {
             </thead>
             <tbody className="divide-y divide-gray-50 text-sm">
               {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-gray-400">
-                    <div className="flex items-center justify-center gap-2">
-                      <RefreshCw className="w-4 h-4 animate-spin text-[#00B074]" />
-                      <span>Loading withdrawal requests...</span>
-                    </div>
-                  </td>
-                </tr>
+                <TableRowsSkeleton cols={7} rows={6} />
               ) : withdrawals.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-gray-400">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <AlertCircle className="w-6 h-6 text-gray-300" />
-                      <span>No withdrawal requests found for this filter.</span>
-                    </div>
+                  <td colSpan={7} className="py-12">
+                    <EmptyState
+                      title="No withdrawal requests found"
+                      description={
+                        searchQuery
+                          ? "No withdrawal records match your current search criteria."
+                          : "There are currently no withdrawal requests submitted by members."
+                      }
+                    />
                   </td>
                 </tr>
               ) : (

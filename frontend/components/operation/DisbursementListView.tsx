@@ -16,6 +16,8 @@ import {
   IDisbursementFilterParams,
   TMeta,
 } from "@/lib/disbursementApi";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TableRowsSkeleton } from "@/components/ui/Skeletons";
 
 export function DisbursementListView() {
   const [fromDate, setFromDate] = useState("");
@@ -25,7 +27,7 @@ export function DisbursementListView() {
   const [meta, setMeta] = useState<TMeta>({
     page: 1,
     limit: 10,
-    total: 5,
+    total: 0,
     totalPage: 1,
   });
 
@@ -173,16 +175,18 @@ export function DisbursementListView() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr>
-                  <td colSpan={4} className="py-16 text-center text-gray-400">
-                    <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#00B074] mb-2" />
-                    Loading disbursements...
-                  </td>
-                </tr>
+                <TableRowsSkeleton cols={4} rows={6} />
               ) : disbursements.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-16 text-center text-gray-400">
-                    No disbursement records found for the selected period.
+                  <td colSpan={4} className="py-12">
+                    <EmptyState
+                      title="No disbursements found"
+                      description={
+                        fromDate || toDate
+                          ? "No income disbursements found for the selected date range."
+                          : "No income disbursements have been processed yet."
+                      }
+                    />
                   </td>
                 </tr>
               ) : (

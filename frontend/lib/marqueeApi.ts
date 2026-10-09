@@ -58,7 +58,18 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   if (!res.ok) {
-    const message = body?.message ?? `Request failed with status ${res.status}`;
+    let message = body?.message;
+    if (body?.errorSources && Array.isArray(body.errorSources) && body.errorSources.length > 0) {
+      const details = body.errorSources.map((es: any) => es.message).filter(Boolean);
+      if (details.length > 0) {
+        if (!message || message === "Validation Error" || message === "Something went wrong") {
+          message = details.join(". ");
+        } else if (!details.includes(message)) {
+          message = `${message}: ${details.join(", ")}`;
+        }
+      }
+    }
+    message = message ?? `Request failed with status ${res.status}`;
     throw new ApiError(res.status, message);
   }
 

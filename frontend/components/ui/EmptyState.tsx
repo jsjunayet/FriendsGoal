@@ -8,7 +8,10 @@ interface EmptyStateProps {
   titleBn?: string;
   subtext?: string;
   subtextBn?: string;
+  description?: string;
+  descriptionBn?: string;
   icon?: React.ReactNode;
+  actionButton?: React.ReactNode;
   className?: string;
 }
 
@@ -17,19 +20,25 @@ export function EmptyState({
   titleBn,
   subtext,
   subtextBn,
+  description,
+  descriptionBn,
   icon,
+  actionButton,
   className = "",
 }: EmptyStateProps) {
   const { lang } = useTranslation();
   const isBn = lang === "bn";
 
+  const resolvedSubtext = description || subtext;
+  const resolvedSubtextBn = descriptionBn || subtextBn;
+
   const displayTitle = isBn
-    ? titleBn || title || "কোনো সদস্যের তথ্য পাওয়া যায়নি"
-    : title || "No members found";
+    ? titleBn || title || "কোনো তথ্য পাওয়া যায়নি"
+    : title || "No data found";
 
   const displaySubtext = isBn
-    ? subtextBn || subtext || "নিয়মিত আপডেট চেক করুন"
-    : subtext || "Check back later for updates";
+    ? resolvedSubtextBn || resolvedSubtext || "নিয়মিত আপডেট চেক করুন"
+    : resolvedSubtext || "Check back later for updates";
 
   return (
     <div
@@ -44,6 +53,7 @@ export function EmptyState({
       <p className="mt-1.5 text-xs sm:text-sm text-gray-500 max-w-md leading-relaxed">
         {displaySubtext}
       </p>
+      {actionButton && <div className="mt-4">{actionButton}</div>}
     </div>
   );
 }

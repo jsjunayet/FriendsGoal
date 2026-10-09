@@ -7,68 +7,29 @@ import {
   ICreateDisbursementPayload,
   IDisbursementFilterQuery,
 } from "./disbursement.interface";
-
-// ─── Default seed disbursements matching Screenshot 1 ─────────────────────────
-const DEFAULT_DISBURSEMENTS = [
-  {
-    disbursementId: "101",
-    numericId: 101,
-    memberName: "MD BELAL HOSSAIN",
-    memberCode: "002",
-    disbursedAmount: 4554.0,
-    disbursDate: new Date("2026-07-15"),
-    remarks: "Profit Share Distribution Q2",
-  },
-  {
-    disbursementId: "102",
-    numericId: 102,
-    memberName: "MD JUWEL HASAN",
-    memberCode: "001",
-    disbursedAmount: 3200.0,
-    disbursDate: new Date("2026-07-16"),
-    remarks: "Profit Share Distribution Q2",
-  },
-  {
-    disbursementId: "103",
-    numericId: 103,
-    memberName: "SARAH JENKINS",
-    memberCode: "003",
-    disbursedAmount: 1500.0,
-    disbursDate: new Date("2026-07-17"),
-    remarks: "Profit Share Distribution Q2",
-  },
-  {
-    disbursementId: "104",
-    numericId: 104,
-    memberName: "JOHN DOE",
-    memberCode: "004",
-    disbursedAmount: 2800.0,
-    disbursDate: new Date("2026-07-18"),
-    remarks: "Profit Share Distribution Q2",
-  },
-  {
-    disbursementId: "105",
-    numericId: 105,
-    memberName: "FATEMA BEGUM",
-    memberCode: "005",
-    disbursedAmount: 6100.0,
-    disbursDate: new Date("2026-07-19"),
-    remarks: "Profit Share Distribution Q2",
-  },
-];
+import { AuditLogServices } from "../AuditLog/auditLog.service";
 
 /**
  * 1. Fetch active member profitBalance
  */
 const getMemberProfitBalanceFromDB = async (memberId: string) => {
-  const query: Record<string, any> = { isDeleted: false };
+  let member = null;
   if (mongoose.isValidObjectId(memberId)) {
-    query._id = memberId;
-  } else {
-    query.$or = [{ memberCode: memberId }, { email: memberId }];
+    member = await Member.findOne({ _id: memberId, isDeleted: false });
   }
 
-  const member = await Member.findOne(query);
+  if (!member) {
+    const cleanId = decodeURIComponent(memberId).trim();
+    member = await Member.findOne({
+      isDeleted: false,
+      $or: [
+        { memberCode: cleanId },
+        { email: cleanId },
+        { fullName: { $regex: new RegExp(`^${cleanId}$`, "i") } },
+      ],
+    });
+  }
+
   if (!member) {
     throw new AppError(httpStatus.NOT_FOUND, "Member record not found");
   }
@@ -80,6 +41,7 @@ const getMemberProfitBalanceFromDB = async (memberId: string) => {
   return {
     memberId: member._id,
     memberName: member.fullName,
+    fullName: member.fullName,
     memberCode: member.memberCode,
     profitBalance,
     totalDeposit: member.totalDeposit != null ? parseFloat(member.totalDeposit.toString()) : 0,
@@ -88,7 +50,7 @@ const getMemberProfitBalanceFromDB = async (memberId: string) => {
 };
 
 /**
- * 2. Process Payout Transaction with Atomic Balance Deduction
+ * 2. Process Payout Transaction with Atomic Balance Deduction & Merging to Deposit
  */
 const createDisbursementInDB = async (
   payload: ICreateDisbursementPayload,
@@ -104,7 +66,23 @@ const createDisbursementInDB = async (
     );
   }
 
-  const member = await Member.findById(memberId);
+  let member = null;
+  if (mongoose.isValidObjectId(memberId)) {
+    member = await Member.findOne({ _id: memberId, isDeleted: false });
+  }
+
+  if (!member) {
+    const cleanId = decodeURIComponent(memberId).trim();
+    member = await Member.findOne({
+      isDeleted: false,
+      $or: [
+        { memberCode: cleanId },
+        { email: cleanId },
+        { fullName: { $regex: new RegExp(`^${cleanId}$`, "i") } },
+      ],
+    });
+  }
+
   if (!member || member.isDeleted) {
     throw new AppError(httpStatus.NOT_FOUND, "Active member record not found");
   }
@@ -116,7 +94,7 @@ const createDisbursementInDB = async (
   if (amount > currentProfit) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      `Paid amount (${amount}) exceeds available profit balance (${currentProfit})`
+      `Paid amount (৳${amount}) exceeds available profit balance (৳${currentProfit})`
     );
   }
 
@@ -131,14 +109,12 @@ const createDisbursementInDB = async (
     memberCode: member.memberCode,
     disbursedAmount: amount,
     disbursDate: disbursDate ? new Date(disbursDate) : new Date(),
-    remarks: remarks || "Income Disbursement Payout",
+    remarks: remarks || "Profit Disbursement Payout - Merged into Deposit",
   };
 
   if (userId && mongoose.isValidObjectId(userId)) {
     docData.createdBy = new mongoose.Types.ObjectId(userId);
   }
-
-  const newProfit = Math.max(0, currentProfit - amount);
 
   // Attempt Transaction with Session
   let session: mongoose.ClientSession | null = null;
@@ -149,16 +125,25 @@ const createDisbursementInDB = async (
     const disbursementDoc = new Disbursement(docData);
     const createdDisbursement = await disbursementDoc.save({ session });
 
-    // Deduct profit balance atomically
+    // Deduct profit balance atomically and merge directly into totalDeposit!
     await Member.findByIdAndUpdate(
       member._id,
       {
-        $inc: { profitBalance: -amount },
+        $inc: { profitBalance: -amount, totalDeposit: amount },
       },
       { session, runValidators: true }
     );
 
     await session.commitTransaction();
+
+    await AuditLogServices.createAuditLogInDB({
+      adminName: "Super Admin",
+      adminRole: "Super Admin",
+      action: "Amount Modified",
+      target: `${member.fullName} (${member.memberCode})`,
+      details: `Profit disbursement payout of ৳${amount.toLocaleString()} paid to ${member.fullName} and merged into Total Deposit.`,
+    }).catch((err) => console.error("Failed to record disbursement audit log:", err));
+
     return createdDisbursement;
   } catch (error: any) {
     if (session) {
@@ -173,9 +158,18 @@ const createDisbursementInDB = async (
       const disbursementDoc = new Disbursement(docData);
       const createdDisbursement = await disbursementDoc.save();
 
+      // Deduct profit balance atomically and merge directly into totalDeposit!
       await Member.findByIdAndUpdate(member._id, {
-        $inc: { profitBalance: -amount },
+        $inc: { profitBalance: -amount, totalDeposit: amount },
       });
+
+      await AuditLogServices.createAuditLogInDB({
+        adminName: "Super Admin",
+        adminRole: "Super Admin",
+        action: "Amount Modified",
+        target: `${member.fullName} (${member.memberCode})`,
+        details: `Profit disbursement payout of ৳${amount.toLocaleString()} paid to ${member.fullName} and merged into Total Deposit.`,
+      }).catch((err) => console.error("Failed to record disbursement audit log:", err));
 
       return createdDisbursement;
     }
@@ -192,19 +186,6 @@ const createDisbursementInDB = async (
  * 3. Fetch Payout Audit List with Date Filtering & Search
  */
 const getDisbursementsFromDB = async (filters: IDisbursementFilterQuery) => {
-  // Ensure default seed data exists if collection is empty
-  const count = await Disbursement.countDocuments();
-  if (count === 0) {
-    // Look up or assign valid memberId if available
-    const anyMember = await Member.findOne();
-    const fallbackId = anyMember?._id || new mongoose.Types.ObjectId();
-    const seeded = DEFAULT_DISBURSEMENTS.map((d) => ({
-      ...d,
-      memberId: fallbackId,
-    }));
-    await Disbursement.insertMany(seeded).catch(() => {});
-  }
-
   const query: Record<string, any> = {};
 
   // Date Range Filtering (From Date & To Date)

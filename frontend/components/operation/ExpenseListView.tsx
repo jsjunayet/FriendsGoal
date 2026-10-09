@@ -19,6 +19,8 @@ import {
 } from "@/lib/expenseApi";
 import { ExpenseVoucherModal } from "./ExpenseVoucherModal";
 import { ExportDropdown } from "@/components/shared";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TableRowsSkeleton } from "@/components/ui/Skeletons";
 
 export function ExpenseListView() {
   const router = useRouter();
@@ -26,7 +28,7 @@ export function ExpenseListView() {
   const [activeSearch, setActiveSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [expenses, setExpenses] = useState<IExpenseRecord[]>([]);
-  const [meta, setMeta] = useState<TMeta>({ page: 1, limit: 10, total: 45, totalPage: 5 });
+  const [meta, setMeta] = useState<TMeta>({ page: 1, limit: 10, total: 0, totalPage: 1 });
 
   // Voucher preview modal state
   const [selectedExpense, setSelectedExpense] = useState<IExpenseRecord | null>(null);
@@ -153,16 +155,18 @@ export function ExpenseListView() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr>
-                  <td colSpan={8} className="py-16 text-center text-gray-400">
-                    <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#00B074] mb-2" />
-                    Loading expenses...
-                  </td>
-                </tr>
+                <TableRowsSkeleton cols={8} rows={6} />
               ) : expenses.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center text-gray-400">
-                    No expense records found.
+                  <td colSpan={8} className="py-12">
+                    <EmptyState
+                      title="No expenses found"
+                      description={
+                        searchTerm
+                          ? "No expense records match your search criteria."
+                          : "No expenses have been recorded yet."
+                      }
+                    />
                   </td>
                 </tr>
               ) : (

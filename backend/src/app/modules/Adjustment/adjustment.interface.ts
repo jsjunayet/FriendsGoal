@@ -1,16 +1,6 @@
 import { Types } from "mongoose";
 
-export type TAdjustmentType =
-  | "credit"
-  | "debit"
-  | "fee_reversal"
-  | "operational"
-  | "PROFIT"
-  | "DEPOSIT"
-  | "DUE"
-  | "profit"
-  | "deposit"
-  | "due";
+export type TAdjustmentType = "ADD" | "SUB" | "OTHER_RECEIVED";
 
 export interface IAdjustmentBalanceSnapshot {
   totalDeposit: number;
@@ -33,6 +23,7 @@ export interface IAdjustment {
   previousBalance: IAdjustmentBalanceSnapshot;
   updatedBalance: IAdjustmentBalanceSnapshot;
   remarks: string;
+  isDeleted?: boolean;
   createdBy?: Types.ObjectId | string;
   createdAt?: Date;
   updatedAt?: Date;

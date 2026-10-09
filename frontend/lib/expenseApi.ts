@@ -63,82 +63,10 @@ export const INITIAL_CATEGORIES: IExpenseCategory[] = [
   { _id: "cat-8", name: "Training", order: 7 },
 ];
 
-// ─── Initial Mock Expenses matching Screenshot 1 ──────────────────────────────
-export const INITIAL_EXPENSES: IExpenseRecord[] = [
-  {
-    _id: "exp-1",
-    expenseId: 1,
-    memberName: "MD. JUWEL HASAN",
-    expenseHead: "Software Cost",
-    expenseDate: "2025-10-22",
-    amount: 60000.0,
-    remarks: "FG Website and ERP Software Development",
-    voucherNo: "EXP-00001",
-  },
-  {
-    _id: "exp-2",
-    expenseId: 2,
-    memberName: "MD. JUWEL HASAN",
-    expenseHead: "Office Goods",
-    expenseDate: "2024-09-07",
-    amount: 4200.0,
-    remarks: "Letter Head(120gms)",
-    voucherNo: "EXP-00002",
-  },
-  {
-    _id: "exp-3",
-    expenseId: 3,
-    memberName: "MD. JUWEL HASAN",
-    expenseHead: "Office Goods",
-    expenseDate: "2024-09-07",
-    amount: 3200.0,
-    remarks: "Money Receipt(1000pcs)",
-    voucherNo: "EXP-00003",
-  },
-  {
-    _id: "exp-4",
-    expenseId: 4,
-    memberName: "MD. JUWEL HASAN",
-    expenseHead: "Office Goods",
-    expenseDate: "2024-09-07",
-    amount: 420.0,
-    remarks: "Auto Round Seal",
-    voucherNo: "EXP-00004",
-  },
-  {
-    _id: "exp-5",
-    expenseId: 5,
-    memberName: "MD. JUWEL HASAN",
-    expenseHead: "Office Goods",
-    expenseDate: "2024-09-07",
-    amount: 840.0,
-    remarks: "Auto Seal 3Pcs",
-    voucherNo: "EXP-00005",
-  },
-  {
-    _id: "exp-6",
-    expenseId: 6,
-    memberName: "MD. JUWEL HASAN",
-    expenseHead: "Office Goods",
-    expenseDate: "2024-09-24",
-    amount: 330.0,
-    remarks: "Stamp(100tk) 3pcs",
-    voucherNo: "EXP-00006",
-  },
-  {
-    _id: "exp-7",
-    expenseId: 7,
-    memberName: "MD. JUWEL HASAN",
-    expenseHead: "Office Goods",
-    expenseDate: "2024-09-24",
-    amount: 1230.0,
-    remarks: "Stamp Cartige 41pcs",
-    voucherNo: "EXP-00007",
-  },
-];
+export const INITIAL_EXPENSES: IExpenseRecord[] = [];
 
 // Persistent local storage cache fallback for browser session
-let inMemoryExpenses = [...INITIAL_EXPENSES];
+let inMemoryExpenses: IExpenseRecord[] = [];
 let inMemoryCategories = [...INITIAL_CATEGORIES];
 
 function getAuthHeaders(): HeadersInit {
@@ -146,7 +74,7 @@ function getAuthHeaders(): HeadersInit {
   if (typeof window !== "undefined") {
     const token = sessionStorage.getItem("fg_access_token");
     if (token) {
-      headers["Authorization"] = token;
+      headers["Authorization"] = `Bearer ${token.replace(/^Bearer\s+/i, "")}`;
     }
   }
   return headers;
@@ -241,11 +169,20 @@ export async function createExpenseApi(
       }
     }
     const errJson = await res.json().catch(() => null);
-    if (errJson && errJson.message) {
-      throw new Error(errJson.message);
+    let errorMsg = errJson?.message;
+    if (errJson?.errorSources && Array.isArray(errJson.errorSources) && errJson.errorSources.length > 0) {
+      const details = errJson.errorSources.map((es: any) => es.message).filter(Boolean);
+      if (details.length > 0) {
+        if (!errorMsg || errorMsg === "Validation Error" || errorMsg === "Something went wrong") {
+          errorMsg = details.join(". ");
+        } else if (!details.includes(errorMsg)) {
+          errorMsg = `${errorMsg}: ${details.join(", ")}`;
+        }
+      }
     }
+    throw new Error(errorMsg || `Request failed with status ${res.status}`);
   } catch (err: any) {
-    if (err.message && !err.message.includes("fetch")) {
+    if (err instanceof Error && !err.message.includes("Failed to fetch")) {
       throw err;
     }
     console.warn("Backend /expenses create failed, using client storage", err);

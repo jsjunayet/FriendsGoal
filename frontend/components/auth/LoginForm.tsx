@@ -143,7 +143,7 @@ export function LoginForm({
             text-[#1A1A1A] font-bold text-[15px] tracking-wide
             flex items-center justify-center gap-2.5
             transition-all duration-200 cursor-pointer
-            disabled:opacity-60 disabled:cursor-not-allowed
+            disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none
             shadow-md hover:shadow-lg
           "
         >

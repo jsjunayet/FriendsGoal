@@ -69,7 +69,7 @@ export function DirectoryMemberCard({ member, index }: DirectoryMemberCardProps)
     getLocalizedText(member.name, lang) ||
     member.fullName ||
     (typeof member.name === "string" ? member.name : "") ||
-    "MD BELAL HOSSAIN";
+    "Member";
 
   const roleText =
     getLocalizedText(member.roleTitle, lang) ||
@@ -77,7 +77,7 @@ export function DirectoryMemberCard({ member, index }: DirectoryMemberCardProps)
     (lang === "bn" ? member.roleBn : member.role) ||
     member.designation ||
     member.role ||
-    "SECRETARY";
+    "";
 
   const memberIdText = formatMemberId(member.memberId || member.memberCode || member.id, index);
   const locationText = formatLocation(member);

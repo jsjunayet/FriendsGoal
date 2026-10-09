@@ -73,82 +73,19 @@ export interface IWithdrawalResponse {
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:5000/api/v1";
 
-// ─── Initial Mock Disbursements matching Screenshot 1 ─────────────────────────
-export const INITIAL_DISBURSEMENTS: IDisbursementRecord[] = [
-  {
-    _id: "disb-101",
-    disbursementId: "101",
-    numericId: 101,
-    memberId: "mem-002",
-    memberName: "MD BELAL HOSSAIN",
-    memberCode: "002",
-    disbursedAmount: 4554.0,
-    disbursDate: "2026-07-15",
-    remarks: "Profit Distribution",
-  },
-  {
-    _id: "disb-102",
-    disbursementId: "102",
-    numericId: 102,
-    memberId: "mem-001",
-    memberName: "MD JUWEL HASAN",
-    memberCode: "001",
-    disbursedAmount: 3200.0,
-    disbursDate: "2026-07-16",
-    remarks: "Profit Distribution",
-  },
-  {
-    _id: "disb-103",
-    disbursementId: "103",
-    numericId: 103,
-    memberId: "mem-003",
-    memberName: "SARAH JENKINS",
-    memberCode: "003",
-    disbursedAmount: 1500.0,
-    disbursDate: "2026-07-17",
-    remarks: "Profit Distribution",
-  },
-  {
-    _id: "disb-104",
-    disbursementId: "104",
-    numericId: 104,
-    memberId: "mem-004",
-    memberName: "JOHN DOE",
-    memberCode: "004",
-    disbursedAmount: 2800.0,
-    disbursDate: "2026-07-18",
-    remarks: "Profit Distribution",
-  },
-  {
-    _id: "disb-105",
-    disbursementId: "105",
-    numericId: 105,
-    memberId: "mem-005",
-    memberName: "FATEMA BEGUM",
-    memberCode: "005",
-    disbursedAmount: 6100.0,
-    disbursDate: "2026-07-19",
-    remarks: "Profit Distribution",
-  },
-];
+export const INITIAL_DISBURSEMENTS: IDisbursementRecord[] = [];
 
-let inMemoryDisbursements = [...INITIAL_DISBURSEMENTS];
+let inMemoryDisbursements: IDisbursementRecord[] = [];
 
 // Mock profit balances mapped by member
-const inMemoryProfitBalances: Record<string, number> = {
-  "MD BELAL HOSSAIN": 4554.0,
-  "MD JUWEL HASAN": 3200.0,
-  "SARAH JENKINS": 1500.0,
-  "JOHN DOE": 2800.0,
-  "FATEMA BEGUM": 6100.0,
-};
+const inMemoryProfitBalances: Record<string, number> = {};
 
 function getAuthHeaders(): HeadersInit {
   const headers: HeadersInit = { "Content-Type": "application/json" };
   if (typeof window !== "undefined") {
     const token = sessionStorage.getItem("fg_access_token");
     if (token) {
-      headers["Authorization"] = token;
+      headers["Authorization"] = `Bearer ${token.replace(/^Bearer\s+/i, "")}`;
     }
   }
   return headers;
@@ -160,27 +97,50 @@ function getAuthHeaders(): HeadersInit {
 export async function fetchMemberProfitBalanceApi(
   memberId: string
 ): Promise<IMemberProfitResponse> {
+  const cleanId = memberId ? memberId.trim() : "";
+  if (!cleanId) {
+    return {
+      memberId: "",
+      memberName: "",
+      profitBalance: 0,
+      totalDeposit: 0,
+    };
+  }
+
   try {
-    const res = await fetch(`${BASE_URL}/members/${memberId}/profit-balance`, {
+    let res = await fetch(`${BASE_URL}/disbursements/member/${encodeURIComponent(cleanId)}/profit-balance`, {
       headers: getAuthHeaders(),
       cache: "no-store",
     });
+
+    if (!res.ok) {
+      res = await fetch(`${BASE_URL}/members/${encodeURIComponent(cleanId)}/profit-balance`, {
+        headers: getAuthHeaders(),
+        cache: "no-store",
+      });
+    }
+
     if (res.ok) {
       const json = await res.json();
       if (json.success && json.data) {
-        return json.data;
+        return {
+          memberId: json.data.memberId || cleanId,
+          memberName: json.data.memberName || json.data.fullName || cleanId,
+          profitBalance: Number(json.data.profitBalance) || 0,
+          totalDeposit: Number(json.data.totalDeposit) || 0,
+        };
       }
     }
   } catch (err) {
-    console.warn("Backend /members/:id/profit-balance failed, using client storage", err);
+    console.warn("Backend /members/:id/profit-balance failed", err);
   }
 
-  // Fallback client response
-  const profit = inMemoryProfitBalances[memberId] ?? 4554.0;
+  const profit = inMemoryProfitBalances[cleanId] ?? 0;
   return {
-    memberId,
-    memberName: memberId,
+    memberId: cleanId,
+    memberName: cleanId,
     profitBalance: profit,
+    totalDeposit: 0,
   };
 }
 
@@ -275,11 +235,20 @@ export async function createDisbursementApi(
       }
     }
     const errJson = await res.json().catch(() => null);
-    if (errJson && errJson.message) {
-      throw new Error(errJson.message);
+    let errorMsg = errJson?.message;
+    if (errJson?.errorSources && Array.isArray(errJson.errorSources) && errJson.errorSources.length > 0) {
+      const details = errJson.errorSources.map((es: any) => es.message).filter(Boolean);
+      if (details.length > 0) {
+        if (!errorMsg || errorMsg === "Validation Error" || errorMsg === "Something went wrong") {
+          errorMsg = details.join(". ");
+        } else if (!details.includes(errorMsg)) {
+          errorMsg = `${errorMsg}: ${details.join(", ")}`;
+        }
+      }
     }
+    throw new Error(errorMsg || `Request failed with status ${res.status}`);
   } catch (err: any) {
-    if (err.message && !err.message.includes("fetch")) {
+    if (err instanceof Error && !err.message.includes("Failed to fetch")) {
       throw err;
     }
     console.warn("Backend create disbursement failed, fallback to client memory", err);
@@ -330,32 +299,8 @@ export async function createWithdrawalRequestApi(
     if (errJson && errJson.message) {
       throw new Error(errJson.message);
     }
+    throw new Error(`Withdrawal request failed with status ${res.status}`);
   } catch (err: any) {
-    if (err.message && !err.message.includes("fetch")) {
-      throw err;
-    }
-    console.warn("Backend create withdrawal failed, fallback to client memory", err);
+    throw err;
   }
-
-  // Fallback
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let code = "";
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  const referenceId = `WD-${code}`;
-
-  return {
-    withdrawal: {
-      _id: `wd-${Date.now()}`,
-      referenceId,
-      memberId: payload.memberId,
-      memberName: payload.memberId,
-      amount: payload.amount,
-      availableProfitBefore: 4554.0,
-      status: "Under Review",
-      createdAt: new Date().toISOString(),
-    },
-    remainingProfitBalance: Math.max(0, 4554.0 - payload.amount),
-  };
 }

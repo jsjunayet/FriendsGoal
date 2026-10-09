@@ -9,18 +9,12 @@ import {
   TAdjustmentType,
   IAdjustmentBalanceSnapshot,
 } from "./adjustment.interface";
+import { AuditLogServices } from "../AuditLog/auditLog.service";
 
 const TYPE_NAME_MAP: Record<string, string> = {
-  credit: "Balance Adjustment",
-  debit: "Balance Adjustment",
-  fee_reversal: "Fee Reversal",
-  operational: "Operational Adjustment",
-  PROFIT: "Profit Adjustment",
-  profit: "Profit Adjustment",
-  DEPOSIT: "Deposit Adjustment",
-  deposit: "Deposit Adjustment",
-  DUE: "Due Adjustment",
-  due: "Due Adjustment",
+  ADD: "Add Deposit",
+  SUB: "Deduct Balance",
+  OTHER_RECEIVED: "Other Received",
 };
 
 /**
@@ -56,6 +50,7 @@ const createAdjustmentInDB = async (
   const prevSavings = Number(member.savingsBalance?.toString?.() ?? member.savingsBalance ?? 0);
   const prevDue = Number(member.dueAmount?.toString?.() ?? member.dueAmount ?? 0);
   const prevProfit = Number((member as any).profitBalance?.toString?.() ?? (member as any).profitBalance ?? 0);
+  const prevOthers = Number((member as any).othersReceived?.toString?.() ?? (member as any).othersReceived ?? 0);
 
   const previousBalance: IAdjustmentBalanceSnapshot = {
     totalDeposit: prevDeposit,
@@ -68,35 +63,13 @@ const createAdjustmentInDB = async (
   let newSavings = prevSavings;
   let newDue = prevDue;
   let newProfit = prevProfit;
+  let newOthers = prevOthers;
   let signedAmount = amount;
 
   // 2. Financial Ledger Recalculation Math
   const normalizedType = adjustmentType.toUpperCase();
   switch (normalizedType) {
-    case "PROFIT": {
-      // Positive amount: $inc { profitBalance: amount }, Negative amount: $inc { profitBalance: -amount }
-      signedAmount = amount;
-      newProfit = Math.max(0, prevProfit + amount);
-      break;
-    }
-
-    case "DEPOSIT": {
-      // Update totalDeposit
-      signedAmount = amount;
-      newDeposit = Math.max(0, prevDeposit + amount);
-      newSavings = Math.max(0, prevSavings + amount);
-      break;
-    }
-
-    case "DUE": {
-      // Update dueAmount
-      signedAmount = amount;
-      newDue = Math.max(0, prevDue + amount);
-      break;
-    }
-
-    case "CREDIT": {
-      // Credit: Add to lifetime deposit. Clear dues first, remainder to advance/savings
+    case "ADD": {
       signedAmount = amount;
       newDeposit = prevDeposit + amount;
       if (prevDue > 0) {
@@ -115,8 +88,7 @@ const createAdjustmentInDB = async (
       break;
     }
 
-    case "DEBIT": {
-      // Debit: Excess payment recorded by mistake. Deduct from lifetime deposit and savings.
+    case "SUB": {
       signedAmount = -Math.abs(amount);
       newDeposit = Math.max(0, prevDeposit - Math.abs(amount));
       if (prevSavings >= Math.abs(amount)) {
@@ -130,18 +102,9 @@ const createAdjustmentInDB = async (
       break;
     }
 
-    case "FEE_REVERSAL": {
-      // Fee Reversal: Waive dues/penalties
+    case "OTHER_RECEIVED": {
       signedAmount = amount;
-      newDue = Math.max(0, prevDue - amount);
-      break;
-    }
-
-    case "OPERATIONAL": {
-      // Operational: Manual adjustments
-      signedAmount = amount;
-      newDeposit = prevDeposit + amount;
-      newSavings = prevSavings + amount;
+      newOthers = prevOthers + amount;
       break;
     }
 
@@ -177,6 +140,7 @@ const createAdjustmentInDB = async (
     previousBalance,
     updatedBalance,
     remarks,
+    isDeleted: false,
   };
 
   if (userId && mongoose.isValidObjectId(userId)) {
@@ -200,11 +164,21 @@ const createAdjustmentInDB = async (
         savingsBalance: newSavings,
         dueAmount: newDue,
         profitBalance: newProfit,
+        othersReceived: newOthers,
       },
       { session, runValidators: true }
     );
 
     await session.commitTransaction();
+
+    await AuditLogServices.createAuditLogInDB({
+      adminName: "Super Admin",
+      adminRole: "Super Admin",
+      action: adjustmentType === "ADD" ? "Due Updated" : "Amount Modified",
+      target: `${member.fullName} (${member.memberCode})`,
+      details: `Balance adjustment of ৳${amount.toLocaleString()} (${adjustmentType}) applied to ${member.fullName}. Remarks: ${remarks || "N/A"}`,
+    }).catch((err) => console.error("Failed to record adjustment audit log:", err));
+
     return createdAdjustment;
   } catch (error: any) {
     if (session) {
@@ -222,9 +196,18 @@ const createAdjustmentInDB = async (
           savingsBalance: newSavings,
           dueAmount: newDue,
           profitBalance: newProfit,
+          othersReceived: newOthers,
         },
         { runValidators: true }
       );
+
+      await AuditLogServices.createAuditLogInDB({
+        adminName: "Super Admin",
+        adminRole: "Super Admin",
+        action: adjustmentType === "ADD" ? "Due Updated" : "Amount Modified",
+        target: `${member.fullName} (${member.memberCode})`,
+        details: `Balance adjustment of ৳${amount.toLocaleString()} (${adjustmentType}) applied to ${member.fullName}. Remarks: ${remarks || "N/A"}`,
+      }).catch((err) => console.error("Failed to record adjustment audit log:", err));
 
       return createdAdjustment;
     }

@@ -97,6 +97,7 @@ export function CreateExpenseView() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
     if (!expenseHead.trim()) {
       toast.error("Please select or enter an Expense Head");
@@ -322,12 +323,15 @@ export function CreateExpenseView() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-7 py-2.5 bg-[#056839] hover:bg-[#04532e] text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-md transition-colors shadow-xs inline-flex items-center justify-center min-w-[90px] cursor-pointer disabled:opacity-50"
+              className="px-7 py-2.5 bg-[#056839] hover:bg-[#04532e] text-white text-xs sm:text-sm font-bold uppercase tracking-wider rounded-md transition-colors shadow-xs inline-flex items-center justify-center gap-2 min-w-[90px] cursor-pointer disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>SAVING...</span>
+                </>
               ) : (
-                "SAVE"
+                <span>SAVE</span>
               )}
             </button>
 

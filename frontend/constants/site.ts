@@ -164,20 +164,8 @@ export const TEAM_MEMBERS: TeamMember[] = [
 ];
 
 // ─── News Articles ──────────────────────────────────────────────────────────────────────────────
-export const NEWS_ARTICLES: NewsArticle[] = [
-  { id: "1",  author: "Admin", date: "July 10, 2024", title: "Annual General Meeting 2026 — All Members Invited", titleBn: "বার্ষিক সাধারণ সভা ২০২৬ — সকল সদস্য আমন্ত্রিত", image: "/images/hero/hero-2.png", images: ["/images/hero/hero-2.png", "/images/hero/hero-2.png", "/images/hero/hero-2.png"], slug: "annual-general-meeting-2026" },
-  { id: "2",  author: "Admin", date: "July 10, 2024", title: "Annual General Meeting 2026 — All Members Invited", titleBn: "বার্ষিক সাধারণ সভা ২০২৬ — সকল সদস্য আমন্ত্রিত", image: "/images/hero/hero-2.png", images: ["/images/hero/hero-2.png", "/images/hero/hero-2.png", "/images/hero/hero-2.png"], slug: "annual-general-meeting-2026-2" },
-  { id: "3",  author: "Admin", date: "July 10, 2024", title: "Annual General Meeting 2026 — All Members Invited", titleBn: "বার্ষিক সাধারণ সভা ২০২৬ — সকল সদস্য আমন্ত্রিত", image: "/images/hero/hero-2.png", images: ["/images/hero/hero-2.png", "/images/hero/hero-2.png", "/images/hero/hero-2.png"], slug: "annual-general-meeting-2026-3" },
-  { id: "4",  author: "Admin", date: "July 10, 2024", title: "Annual General Meeting 2026 — All Members Invited", titleBn: "বার্ষিক সাধারণ সভা ২০২৬ — সকল সদস্য আমন্ত্রিত", image: "/images/hero/hero-2.png", images: ["/images/hero/hero-2.png", "/images/hero/hero-2.png", "/images/hero/hero-2.png"], slug: "annual-general-meeting-2026-4" },
-  { id: "5",  author: "Admin", date: "July 10, 2024", title: "Annual General Meeting 2026 — All Members Invited", titleBn: "বার্ষিক সাধারণ সভা ২০২৬ — সকল সদস্য আমন্ত্রিত", image: "/images/hero/hero-2.png", images: ["/images/hero/hero-2.png", "/images/hero/hero-2.png", "/images/hero/hero-2.png"], slug: "annual-general-meeting-2026-5" },
-  { id: "6",  author: "Admin", date: "July 10, 2024", title: "Annual General Meeting 2026 — All Members Invited", titleBn: "বার্ষিক সাধারণ সভা ২০২৬ — সকল সদস্য আমন্ত্রিত", image: "/images/hero/hero-2.png", images: ["/images/hero/hero-2.png", "/images/hero/hero-2.png", "/images/hero/hero-2.png"], slug: "annual-general-meeting-2026-6" },
-  { id: "7",  author: "Admin", date: "July 10, 2024", title: "Annual General Meeting 2026 — All Members Invited", titleBn: "বার্ষিক সাধারণ সভা ২০২৬ — সকল সদস্য আমন্ত্রিত", image: "/images/hero/hero-2.png", images: ["/images/hero/hero-2.png", "/images/hero/hero-2.png", "/images/hero/hero-2.png"], slug: "annual-general-meeting-2026-7" },
-  { id: "8",  author: "Admin", date: "July 10, 2024", title: "Annual General Meeting 2026 — All Members Invited", titleBn: "বার্ষিক সাধারণ সভা ২০২৬ — সকল সদস্য আমন্ত্রিত", image: "/images/hero/hero-2.png", images: ["/images/hero/hero-2.png", "/images/hero/hero-2.png", "/images/hero/hero-2.png"], slug: "annual-general-meeting-2026-8" },
-  { id: "9",  author: "Admin", date: "July 10, 2024", title: "Annual General Meeting 2026 — All Members Invited", titleBn: "বার্ষিক সাধারণ সভা ২০২৬ — সকল সদস্য আমন্ত্রিত", image: "/images/hero/hero-2.png", images: ["/images/hero/hero-2.png", "/images/hero/hero-2.png", "/images/hero/hero-2.png"], slug: "annual-general-meeting-2026-9" },
-  { id: "10", author: "Admin", date: "July 10, 2024", title: "Annual General Meeting 2026 — All Members Invited", titleBn: "বার্ষিক সাধারণ সভা ২০২৬ — সকল সদস্য আমন্ত্রিত", image: "/images/hero/hero-2.png", images: ["/images/hero/hero-2.png", "/images/hero/hero-2.png", "/images/hero/hero-2.png"], slug: "annual-general-meeting-2026-10" },
-  { id: "11", author: "Admin", date: "July 10, 2024", title: "Annual General Meeting 2026 — All Members Invited", titleBn: "বার্ষিক সাধারণ সভা ২০২৬ — সকল সদস্য আমন্ত্রিত", image: "/images/hero/hero-2.png", images: ["/images/hero/hero-2.png", "/images/hero/hero-2.png", "/images/hero/hero-2.png"], slug: "annual-general-meeting-2026-11" },
-  { id: "12", author: "Admin", date: "July 10, 2024", title: "Annual General Meeting 2026 — All Members Invited", titleBn: "বার্ষিক সাধারণ সভা ২০২৬ — সকল সদস্য আমন্ত্রিত", image: "/images/hero/hero-2.png", images: ["/images/hero/hero-2.png", "/images/hero/hero-2.png", "/images/hero/hero-2.png"], slug: "annual-general-meeting-2026-12" },
-];
+export const NEWS_ARTICLES: NewsArticle[] = [];
+
 
 // ─── Footer Columns ────────────────────────────────────────────────────────────
 export const FOOTER_COLUMNS: FooterColumn[] = [

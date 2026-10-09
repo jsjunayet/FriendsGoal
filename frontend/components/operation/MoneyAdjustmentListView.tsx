@@ -18,13 +18,15 @@ import {
   TMeta,
 } from "@/lib/adjustmentApi";
 import { ExportDropdown } from "@/components/shared";
+import { EmptyState } from "@/components/ui/empty-state";
+import { TableRowsSkeleton } from "@/components/ui/Skeletons";
 
 export function MoneyAdjustmentListView() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [adjustments, setAdjustments] = useState<IAdjustmentRecord[]>([]);
-  const [meta, setMeta] = useState<TMeta>({ page: 1, limit: 10, total: 15, totalPage: 3 });
+  const [meta, setMeta] = useState<TMeta>({ page: 1, limit: 10, total: 0, totalPage: 1 });
 
   const loadAdjustments = async (pageNumber: number = 1) => {
     setLoading(true);
@@ -165,16 +167,18 @@ export function MoneyAdjustmentListView() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-gray-400">
-                    <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#00B074] mb-2" />
-                    Loading adjustments...
-                  </td>
-                </tr>
+                <TableRowsSkeleton cols={7} rows={6} />
               ) : adjustments.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-gray-400">
-                    No adjustment records found for selected period.
+                  <td colSpan={7} className="py-12">
+                    <EmptyState
+                      title="No adjustments found"
+                      description={
+                        fromDate || toDate
+                          ? "No adjustment records found for the selected date range."
+                          : "No balance or fee adjustments have been made yet."
+                      }
+                    />
                   </td>
                 </tr>
               ) : (

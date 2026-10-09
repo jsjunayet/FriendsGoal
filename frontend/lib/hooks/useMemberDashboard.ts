@@ -14,14 +14,15 @@ export function useMemberDashboard() {
   const summaryQuery = useQuery({
     queryKey: MEMBER_DASHBOARD_QUERY_KEY,
     queryFn: () => memberDashboardApi.getDashboardSummary(),
-    staleTime: 1000 * 30, // 30 seconds
+    staleTime: 0,
     refetchOnWindowFocus: true,
   });
 
   const profitQuery = useQuery({
     queryKey: MEMBER_PROFIT_QUERY_KEY,
     queryFn: () => memberDashboardApi.getProfitBalance(),
-    staleTime: 1000 * 15,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const withdrawalMutation = useMutation({

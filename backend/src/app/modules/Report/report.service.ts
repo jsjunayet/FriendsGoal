@@ -1,6 +1,7 @@
 import type { Response } from "express";
 import { Expense } from "../Expense/expense.model";
 import { Investment } from "../Investment/investment.model";
+import { InvestmentIncome } from "../InvestmentIncome/investmentIncome.model";
 import { Collection } from "../Operation/operation.model";
 import { Adjustment } from "../Adjustment/adjustment.model";
 import { streamReportToPdf, IPdfColumnConfig } from "../../services/reportPdfStream.service";
@@ -136,7 +137,7 @@ async function exportInvestmentReport(
   const dateFilter = buildDateFilter("startDate", query.fromDate, query.toDate);
   const filter = { isDeleted: false, ...dateFilter };
 
-  const [summary] = await Investment.aggregate([
+  const [summary] = await InvestmentIncome.aggregate([
     { $match: filter },
     {
       $group: {
@@ -152,7 +153,7 @@ async function exportInvestmentReport(
   const filtersSummary = buildDateRangeSummary(query.fromDate, query.toDate);
   const timestamp = new Date().toISOString().slice(0, 10);
 
-  const cursor = Investment.find(filter)
+  const cursor = InvestmentIncome.find(filter)
     .sort({ numericId: 1 })
     .lean()
     .cursor();
@@ -160,8 +161,8 @@ async function exportInvestmentReport(
   if (format === "excel") {
     const columns: IExcelColumnConfig[] = [
       { header: "ID", key: "numericId", width: 10, alignment: "center" },
-      { header: "INVESTMENT NAME", key: "name", width: 28 },
-      { header: "DATE", key: "startDate", width: 15, alignment: "center", isDate: true },
+      { header: "INVESTMENT NAME", key: "investmentName", width: 28 },
+      { header: "DATE", key: "date", width: 15, alignment: "center", isDate: true },
       { header: "AMOUNT", key: "amount", width: 18, alignment: "right", isCurrency: true },
       { header: "REMARKS", key: "remarks", width: 35 },
     ];
@@ -182,8 +183,8 @@ async function exportInvestmentReport(
   } else {
     const columns: IPdfColumnConfig[] = [
       { header: "ID", key: "numericId", width: 35, align: "center" },
-      { header: "INVESTMENT NAME", key: "name", width: 155 },
-      { header: "DATE", key: "startDate", width: 75, align: "center", isDate: true },
+      { header: "INVESTMENT NAME", key: "investmentName", width: 155 },
+      { header: "DATE", key: "date", width: 75, align: "center", isDate: true },
       { header: "AMOUNT", key: "amount", width: 85, align: "right", isCurrency: true },
       { header: "REMARKS", key: "remarks", width: 173 },
     ];

@@ -16,14 +16,14 @@ export interface IMonthlyCollection {
 }
 
 export const fetchAnalyticsOverview = async (): Promise<IAnalyticsOverview> => {
-  const res = await fetch(`${BASE_URL}/analytics/overview`);
+  const res = await fetch(`${BASE_URL}/analytics/overview`, { cache: "no-store" });
   const json = await res.json();
   if (!json.success) throw new Error(json.message);
   return json.data;
 };
 
 export const fetchMonthlyCollections = async (): Promise<IMonthlyCollection[]> => {
-  const res = await fetch(`${BASE_URL}/analytics/monthly-collections?range=trailing12`);
+  const res = await fetch(`${BASE_URL}/analytics/monthly-collections?range=trailing12`, { cache: "no-store" });
   const json = await res.json();
   if (!json.success) throw new Error(json.message);
   return json.data;

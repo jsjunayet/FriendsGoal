@@ -19,14 +19,14 @@ export function HomeMemberCard({ member, index }: HomeMemberCardProps) {
     getLocalizedText(member.name, lang) ||
     member.fullName ||
     (typeof member.name === "string" ? member.name : "") ||
-    "MD BELAL HOSSAIN";
+    "Member";
 
   const designationText =
     getLocalizedText(member.roleTitle, lang) ||
     (lang === "bn" ? member.designationBn : member.designation) ||
     (lang === "bn" ? member.roleBn : member.role) ||
     member.designation ||
-    "SECRETARY";
+    "";
 
   const photo = member.photoUrl || member.pictureUrl || member.image;
   const hasPhoto = hasValidImage(photo);
