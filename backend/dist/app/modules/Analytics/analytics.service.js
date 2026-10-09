@@ -3,16 +3,30 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AnalyticsServices = void 0;
 const operation_model_1 = require("../Operation/operation.model");
 const expense_model_1 = require("../Expense/expense.model");
-const investment_model_1 = require("../Investment/investment.model");
+const investmentIncome_model_1 = require("../InvestmentIncome/investmentIncome.model");
 const member_model_1 = require("../Member/member.model");
-const adjustment_model_1 = require("../Adjustment/adjustment.model");
 const getOverviewFromDB = async () => {
-    const [collectionSum, expenseSum, memberDueSum, investmentIncomeSum, adjustmentProfitSum,] = await Promise.all([
-        operation_model_1.Collection.aggregate([{ $match: { status: "Paid" } }, { $group: { _id: null, total: { $sum: "$amount" } } }]),
-        expense_model_1.Expense.aggregate([{ $match: { isDeleted: false } }, { $group: { _id: null, total: { $sum: "$amount" } } }]),
-        member_model_1.Member.aggregate([{ $match: { isDeleted: false } }, { $group: { _id: null, total: { $sum: "$dueAmount" } } }]),
-        investment_model_1.Investment.aggregate([{ $match: { isDeleted: false } }, { $group: { _id: null, total: { $sum: "$profitAmount" } } }]), // Assuming profitAmount exists
-        adjustment_model_1.Adjustment.aggregate([{ $match: { isDeleted: false } }, { $group: { _id: null, total: { $sum: "$adjustmentAmount" } } }]),
+    const [memberDepositSum, expenseSum, memberDueSum, investmentIncomeSum, memberOthersSum,] = await Promise.all([
+        member_model_1.Member.aggregate([
+            { $match: { isDeleted: false } },
+            { $group: { _id: null, total: { $sum: "$totalDeposit" } } },
+        ]),
+        expense_model_1.Expense.aggregate([
+            { $match: { isDeleted: false } },
+            { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]),
+        member_model_1.Member.aggregate([
+            { $match: { isDeleted: false } },
+            { $group: { _id: null, total: { $sum: "$dueAmount" } } },
+        ]),
+        investmentIncome_model_1.InvestmentIncome.aggregate([
+            { $match: { isDeleted: false } },
+            { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]),
+        member_model_1.Member.aggregate([
+            { $match: { isDeleted: false } },
+            { $group: { _id: null, total: { $sum: "$othersReceived" } } },
+        ]),
     ]);
     const parseDecimal = (val) => {
         if (!val)
@@ -23,12 +37,12 @@ const getOverviewFromDB = async () => {
             return parseFloat(val.toString());
         return Number(val) || 0;
     };
-    const membersReceived = parseDecimal(collectionSum[0]?.total);
-    const othersReceived = parseDecimal(investmentIncomeSum[0]?.total);
-    const profits = parseDecimal(adjustmentProfitSum[0]?.total);
-    const totalAmounts = membersReceived + othersReceived + profits;
-    const dueAmounts = parseDecimal(memberDueSum[0]?.total);
+    const membersReceived = parseDecimal(memberDepositSum[0]?.total);
+    const othersReceived = parseDecimal(memberOthersSum[0]?.total);
+    const profits = parseDecimal(investmentIncomeSum[0]?.total);
     const expenseAmounts = parseDecimal(expenseSum[0]?.total);
+    const totalAmounts = (membersReceived + othersReceived + profits) - expenseAmounts;
+    const dueAmounts = parseDecimal(memberDueSum[0]?.total);
     return {
         totalAmounts,
         profits,

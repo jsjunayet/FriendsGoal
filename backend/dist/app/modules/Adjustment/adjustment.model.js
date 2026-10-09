@@ -34,16 +34,9 @@ const adjustmentSchema = new mongoose_1.Schema({
     adjustmentType: {
         type: String,
         enum: [
-            "credit",
-            "debit",
-            "fee_reversal",
-            "operational",
-            "PROFIT",
-            "DEPOSIT",
-            "DUE",
-            "profit",
-            "deposit",
-            "due",
+            "ADD",
+            "SUB",
+            "OTHER_RECEIVED",
         ],
         required: [true, "Adjustment type is required"],
     },
@@ -79,6 +72,11 @@ const adjustmentSchema = new mongoose_1.Schema({
         type: String,
         required: [true, "Remarks are required for audit justification"],
         trim: true,
+    },
+    isDeleted: {
+        type: Boolean,
+        default: false,
+        index: true,
     },
     createdBy: {
         type: mongoose_1.Schema.Types.ObjectId,

@@ -13,6 +13,7 @@ declare const _default: {
     cloudinary_api_key: string | undefined;
     cloudinary_api_secret: string | undefined;
     super_admin_password: string | undefined;
+    test_mode: boolean;
 };
 export default _default;
 //# sourceMappingURL=index.d.ts.map

@@ -1,6 +1,6 @@
 "use client";
 
-import { NoticeDetailClient } from "@/app/notice/[slug]/NoticeDetailClient";
+import { NoticeDetailClient } from "@/components/notice/NoticeDetailClient";
 
 export default function NoticeDetailPageClient({ id }: { id: string }) {
   return (
@@ -9,4 +9,3 @@ export default function NoticeDetailPageClient({ id }: { id: string }) {
     </div>
   );
 }
-

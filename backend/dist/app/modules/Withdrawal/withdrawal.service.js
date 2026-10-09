@@ -11,82 +11,6 @@ const withdrawal_model_1 = require("./withdrawal.model");
 const member_model_1 = require("../Member/member.model");
 const auditLog_service_1 = require("../AuditLog/auditLog.service");
 const notification_service_1 = require("../Notification/notification.service");
-const INITIAL_WITHDRAWAL_SEED = [
-    {
-        referenceId: "WD-A3F9C2",
-        memberName: "MD Juwel Hasan",
-        memberCode: "FG-1002",
-        amount: 3200,
-        method: "Mobile Banking",
-        accountDetails: "bKash 01712-334455",
-        reason: "Personal expenses",
-        status: "Pending",
-        submittedAt: new Date("2026-09-12T14:30:00Z"),
-        createdAt: new Date("2026-09-12T14:30:00Z"),
-    },
-    {
-        referenceId: "WD-B7D1E3",
-        memberName: "Sarah Jenkins",
-        memberCode: "FG-1003",
-        amount: 1500,
-        method: "Bank Transfer",
-        accountDetails: "City Bank 10928374829",
-        reason: "Monthly dividend payout",
-        status: "Approved",
-        reviewedByName: "Rania Islam",
-        reviewedAt: new Date("2026-09-11T16:00:00Z"),
-        submittedAt: new Date("2026-09-11T10:15:00Z"),
-        createdAt: new Date("2026-09-11T10:15:00Z"),
-    },
-    {
-        referenceId: "WD-C9E4A1",
-        memberName: "Fatema Begum",
-        memberCode: "FG-1004",
-        amount: 4554,
-        method: "Mobile Banking",
-        accountDetails: "Nagad 01819-887766",
-        reason: "Emergency medical fund",
-        status: "Pending",
-        submittedAt: new Date("2026-09-13T11:20:00Z"),
-        createdAt: new Date("2026-09-13T11:20:00Z"),
-    },
-    {
-        referenceId: "WD-D2F8B7",
-        memberName: "MD Belal Hossain",
-        memberCode: "FG-1005",
-        amount: 6000,
-        method: "Cash Pickup",
-        accountDetails: "Main Office Counter",
-        reason: "Business inventory",
-        status: "Rejected",
-        adminNote: "insufficient profit",
-        reviewedByName: "Tarek Farouq",
-        reviewedAt: new Date("2026-09-12T14:47:00Z"),
-        submittedAt: new Date("2026-09-10T09:00:00Z"),
-        createdAt: new Date("2026-09-10T09:00:00Z"),
-    },
-];
-/**
- * Ensure default records have a linked member if available
- */
-const seedInitialWithdrawalsIfEmpty = async () => {
-    try {
-        await withdrawal_model_1.Withdrawal.collection.dropIndex("id_1");
-    }
-    catch {
-        // Index doesn't exist
-    }
-    const count = await withdrawal_model_1.Withdrawal.countDocuments();
-    if (count === 0) {
-        const firstMember = await member_model_1.Member.findOne({ isDeleted: false });
-        const fallbackMemberId = firstMember?._id || new mongoose_1.default.Types.ObjectId("64d123456789abcdef012345");
-        const docs = INITIAL_WITHDRAWAL_SEED.map((seed) => ({
-            ...seed,
-            memberId: fallbackMemberId,
-        }));
-        await withdrawal_model_1.Withdrawal.insertMany(docs);
-    }
-};
 /**
  * 1. Create a Withdrawal Request & Hold/Deduct from Profit Balance
  */
@@ -100,19 +24,16 @@ const createWithdrawalRequestInDB = async (payload) => {
     if (!member || member.isDeleted) {
         throw new AppError_1.default(http_status_1.default.NOT_FOUND, "Member record not found");
     }
-    const rawProfit = member.profitBalance;
-    const availableProfit = rawProfit != null ? parseFloat(rawProfit.toString()) : 0.0;
-    const rawDeposit = member.depositBalance;
+    const rawDeposit = member.totalDeposit;
     const availableDeposit = rawDeposit != null ? parseFloat(rawDeposit.toString()) : 0.0;
     const rawPending = member.pendingWithdrawal;
     const pendingWithdrawal = rawPending != null ? parseFloat(rawPending.toString()) : 0.0;
-    const totalEligible = availableDeposit + availableProfit - pendingWithdrawal;
-    if (withdrawAmount > totalEligible) {
-        throw new AppError_1.default(http_status_1.default.BAD_REQUEST, `Invalid Amount! You cannot request more than your total available balance of ৳${totalEligible.toFixed(2)}.`);
+    const maxAllowable = Math.max(0, availableDeposit - pendingWithdrawal);
+    if (withdrawAmount > availableDeposit || withdrawAmount > maxAllowable) {
+        throw new AppError_1.default(http_status_1.default.BAD_REQUEST, `You can only request withdrawal from your total deposit amount (৳ ${availableDeposit.toLocaleString()}). Profit balance cannot be withdrawn.`);
     }
-    // Calculate deduction split
-    let profitDeduction = Math.min(availableProfit, withdrawAmount);
-    let depositDeduction = withdrawAmount - profitDeduction;
+    const depositDeduction = withdrawAmount;
+    const profitDeduction = 0;
     const referenceId = (0, withdrawal_model_1.generateWithdrawalReferenceId)();
     const docData = {
         referenceId,
@@ -133,11 +54,10 @@ const createWithdrawalRequestInDB = async (payload) => {
         session.startTransaction();
         const withdrawalDoc = new withdrawal_model_1.Withdrawal(docData);
         const created = await withdrawalDoc.save({ session });
-        // Atomic Ledger Update
+        // Atomic Ledger Update - strictly deducts from totalDeposit, holds in pendingWithdrawal
         await member_model_1.Member.findByIdAndUpdate(member._id, {
             $inc: {
-                profitBalance: -profitDeduction,
-                depositBalance: -depositDeduction,
+                totalDeposit: -depositDeduction,
                 pendingWithdrawal: withdrawAmount,
             },
         }, { session, runValidators: true });
@@ -146,16 +66,16 @@ const createWithdrawalRequestInDB = async (payload) => {
         notification_service_1.NotificationServices.createNotification({
             recipientId: member._id,
             title: "New Withdrawal Request",
-            message: `Member ${member.fullName} requested a withdrawal of ৳${withdrawAmount.toLocaleString()}.`,
+            message: `Member ${member.fullName} requested a withdrawal of ৳${withdrawAmount.toLocaleString()} from deposit.`,
             type: "WITHDRAWAL_REQUEST",
             channel: ["IN_APP"],
             metadata: { withdrawalId: created._id },
         }).catch(err => console.error("Failed to notify admins of withdrawal request:", err));
         return {
             withdrawal: created,
-            profitDeduction,
+            profitDeduction: 0,
             depositDeduction,
-            remainingCombinedBalance: Math.max(0, totalEligible - withdrawAmount),
+            remainingDeposit: Math.max(0, availableDeposit - withdrawAmount),
         };
     }
     catch (error) {
@@ -169,8 +89,7 @@ const createWithdrawalRequestInDB = async (payload) => {
             // Fallback Atomic Ledger Update if replica set is not configured
             await member_model_1.Member.findByIdAndUpdate(member._id, {
                 $inc: {
-                    profitBalance: -profitDeduction,
-                    depositBalance: -depositDeduction,
+                    totalDeposit: -depositDeduction,
                     pendingWithdrawal: withdrawAmount,
                 },
             });
@@ -178,16 +97,16 @@ const createWithdrawalRequestInDB = async (payload) => {
             notification_service_1.NotificationServices.createNotification({
                 recipientId: member._id,
                 title: "New Withdrawal Request",
-                message: `Member ${member.fullName} requested a withdrawal of ৳${withdrawAmount.toLocaleString()}.`,
+                message: `Member ${member.fullName} requested a withdrawal of ৳${withdrawAmount.toLocaleString()} from deposit.`,
                 type: "WITHDRAWAL_REQUEST",
                 channel: ["IN_APP"],
                 metadata: { withdrawalId: created._id },
             }).catch(err => console.error("Failed to notify admins of withdrawal request:", err));
             return {
                 withdrawal: created,
-                profitDeduction,
+                profitDeduction: 0,
                 depositDeduction,
-                remainingCombinedBalance: Math.max(0, totalEligible - withdrawAmount),
+                remainingDeposit: Math.max(0, availableDeposit - withdrawAmount),
             };
         }
         throw error;
@@ -256,18 +175,24 @@ const respondWithdrawalInDB = async (id, payload, adminUser) => {
         await withdrawal.save({ session });
         // 2. Member Ledger balance adjustment
         if (isApproved) {
-            // Clear held amount, increment totalWithdrawn
+            // Clear held pending amount, increment totalWithdrawn
             if (withdrawal.memberId) {
                 await member_model_1.Member.findByIdAndUpdate(withdrawal.memberId, {
-                    $inc: { totalWithdrawn: withdrawal.amount },
+                    $inc: {
+                        totalWithdrawn: withdrawal.amount,
+                        pendingWithdrawal: -withdrawal.amount,
+                    },
                 }, { session });
             }
         }
         else {
-            // Reject: refund held funds back to available profit
+            // Reject: refund held funds back to totalDeposit and clear pending
             if (withdrawal.memberId) {
                 await member_model_1.Member.findByIdAndUpdate(withdrawal.memberId, {
-                    $inc: { profitBalance: withdrawal.amount },
+                    $inc: {
+                        totalDeposit: withdrawal.amount,
+                        pendingWithdrawal: -withdrawal.amount,
+                    },
                 }, { session });
             }
         }
@@ -289,14 +214,20 @@ const respondWithdrawalInDB = async (id, payload, adminUser) => {
             if (isApproved) {
                 if (withdrawal.memberId) {
                     await member_model_1.Member.findByIdAndUpdate(withdrawal.memberId, {
-                        $inc: { totalWithdrawn: withdrawal.amount },
+                        $inc: {
+                            totalWithdrawn: withdrawal.amount,
+                            pendingWithdrawal: -withdrawal.amount,
+                        },
                     });
                 }
             }
             else {
                 if (withdrawal.memberId) {
                     await member_model_1.Member.findByIdAndUpdate(withdrawal.memberId, {
-                        $inc: { profitBalance: withdrawal.amount },
+                        $inc: {
+                            totalDeposit: withdrawal.amount,
+                            pendingWithdrawal: -withdrawal.amount,
+                        },
                     });
                 }
             }
@@ -335,7 +266,6 @@ const respondWithdrawalInDB = async (id, payload, adminUser) => {
  * 3. Get All Withdrawal Requests with counts & pagination
  */
 const getWithdrawalsFromDB = async (query) => {
-    await seedInitialWithdrawalsIfEmpty();
     const filter = {};
     if (query.memberId) {
         filter.memberId = new mongoose_1.default.Types.ObjectId(query.memberId);

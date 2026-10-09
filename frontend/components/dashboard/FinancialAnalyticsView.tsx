@@ -13,6 +13,7 @@ import {
   MoreHorizontal,
   ArrowRight,
   Menu,
+  Download,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -30,6 +31,7 @@ import { fetchDueListApi, IDueListItem } from "../../lib/operationApi";
 import { useEffect } from "react";
 import { AdminDashboardSkeleton } from "@/components/ui/Skeletons";
 import { useNotifications } from "@/lib/hooks/useNotifications";
+import { downloadDynamicPdf } from "@/lib/pdfGenerator";
 
 // Static arrays removed, using state directly
 
@@ -135,6 +137,34 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
     { name: "Expense", value: Math.round((overview.expenseAmounts / totalPerf) * 100), color: "#EF4444" },
   ] : [];
 
+  const handleExportReport = () => {
+    if (!overview) return;
+    downloadDynamicPdf({
+      filename: "Financial_Analytics_Report",
+      reportTitle: "FINANCIAL ANALYTICS & SUMMARY REPORT",
+      subtitle: "Friends Goal Organization Management Platform",
+      filtersSummary: "Annual Financial Summary & KPI Overview",
+      kpis: [
+        { label: "Total Amounts", value: `BDT ${overview.totalAmounts.toLocaleString()}` },
+        { label: "Total Profits", value: `BDT ${overview.profits.toLocaleString()}` },
+        { label: "Members Received", value: `BDT ${overview.membersReceived.toLocaleString()}` },
+        { label: "Due Amounts", value: `BDT ${overview.dueAmounts.toLocaleString()}` },
+      ],
+      columns: [
+        { header: "METRIC CATEGORY", dataKey: "category", widthPercent: 55, align: "left" },
+        { header: "TOTAL AMOUNT (BDT)", dataKey: "amount", widthPercent: 45, align: "right", isCurrency: true },
+      ],
+      rows: [
+        { category: "Total Gross Collections", amount: overview.totalAmounts },
+        { category: "Accumulated Profits", amount: overview.profits },
+        { category: "Members Subscription Received", amount: overview.membersReceived },
+        { category: "Other Revenues Received", amount: overview.othersReceived },
+        { category: "Outstanding Member Dues", amount: overview.dueAmounts },
+        { category: "Total Operating Expenses", amount: overview.expenseAmounts },
+      ],
+    });
+  };
+
   if (loading) {
     return <AdminDashboardSkeleton />;
   }
@@ -164,14 +194,26 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
           </div>
         </div>
 
-        {/* Bell Notification Button */}
-        <div className="relative">
+        {/* Right Header: Export Button & Bell Notification */}
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-            className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors shadow-xs relative cursor-pointer"
-            aria-label="Toggle notifications"
+            onClick={handleExportReport}
+            className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#0E3B6C] hover:bg-[#0A294B] text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors cursor-pointer"
+            title="Download Financial Analytics Summary PDF"
           >
+            <Download className="w-4 h-4 text-white" />
+            <span className="hidden sm:inline">Export PDF</span>
+          </button>
+
+          {/* Bell Notification Button */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+              className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors shadow-xs relative cursor-pointer"
+              aria-label="Toggle notifications"
+            >
             <Bell className="w-4 h-4 text-gray-700" />
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#EF4444] text-white text-[10px] font-bold flex items-center justify-center border-2 border-white shadow-xs">
@@ -191,6 +233,7 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
             onMarkAsRead={markAsRead}
             onMarkAllAsRead={markAllAsRead}
           />
+        </div>
         </div>
       </header>
 

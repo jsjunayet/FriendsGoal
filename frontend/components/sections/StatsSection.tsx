@@ -7,23 +7,45 @@ import { useTranslation } from "@/context/LanguageContext";
 import { getStatsApi, type StatCounterItem } from "@/lib/statsApi";
 import { getLocalizedText } from "@/lib/i18nHelpers";
 
+const DEFAULT_FALLBACK_STATS: StatCounterItem[] = [
+  {
+    _id: "default-1",
+    key: "active_members",
+    label: { bn: "সক্রিয় সদস্য", en: "ACTIVE MEMBERS" },
+    value: "111+",
+    order: 1,
+  },
+  {
+    _id: "default-2",
+    key: "projects",
+    label: { bn: "চলমান ও সফল প্রকল্প", en: "PROJECTS" },
+    value: "70+",
+    order: 2,
+  },
+  {
+    _id: "default-3",
+    key: "years_serving",
+    label: { bn: "সেবার বছর", en: "YEARS SERVING" },
+    value: "3+",
+    order: 3,
+  },
+];
+
 export function StatsSection() {
   const containerRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(containerRef, { once: true, margin: "-100px" });
   const { lang, t } = useTranslation();
-  const [stats, setStats] = useState<StatCounterItem[]>([]);
+  const [stats, setStats] = useState<StatCounterItem[]>(DEFAULT_FALLBACK_STATS);
 
   useEffect(() => {
     getStatsApi()
       .then((data) => {
-        if (data && data.length > 0) setStats(data);
+        if (data && Array.isArray(data) && data.length > 0) {
+          setStats(data);
+        }
       })
       .catch(() => {});
   }, []);
-
-  if (!stats || stats.length === 0) {
-    return null;
-  }
 
   const statList = stats.map((s) => {
     const numMatch = s.value.match(/(\d+)(.*)/);

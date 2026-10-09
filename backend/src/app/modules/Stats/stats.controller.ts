@@ -34,8 +34,19 @@ const createStat = catchAsync(async (req, res) => {
   });
 });
 
+const bulkUpdateStats = catchAsync(async (req, res) => {
+  const result = await StatService.bulkUpsertStatsInDB(req.body);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Stat counters updated successfully",
+    data: result,
+  });
+});
+
 export const StatController = {
   getAllStats,
   updateStat,
+  bulkUpdateStats,
   createStat,
 };

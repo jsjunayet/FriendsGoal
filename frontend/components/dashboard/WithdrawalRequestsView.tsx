@@ -11,6 +11,7 @@ import {
   RefreshCw,
   AlertCircle,
   Clock,
+  Printer,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -19,6 +20,7 @@ import {
   IWithdrawalCounts,
   TWithdrawalStatus,
 } from "@/lib/withdrawalApi";
+import { printWithdrawalReceipt } from "@/lib/receiptGenerator";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TableRowsSkeleton } from "@/components/ui/Skeletons";
 
@@ -372,16 +374,39 @@ export default function WithdrawalRequestsView() {
                               onClick={() => handleToggleExpand(item)}
                               className={`px-3.5 py-1 rounded-md text-xs font-semibold transition-all ${
                                 isExpanded
-                                  ? "bg-[#00B074] text-white shadow-xs"
-                                  : "bg-[#EAF8F1] text-[#00B074] hover:bg-[#D7F3E5]"
+                                  ? "bg-[#0E3B6C] text-white shadow-xs"
+                                  : "bg-[#0E3B6C]/10 text-[#0E3B6C] hover:bg-[#0E3B6C]/20"
                               }`}
                             >
                               Respond
                             </button>
                           ) : (
-                            <span className="text-xs text-gray-400">
-                              {item.reviewedByName || "Admin"}
-                            </span>
+                            <div className="flex items-center justify-end gap-2">
+                              <span className="text-xs text-gray-400">
+                                {item.reviewedByName || "Admin"}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  printWithdrawalReceipt({
+                                    referenceId: item.referenceId,
+                                    memberName: item.memberName,
+                                    amount: item.amount,
+                                    method: item.method,
+                                    accountDetails: item.accountDetails,
+                                    submittedDate: item.submittedDate,
+                                    status: item.status,
+                                    reviewedByName: item.reviewedByName,
+                                    adminNote: item.adminNote,
+                                  })
+                                }
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold text-[#0E3B6C] bg-[#0E3B6C]/10 hover:bg-[#0E3B6C]/20 transition-colors cursor-pointer"
+                                title="Print / Download Withdrawal Receipt PDF"
+                              >
+                                <Printer className="w-3.5 h-3.5 text-[#0E3B6C]" />
+                                <span>Receipt</span>
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>

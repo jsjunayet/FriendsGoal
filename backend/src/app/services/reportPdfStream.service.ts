@@ -25,25 +25,26 @@ export interface IStreamPdfOptions {
 }
 
 /**
- * Draw the Friends Goal vector brand logo (emerald badge with growth equalizer bars).
+ * Draw the Friends Goal official vector brand logo badge (Navy ring with Crimson FG).
  */
 export function drawBrandLogo(doc: PDFKit.PDFDocument, x: number, y: number, size = 32) {
   doc.save();
-  // Emerald rounded square #046A38
-  doc.roundedRect(x, y, size, size, 6).fill("#046A38");
+  const radius = size / 2;
+  const centerX = x + radius;
+  const centerY = y + radius;
 
-  // 4 equalizer bars representing growth and somiti cooperation
-  const pillarWidth = 2.5;
-  const gap = 2.5;
-  const startX = x + (size - (4 * pillarWidth + 3 * gap)) / 2;
-  const baseY = y + size - 7;
-  const heights = [8, 17, 13, 7];
+  // Navy outer circle ring
+  doc.lineWidth(2).circle(centerX, centerY, radius - 1).fillAndStroke("#FFFFFF", "#0E3B6C");
 
-  heights.forEach((h, i) => {
-    doc
-      .roundedRect(startX + i * (pillarWidth + gap), baseY - h, pillarWidth, h, 1)
-      .fill("#FFFFFF");
-  });
+  // Bold "FG" text in Crimson Red
+  doc
+    .fontSize(size * 0.44)
+    .font("Helvetica-Bold")
+    .fillColor("#C0262D")
+    .text("FG", x, centerY - size * 0.22, {
+      width: size,
+      align: "center",
+    });
 
   doc.restore();
 }
@@ -120,7 +121,7 @@ export async function streamReportToPdf(
     doc
       .fontSize(14)
       .font("Helvetica-Bold")
-      .fillColor("#046A38")
+      .fillColor("#0E3B6C") // #0E3B6C
       .text(organizationName, margin + 40, topY + 2);
 
     doc
@@ -142,15 +143,15 @@ export async function streamReportToPdf(
     doc
       .fontSize(8)
       .font("Helvetica")
-      .fillColor("#046A38")
+      .fillColor("#C0262D") // Crimson Red #C0262D
       .text(website, margin, topY + 18, {
         width: contentWidth,
         align: "right",
       });
 
-    // Divider Line
+    // Divider Line in Navy Blue
     doc
-      .strokeColor("#046A38")
+      .strokeColor("#0E3B6C")
       .lineWidth(1.5)
       .moveTo(margin, topY + 38)
       .lineTo(margin + contentWidth, topY + 38)
@@ -190,7 +191,7 @@ export async function streamReportToPdf(
           doc
             .fontSize(7.5)
             .font("Helvetica-Bold")
-            .fillColor("#046A38")
+            .fillColor("#0E3B6C")
             .text(`${kpi.label}: `, kpiX, kpiY, { continued: true })
             .font("Helvetica-Bold")
             .fillColor("#0F172A")
@@ -218,10 +219,10 @@ export async function streamReportToPdf(
       if (h > maxHeaderHeight) maxHeaderHeight = h;
     }
 
-    // Header background #046A38
+    // Header background #0E3B6C Deep Navy
     doc
       .roundedRect(margin, startY, contentWidth, maxHeaderHeight, 2)
-      .fill("#046A38");
+      .fill("#0E3B6C");
 
     let currentX = margin;
     doc.fontSize(8.5).font("Helvetica-Bold").fillColor("#FFFFFF");
@@ -369,10 +370,10 @@ export async function streamReportToPdf(
 
     doc
       .rect(margin, currentY, contentWidth, summaryRowHeight)
-      .fill("#E8F5E9");
+      .fill("#F1F5F9");
 
     doc
-      .strokeColor("#046A38")
+      .strokeColor("#0E3B6C")
       .lineWidth(1)
       .moveTo(margin, currentY)
       .lineTo(margin + contentWidth, currentY)
@@ -392,11 +393,11 @@ export async function streamReportToPdf(
       }
     }
 
-    // Print merged full-width total label so multi-word headers like DIRECTORY TOTALS, TOTAL COLLECTION, TOTAL EXPENSE remain single-line
+    // Print merged full-width total label
     doc
       .fontSize(8.5)
       .font("Helvetica-Bold")
-      .fillColor("#046A38")
+      .fillColor("#0E3B6C")
       .text(grandTotalLabel.toUpperCase(), margin + 6, currentY + 6, {
         width: mergedLabelWidth - 12,
         align: "left",
@@ -417,7 +418,7 @@ export async function streamReportToPdf(
         doc
           .fontSize(8.5)
           .font("Helvetica-Bold")
-          .fillColor("#046A38")
+          .fillColor("#C0262D") // Crimson Red #C0262D
           .text(formatCurrency(sumVal), textX, currentY + 6, {
             width: textW,
             align,
@@ -430,14 +431,14 @@ export async function streamReportToPdf(
     currentY += summaryRowHeight;
   }
 
-  // 8. Dynamic Page Numbering & Footer Stamping ("Page X of Y")
+  // 8. Dynamic Page Numbering, Disclaimer Note & Brand Dual-Color Bottom Accent Bar
   const pages = doc.bufferedPageRange();
   const totalPages = pages.count;
 
   for (let i = 0; i < totalPages; i++) {
     doc.switchToPage(i);
 
-    const footerY = pageHeight - margin - 15;
+    const footerY = pageHeight - margin - 18;
 
     // Thin top border
     doc
@@ -447,9 +448,9 @@ export async function streamReportToPdf(
       .lineTo(margin + contentWidth, footerY - 5)
       .stroke();
 
-    // Footer Left: Printed By & System Identification
+    // Footer Left: System Identification & Disclaimer
     doc
-      .fontSize(7.5)
+      .fontSize(7)
       .font("Helvetica")
       .fillColor("#94A3B8")
       .text(
@@ -463,11 +464,29 @@ export async function streamReportToPdf(
     doc
       .fontSize(7.5)
       .font("Helvetica-Bold")
-      .fillColor("#64748B")
+      .fillColor("#0E3B6C")
       .text(`Page ${i + 1} of ${totalPages}`, margin, footerY, {
         width: contentWidth,
         align: "right",
       });
+
+    // Auto-generated disclaimer note
+    doc
+      .fontSize(6.5)
+      .font("Helvetica")
+      .fillColor("#64748B")
+      .text(
+        "This is an auto-generated document, no signature required.",
+        margin,
+        footerY + 9,
+        { width: contentWidth, align: "left" }
+      );
+
+    // Dual-Tone Bottom Accent Bar (Crimson Red Left 50% + Deep Navy Right 50%)
+    const barY = pageHeight - 5;
+    const halfWidth = pageWidth / 2;
+    doc.rect(0, barY, halfWidth, 5).fill("#C0262D");
+    doc.rect(halfWidth, barY, halfWidth, 5).fill("#0E3B6C");
   }
 
   // 9. Finalize and close stream

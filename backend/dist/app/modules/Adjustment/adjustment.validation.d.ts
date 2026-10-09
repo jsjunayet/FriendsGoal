@@ -4,16 +4,9 @@ export declare const AdjustmentValidation: {
         body: z.ZodObject<{
             memberId: z.ZodString;
             adjustmentType: z.ZodEnum<{
-                DEPOSIT: "DEPOSIT";
-                DUE: "DUE";
-                PROFIT: "PROFIT";
-                credit: "credit";
-                debit: "debit";
-                deposit: "deposit";
-                due: "due";
-                fee_reversal: "fee_reversal";
-                operational: "operational";
-                profit: "profit";
+                ADD: "ADD";
+                OTHER_RECEIVED: "OTHER_RECEIVED";
+                SUB: "SUB";
             }>;
             adjustmentDate: z.ZodOptional<z.ZodString>;
             adjustmentAmount: z.ZodNumber;

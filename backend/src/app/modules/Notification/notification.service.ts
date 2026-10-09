@@ -9,6 +9,19 @@ import { Member } from "../Member/member.model";
 const createNotification = async (payload: Partial<INotification>) => {
   const result = await Notification.create(payload);
   
+  // Resolve member if available for multi-room broadcasting & email lookup
+  let member: any = null;
+  if (payload.recipientId) {
+    const idStr = String(payload.recipientId);
+    if (idStr.match(/^[0-9a-fA-F]{24}$/)) {
+      member = await Member.findById(idStr);
+    } else {
+      member = await Member.findOne({
+        $or: [{ memberCode: idStr }, { email: idStr }],
+      } as any);
+    }
+  }
+
   if (payload.channel?.includes("IN_APP")) {
     const io = getIO();
     if (io) {
@@ -18,12 +31,24 @@ const createNotification = async (payload: Partial<INotification>) => {
         io.to(recipientRoom).emit("new-notification", result);
         io.to(recipientRoom).emit("new_notification", result);
 
+        // Also emit to memberCode room if different from recipientRoom
+        if (member?.memberCode && member.memberCode !== recipientRoom) {
+          io.to(member.memberCode).emit("new-notification", result);
+          io.to(member.memberCode).emit("new_notification", result);
+        }
+
         // Emit updated unread count to recipient
         const unreadCount = await Notification.countDocuments({
-          recipientId: payload.recipientId,
+          $or: [
+            { recipientId: payload.recipientId },
+            ...(member ? [{ recipientId: member._id }] : []),
+          ],
           isRead: false,
         });
         io.to(recipientRoom).emit("unread_count_updated", { unreadCount });
+        if (member?.memberCode && member.memberCode !== recipientRoom) {
+          io.to(member.memberCode).emit("unread_count_updated", { unreadCount });
+        }
       }
 
       // Broadcast to admin-room for admins to see live system activity
@@ -53,7 +78,7 @@ const createNotification = async (payload: Partial<INotification>) => {
 
   // Handle email sending
   if (payload.channel?.includes("EMAIL") && payload.recipientId) {
-    const user = (await Member.findById(payload.recipientId)) || (await User.findById(payload.recipientId));
+    const user = member || (await User.findById(payload.recipientId)) || (await User.findOne({ id: String(payload.recipientId) } as any));
     if (user && user.email) {
       const isHtml = payload.message?.includes("<div") || payload.message?.includes("<p>");
       const html = isHtml
@@ -64,9 +89,10 @@ const createNotification = async (payload: Partial<INotification>) => {
           <p>${payload.message}</p>
         </div>
       `;
-      await sendEmail(user.email, payload.title || "Notification", html as string, payload.message).catch((err) =>
-        console.error("Email send error:", err)
-      );
+      console.log(`📧 Sending notification email to: ${user.email} [${payload.title}]`);
+      await sendEmail(user.email, payload.title || "Notification", html as string, payload.message)
+        .then(() => console.log(`✅ Notification email delivered to ${user.email}`))
+        .catch((err) => console.error(`❌ Email send error to ${user.email}:`, err));
     }
   }
 
@@ -87,12 +113,22 @@ const getUserNotifications = async (userId: string, role: string, query: any) =>
   const limit = Number(query.limit) || 20;
   const skip = (page - 1) * limit;
 
+  // Resolve member _id if userId is memberCode
+  let targetId = userId;
+  if (typeof userId === "string" && !userId.match(/^[0-9a-fA-F]{24}$/)) {
+    const member = await Member.findOne({ memberCode: userId });
+    if (member) targetId = member._id.toString();
+  }
+
   // Build filter query
-  let filterQuery: any = { recipientId: userId };
+  let filterQuery: any = {
+    $or: [{ recipientId: targetId }, { recipientId: userId }],
+  };
   
   if (role === "admin" || role === "superAdmin" || role === "manager") {
     filterQuery = {
       $or: [
+        { recipientId: targetId },
         { recipientId: userId },
         { type: { $in: ADMIN_VISIBLE_TYPES } },
       ],
@@ -122,8 +158,14 @@ const getUserNotifications = async (userId: string, role: string, query: any) =>
 };
 
 const getPendingPopups = async (userId: string) => {
+  let targetId = userId;
+  if (typeof userId === "string" && !userId.match(/^[0-9a-fA-F]{24}$/)) {
+    const member = await Member.findOne({ memberCode: userId });
+    if (member) targetId = member._id.toString();
+  }
+
   const data = await Notification.find({
-    recipientId: userId,
+    $or: [{ recipientId: targetId }, { recipientId: userId }],
     requiresAction: true,
     isAcknowledged: false,
   }).sort({ createdAt: -1 });

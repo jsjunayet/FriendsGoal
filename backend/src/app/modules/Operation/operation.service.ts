@@ -371,14 +371,16 @@ const initMonthlyAutoBillingCron = () => {
           description: `Monthly fee charge of ${chargeAmount} BDT for ${currentMonth}`,
         });
 
-        if (billStatus === "Due") {
+        if (billStatus === "Due" || newDue > 0) {
           const htmlBody = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 8px;">
-              <h2 style="color: #F59E0B;">New Monthly Due Allocated</h2>
+              <h2 style="color: #DC2626;">New Monthly Due Allocated</h2>
               <p>Dear <strong>${member.fullName}</strong>,</p>
-              <p>Your monthly due of <strong>৳${chargeAmount}</strong> for <strong>${currentMonth}</strong> has been allocated.</p>
-              <p>Your new total due balance is <strong>৳${newDue}</strong>.</p>
-              <p>Please log in to the portal to acknowledge and proceed with payment.</p>
+              <p>Your monthly fee of <strong>৳${chargeAmount}</strong> for <strong>${currentMonth}</strong> has been allocated.</p>
+              <p>Your total outstanding due balance is now <strong style="color: #DC2626; font-size: 16px;">৳${newDue}</strong>.</p>
+              <p>Please log in to your dashboard to acknowledge and proceed with payment.</p>
+              <br/>
+              <p style="color: #6B7280; font-size: 13px;">Thank you,<br/>Friends Goal Society</p>
             </div>
           `;
 
@@ -390,7 +392,29 @@ const initMonthlyAutoBillingCron = () => {
             channel: ["IN_APP", "EMAIL", "SMS"],
             requiresAction: true,
             metadata: { billingMonth: currentMonth, amount: chargeAmount, newDue },
-          }).catch((err) => console.error("Failed to send due allocation alert", err));
+          }).catch((err) => console.error("Failed to send due allocation alert:", err));
+        } else {
+          // Bill status is Paid (fully deducted from advance / savings balance)
+          const htmlBody = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 8px;">
+              <h2 style="color: #059669;">Monthly Fee Deducted from Advance</h2>
+              <p>Dear <strong>${member.fullName}</strong>,</p>
+              <p>Your monthly subscription fee of <strong>৳${chargeAmount}</strong> for <strong>${currentMonth}</strong> has been successfully deducted from your advance/savings balance.</p>
+              <p>Your remaining advance balance is <strong>৳${newAdvance}</strong>.</p>
+              <br/>
+              <p style="color: #6B7280; font-size: 13px;">Thank you,<br/>Friends Goal Society</p>
+            </div>
+          `;
+
+          await NotificationServices.createNotification({
+            recipientId: member._id,
+            title: "Monthly Fee Deducted from Advance",
+            message: htmlBody,
+            type: "GENERAL",
+            channel: ["IN_APP", "EMAIL"],
+            requiresAction: false,
+            metadata: { billingMonth: currentMonth, amount: chargeAmount, remainingAdvance: newAdvance },
+          }).catch((err) => console.error("Failed to send advance deduction alert:", err));
         }
       }
       console.log(`✅ Monthly Auto-Billing executed for ${activeMembers.length} active members.`);

@@ -22,6 +22,7 @@ import {
   type IMember,
 } from "@/lib/memberApi";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
+import { MemberDownloadDropdown } from "./MemberDownloadDropdown";
 import { NotificationPopover } from "@/components/dashboard/NotificationPopover";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExportDropdown } from "@/components/shared";
@@ -251,7 +252,8 @@ export function MemberListTable({ onToggleMobileSidebar }: MemberListTableProps)
 
                     {/* Action */}
                     <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2.5">
+                      <div className="flex items-center justify-end gap-2">
+                        <MemberDownloadDropdown member={member} size="sm" align="right" />
                         <Link
                           href={`/dashboard/member/${member._id}`}
                           className="p-1.5 rounded-lg text-gray-500 hover:text-[#00B074] hover:bg-emerald-50 transition-colors cursor-pointer"

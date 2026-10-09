@@ -48,6 +48,9 @@ app.use((0, cors_1.default)({
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 }));
+const path_1 = __importDefault(require("path"));
+// Serve static uploads
+app.use("/uploads", express_1.default.static(path_1.default.join(process.cwd(), "uploads")));
 // Application routes
 app.use("/api/v1", index_1.default);
 app.get("/", (req, res) => {

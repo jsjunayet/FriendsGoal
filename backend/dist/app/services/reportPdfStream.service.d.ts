@@ -24,7 +24,7 @@ export interface IStreamPdfOptions {
     grandTotalLabel?: string;
 }
 /**
- * Draw the Friends Goal vector brand logo (emerald badge with growth equalizer bars).
+ * Draw the Friends Goal official vector brand logo badge (Navy ring with Crimson FG).
  */
 export declare function drawBrandLogo(doc: PDFKit.PDFDocument, x: number, y: number, size?: number): void;
 /**

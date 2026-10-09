@@ -44,7 +44,7 @@ async function streamMemberProfileToPdf(res, options) {
         doc
             .fontSize(14)
             .font("Helvetica-Bold")
-            .fillColor("#046A38")
+            .fillColor("#0E3B6C")
             .text(organizationName, margin + 40, topY + 2);
         doc
             .fontSize(8.5)
@@ -62,14 +62,14 @@ async function streamMemberProfileToPdf(res, options) {
         doc
             .fontSize(8)
             .font("Helvetica")
-            .fillColor("#046A38")
+            .fillColor("#C0262D")
             .text(website, margin, topY + 18, {
             width: contentWidth,
             align: "right",
         });
         // Divider Line
         doc
-            .strokeColor("#046A38")
+            .strokeColor("#0E3B6C")
             .lineWidth(1.5)
             .moveTo(margin, topY + 38)
             .lineTo(margin + contentWidth, topY + 38)
@@ -160,10 +160,10 @@ async function streamMemberProfileToPdf(res, options) {
     const cardWidth = (contentWidth - (numCards - 1) * cardGap) / numCards; // ~124 pt
     const cardHeight = 44;
     const kpiData = [
-        { label: "TOTAL DEPOSIT", value: formatCurrency(totalDeposit), color: "#046A38", bg: "#EAF8F1" },
-        { label: "PROFIT BALANCE", value: formatCurrency(profitBalance), color: "#2563EB", bg: "#EFF6FF" },
+        { label: "TOTAL DEPOSIT", value: formatCurrency(totalDeposit), color: "#0E3B6C", bg: "#F1F5F9" },
+        { label: "PROFIT BALANCE", value: formatCurrency(profitBalance), color: "#0288D1", bg: "#EFF6FF" },
         { label: "PENDING WITHDRAWAL", value: formatCurrency(pendingWithdrawals), color: "#D97706", bg: "#FFFBEB" },
-        { label: "CURRENT DUE", value: formatCurrency(dueAmount), color: "#DC2626", bg: "#FEF2F2" },
+        { label: "CURRENT DUE", value: formatCurrency(dueAmount), color: "#C0262D", bg: "#FEF2F2" },
     ];
     kpiData.forEach((kpi, idx) => {
         const cardX = margin + idx * (cardWidth + cardGap);
@@ -196,13 +196,13 @@ async function streamMemberProfileToPdf(res, options) {
         { header: "REMARKS", width: 150, align: "left" },
     ];
     const drawTableHeader = (y) => {
-        const rowHeight = 18;
-        doc.roundedRect(margin, y, contentWidth, rowHeight, 2).fill("#046A38");
+        const rowHeight = 20;
+        doc.roundedRect(margin, y, contentWidth, rowHeight, 2).fill("#0E3B6C");
         let colX = margin;
-        doc.fontSize(7.5).font("Helvetica-Bold").fillColor("#FFFFFF");
+        doc.fontSize(8).font("Helvetica-Bold").fillColor("#FFFFFF");
         tableColumns.forEach((col) => {
             const padX = 4;
-            doc.text(col.header, colX + padX, y + 4.5, {
+            doc.text(col.header, colX + padX, y + 5.5, {
                 width: col.width - 2 * padX,
                 align: col.align,
             });
@@ -211,7 +211,6 @@ async function streamMemberProfileToPdf(res, options) {
         return y + rowHeight;
     };
     currentY = drawTableHeader(currentY);
-    const rowHeight = 17;
     if (transactions.length === 0) {
         doc.rect(margin, currentY, contentWidth, 24).fill("#F8FAFC");
         doc
@@ -226,40 +225,45 @@ async function streamMemberProfileToPdf(res, options) {
     }
     else {
         transactions.forEach((tx, idx) => {
-            if (currentY + rowHeight > bottomBoundary) {
+            const remarksText = tx.remarks || "-";
+            doc.fontSize(7.5).font("Helvetica");
+            const remarksHeight = doc.heightOfString(remarksText, { width: 150 - 8 }) + 8;
+            const dynamicRowHeight = Math.max(18, remarksHeight);
+            if (currentY + dynamicRowHeight > bottomBoundary) {
                 doc.addPage();
                 currentY = drawHeader(false);
                 currentY = drawTableHeader(currentY);
             }
             const isEven = idx % 2 === 0;
             if (isEven) {
-                doc.rect(margin, currentY, contentWidth, rowHeight).fill("#F8FAFC");
+                doc.rect(margin, currentY, contentWidth, dynamicRowHeight).fill("#F8FAFC");
             }
             doc
                 .strokeColor("#E2E8F0")
                 .lineWidth(0.5)
-                .moveTo(margin, currentY + rowHeight)
-                .lineTo(margin + contentWidth, currentY + rowHeight)
+                .moveTo(margin, currentY + dynamicRowHeight)
+                .lineTo(margin + contentWidth, currentY + dynamicRowHeight)
                 .stroke();
             let cellX = margin;
             const amountVal = Number(tx.amount) || 0;
             // Date
             doc.fontSize(7.5).font("Helvetica").fillColor("#1E293B");
-            doc.text(formatDate(tx.date), cellX + 4, currentY + 4, { width: 60, ellipsis: true });
+            doc.text(formatDate(tx.date), cellX + 4, currentY + 4, { width: 68 - 8, lineBreak: true });
             cellX += 68;
             // Type
-            doc.text(tx.type || "-", cellX + 4, currentY + 4, { width: 72, ellipsis: true });
+            doc.text(tx.type || "-", cellX + 4, currentY + 4, { width: 80 - 8, lineBreak: true });
             cellX += 80;
             // Ref / Receipt
-            doc.text(tx.reference || "-", cellX + 4, currentY + 4, { width: 77, ellipsis: true });
+            doc.text(tx.reference || "-", cellX + 4, currentY + 4, { width: 85 - 8, lineBreak: true });
             cellX += 85;
             // Amount
             doc
                 .font("Helvetica-Bold")
                 .fillColor(amountVal >= 0 ? "#046A38" : "#DC2626")
                 .text(formatCurrency(amountVal), cellX + 4, currentY + 4, {
-                width: 72,
+                width: 80 - 8,
                 align: "right",
+                lineBreak: true,
             });
             cellX += 80;
             // Status
@@ -271,21 +275,22 @@ async function streamMemberProfileToPdf(res, options) {
                     : "#DC2626";
             doc.font("Helvetica-Bold").fillColor(statusColor);
             doc.text(String(tx.status || "Completed").toUpperCase(), cellX + 4, currentY + 4, {
-                width: 52,
+                width: 60 - 8,
                 align: "center",
+                lineBreak: true,
             });
             cellX += 60;
-            // Remarks
+            // Remarks (Auto-wrapped dynamic text)
             doc.font("Helvetica").fillColor("#475569");
-            doc.text(tx.remarks || "-", cellX + 4, currentY + 4, { width: 142, ellipsis: true });
-            currentY += rowHeight;
+            doc.text(remarksText, cellX + 4, currentY + 4, { width: 150 - 8, align: "left", lineBreak: true });
+            currentY += dynamicRowHeight;
         });
     }
     // 7. Dynamic Page Numbering & Footer
     const pages = doc.bufferedPageRange();
     for (let i = 0; i < pages.count; i++) {
         doc.switchToPage(i);
-        const footerY = pageHeight - margin - 15;
+        const footerY = pageHeight - margin - 18;
         doc
             .strokeColor("#E2E8F0")
             .lineWidth(0.5)
@@ -293,18 +298,29 @@ async function streamMemberProfileToPdf(res, options) {
             .lineTo(margin + contentWidth, footerY - 5)
             .stroke();
         doc
-            .fontSize(7.5)
+            .fontSize(7)
             .font("Helvetica")
             .fillColor("#94A3B8")
             .text(`Generated: ${new Date().toLocaleString()}  |  Printed By: ${printedBy}  |  ${organizationName}`, margin, footerY, { width: contentWidth * 0.7, align: "left" });
         doc
             .fontSize(7.5)
             .font("Helvetica-Bold")
-            .fillColor("#64748B")
+            .fillColor("#0E3B6C")
             .text(`Page ${i + 1} of ${pages.count}`, margin, footerY, {
             width: contentWidth,
             align: "right",
         });
+        // Auto-generated disclaimer note
+        doc
+            .fontSize(6.5)
+            .font("Helvetica")
+            .fillColor("#64748B")
+            .text("This is an auto-generated document, no signature required.", margin, footerY + 9, { width: contentWidth, align: "left" });
+        // Dual-Tone Bottom Accent Bar (Crimson Red Left 50% + Deep Navy Right 50%)
+        const barY = pageHeight - 5;
+        const halfWidth = pageWidth / 2;
+        doc.rect(0, barY, halfWidth, 5).fill("#C0262D");
+        doc.rect(halfWidth, barY, halfWidth, 5).fill("#0E3B6C");
     }
     doc.end();
 }

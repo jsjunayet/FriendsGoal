@@ -9,8 +9,10 @@ import {
   RefreshCw,
   Clock,
   Shield,
+  Download,
 } from "lucide-react";
 import { auditLogApi, IAuditLogItem, TAuditAction } from "@/lib/auditLogApi";
+import { downloadDynamicPdf } from "@/lib/pdfGenerator";
 import { TableRowsSkeleton } from "@/components/ui/Skeletons";
 
 export default function ModificationHistoryView() {
@@ -51,6 +53,31 @@ export default function ModificationHistoryView() {
     e.preventDefault();
     setCurrentPage(1);
     loadLogs(1, actionFilter, searchQuery);
+  };
+
+  const handleExportPdf = () => {
+    downloadDynamicPdf({
+      filename: "Modification_History_Log",
+      reportTitle: "MODIFICATION HISTORY AUDIT LOG",
+      subtitle: "Friends Goal Organization Management Platform",
+      filtersSummary: `Action Filter: ${actionFilter} | Search: ${searchQuery || "None"} | Total Entries: ${logs.length}`,
+      columns: [
+        { header: "#", dataKey: "logId", widthPercent: 8, align: "center" },
+        { header: "ADMIN", dataKey: "adminName", widthPercent: 16, align: "left" },
+        { header: "ACTION", dataKey: "action", widthPercent: 18, align: "left" },
+        { header: "TARGET", dataKey: "target", widthPercent: 18, align: "left" },
+        { header: "DATE & TIME", dataKey: "date", widthPercent: 18, align: "left" },
+        { header: "DETAILS", dataKey: "details", widthPercent: 22, align: "left" },
+      ],
+      rows: logs.map((l) => ({
+        logId: l.logId,
+        adminName: l.adminName,
+        action: l.action,
+        target: l.target,
+        date: `${l.date || ""} ${l.timeAgo || ""}`.trim(),
+        details: l.details,
+      })),
+    });
   };
 
   const getActionBadgeStyle = (action: TAuditAction) => {
@@ -178,6 +205,14 @@ export default function ModificationHistoryView() {
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Refresh</span>
+            </button>
+
+            <button
+              onClick={handleExportPdf}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0E3B6C] hover:bg-[#0A294B] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 text-white" />
+              <span>Export PDF</span>
             </button>
           </div>
         </div>

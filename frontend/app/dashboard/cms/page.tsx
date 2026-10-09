@@ -1,5 +1,5 @@
-import CMSManagerPage from "@/app/admin/dashboard/cms/page";
+import CMSManagerView from "@/components/cms/CMSManagerView";
 
 export default function DashboardCMSPage() {
-  return <CMSManagerPage />;
+  return <CMSManagerView />;
 }

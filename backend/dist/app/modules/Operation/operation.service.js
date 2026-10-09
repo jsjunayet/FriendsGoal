@@ -11,6 +11,8 @@ const member_model_1 = require("../Member/member.model");
 const operation_model_1 = require("./operation.model");
 const operation_utils_1 = require("./operation.utils");
 const notification_service_1 = require("../Notification/notification.service");
+const auditLog_service_1 = require("../AuditLog/auditLog.service");
+const cron_config_1 = require("../../config/cron.config");
 const getDueListFromDB = async (query) => {
     const { searchByCodeOrName, status = "All", page = 1, limit = 6 } = query;
     const filter = { isDeleted: false };
@@ -20,6 +22,33 @@ const getDueListFromDB = async (query) => {
             { fullName: { $regex: searchByCodeOrName, $options: "i" } },
             { mobileNo: { $regex: searchByCodeOrName, $options: "i" } },
         ];
+    }
+    if (query.year) {
+        const startOfYear = new Date(`${query.year}-01-01T00:00:00.000Z`);
+        const endOfYear = new Date(`${query.year}-12-31T23:59:59.999Z`);
+        filter.createdAt = { $gte: startOfYear, $lte: endOfYear };
+    }
+    if (query.dateRange) {
+        if (query.dateRange.length === 7 && query.dateRange.includes("-")) {
+            const [yearStr, monthStr] = query.dateRange.split("-");
+            const startOfMonth = new Date(Date.UTC(Number(yearStr), Number(monthStr) - 1, 1, 0, 0, 0));
+            const endOfMonth = new Date(Date.UTC(Number(yearStr), Number(monthStr), 0, 23, 59, 59, 999));
+            filter.createdAt = {
+                ...(filter.createdAt || {}),
+                $gte: startOfMonth,
+                $lte: endOfMonth,
+            };
+        }
+        else {
+            const [start, end] = query.dateRange.split(" to ");
+            if (start && end) {
+                filter.createdAt = {
+                    ...(filter.createdAt || {}),
+                    $gte: new Date(`${start}T00:00:00.000Z`),
+                    $lte: new Date(`${end}T23:59:59.999Z`),
+                };
+            }
+        }
     }
     // Fetch all matching members to categorize by status
     const allMembers = await member_model_1.Member.find(filter).sort({ memberCode: 1 });
@@ -197,6 +226,14 @@ const collectPaymentIntoDB = async (payload) => {
         newAdvance,
         description: `Payment of ${amount} BDT received. Receipt: ${receiptNo}`,
     });
+    // Record Audit Log
+    await auditLog_service_1.AuditLogServices.createAuditLogInDB({
+        adminName: "Super Admin",
+        adminRole: "Super Admin",
+        action: "Payment Recorded",
+        target: `${member.fullName} (${member.memberCode})`,
+        details: `Payment collection of ৳${Number(amount).toLocaleString()} recorded for ${currentMonth}. Receipt #${receiptNo}.`,
+    }).catch((err) => console.error("Failed to record payment audit log:", err));
     const totalCollectionsCount = await operation_model_1.Collection.countDocuments();
     return {
         receiptNo,
@@ -219,16 +256,19 @@ const collectPaymentIntoDB = async (payload) => {
 };
 // ─── 5. Subscription Engine: Monthly Auto-Billing Cron (node-cron) ────────────
 const initMonthlyAutoBillingCron = () => {
-    // Monthly Auto-Billing Cron (runs on 1st of every month at midnight)
-    node_cron_1.default.schedule("0 0 1 * *", async () => {
-        console.log("⏰ Running Monthly Auto-Billing Cron Job...");
+    const cronConfig = (0, cron_config_1.getCronConfig)();
+    console.log(`⏰ Initializing Due Generation Cron: ${cronConfig.dueGeneration.description} [Schedule: ${cronConfig.dueGeneration.schedule}]`);
+    node_cron_1.default.schedule(cronConfig.dueGeneration.schedule, async () => {
+        console.log(`⏰ Running Due Generation Cron Job (${cronConfig.dueGeneration.description})...`);
         try {
             const activeMembers = await member_model_1.Member.find({
                 status: "active",
                 isDeleted: false,
             });
-            const currentMonth = (0, operation_utils_1.formatMonthYear)(new Date());
-            const chargeAmount = 1000;
+            const currentMonth = cronConfig.isTestMode
+                ? `${(0, operation_utils_1.formatMonthYear)(new Date())} (${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })})`
+                : (0, operation_utils_1.formatMonthYear)(new Date());
+            const chargeAmount = cronConfig.dueGeneration.amount ?? 1000;
             for (const member of activeMembers) {
                 const previousDue = Number(member.dueAmount || 0);
                 const previousAdvance = Number(member.savingsBalance || 0);
@@ -273,14 +313,16 @@ const initMonthlyAutoBillingCron = () => {
                     newAdvance,
                     description: `Monthly fee charge of ${chargeAmount} BDT for ${currentMonth}`,
                 });
-                if (billStatus === "Due") {
+                if (billStatus === "Due" || newDue > 0) {
                     const htmlBody = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 8px;">
-              <h2 style="color: #F59E0B;">New Monthly Due Allocated</h2>
+              <h2 style="color: #DC2626;">New Monthly Due Allocated</h2>
               <p>Dear <strong>${member.fullName}</strong>,</p>
-              <p>Your monthly due of <strong>৳${chargeAmount}</strong> for <strong>${currentMonth}</strong> has been allocated.</p>
-              <p>Your new total due balance is <strong>৳${newDue}</strong>.</p>
-              <p>Please log in to the portal to acknowledge and proceed with payment.</p>
+              <p>Your monthly fee of <strong>৳${chargeAmount}</strong> for <strong>${currentMonth}</strong> has been allocated.</p>
+              <p>Your total outstanding due balance is now <strong style="color: #DC2626; font-size: 16px;">৳${newDue}</strong>.</p>
+              <p>Please log in to your dashboard to acknowledge and proceed with payment.</p>
+              <br/>
+              <p style="color: #6B7280; font-size: 13px;">Thank you,<br/>Friends Goal Society</p>
             </div>
           `;
                     await notification_service_1.NotificationServices.createNotification({
@@ -291,7 +333,29 @@ const initMonthlyAutoBillingCron = () => {
                         channel: ["IN_APP", "EMAIL", "SMS"],
                         requiresAction: true,
                         metadata: { billingMonth: currentMonth, amount: chargeAmount, newDue },
-                    }).catch((err) => console.error("Failed to send due allocation alert", err));
+                    }).catch((err) => console.error("Failed to send due allocation alert:", err));
+                }
+                else {
+                    // Bill status is Paid (fully deducted from advance / savings balance)
+                    const htmlBody = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 8px;">
+              <h2 style="color: #059669;">Monthly Fee Deducted from Advance</h2>
+              <p>Dear <strong>${member.fullName}</strong>,</p>
+              <p>Your monthly subscription fee of <strong>৳${chargeAmount}</strong> for <strong>${currentMonth}</strong> has been successfully deducted from your advance/savings balance.</p>
+              <p>Your remaining advance balance is <strong>৳${newAdvance}</strong>.</p>
+              <br/>
+              <p style="color: #6B7280; font-size: 13px;">Thank you,<br/>Friends Goal Society</p>
+            </div>
+          `;
+                    await notification_service_1.NotificationServices.createNotification({
+                        recipientId: member._id,
+                        title: "Monthly Fee Deducted from Advance",
+                        message: htmlBody,
+                        type: "GENERAL",
+                        channel: ["IN_APP", "EMAIL"],
+                        requiresAction: false,
+                        metadata: { billingMonth: currentMonth, amount: chargeAmount, remainingAdvance: newAdvance },
+                    }).catch((err) => console.error("Failed to send advance deduction alert:", err));
                 }
             }
             console.log(`✅ Monthly Auto-Billing executed for ${activeMembers.length} active members.`);

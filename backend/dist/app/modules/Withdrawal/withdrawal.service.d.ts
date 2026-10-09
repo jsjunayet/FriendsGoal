@@ -13,7 +13,7 @@ declare const createWithdrawalRequestInDB: (payload: ICreateWithdrawalPayload) =
     };
     profitDeduction: number;
     depositDeduction: number;
-    remainingCombinedBalance: number;
+    remainingDeposit: number;
 }>;
 /**
  * 2. Admin Respond: Approve or Reject a Withdrawal Request

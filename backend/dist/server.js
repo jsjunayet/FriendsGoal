@@ -10,6 +10,7 @@ const operation_service_1 = require("./app/modules/Operation/operation.service")
 const notification_cron_1 = require("./app/modules/Notification/notification.cron");
 const index_2 = __importDefault(require("./app/DB/index"));
 const socket_1 = require("./shared/socket");
+// High-frequency cron engine initialized (TEST_MODE=true: 1-min billing 1k deduction, 3-min due reminder)
 let server;
 async function main() {
     try {

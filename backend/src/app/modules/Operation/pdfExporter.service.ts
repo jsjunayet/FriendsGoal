@@ -23,12 +23,12 @@ export async function generateDueListPdf(
       const contentWidth = 535; // 595.28 - 2 * 30
       const bottomBoundary = 780;
 
-      // 1. Header Banner
-      doc.rect(margin, margin, contentWidth, 45).fill("#046A38");
-      doc.fillColor("#FFFFFF").fontSize(18).font("Helvetica-Bold").text("Friends Goal Organization", 45, 40);
-      doc.fontSize(9.5).font("Helvetica").text("Due List Statement Report", 45, 60);
+      // 1. Header Banner (Deep Navy #0E3B6C with Crimson Red Accent)
+      doc.rect(margin, margin, contentWidth, 48).fill("#0E3B6C");
+      doc.fillColor("#FFFFFF").fontSize(17).font("Helvetica-Bold").text("Friends Goal Organization", 45, 38);
+      doc.fontSize(9).font("Helvetica").text("Due List Statement Report  |  LET'S GO TOGETHER", 45, 59);
 
-      let currentY = 85;
+      let currentY = 88;
       doc.fillColor("#64748B").fontSize(8.5).font("Helvetica").text(`Filter: ${filtersSummary}`, margin, currentY);
       doc.text(`Generated: ${new Date().toLocaleString("en-US")}`, 350, currentY, { width: 215, align: "right" });
       currentY += 20;
@@ -46,8 +46,8 @@ export async function generateDueListPdf(
 
       const drawHeaderRow = (y: number): number => {
         const headerHeight = 22;
-        doc.rect(margin, y, contentWidth, headerHeight).fill("#F1F5F9");
-        doc.fillColor("#334155").fontSize(8.5).font("Helvetica-Bold");
+        doc.rect(margin, y, contentWidth, headerHeight).fill("#0E3B6C");
+        doc.fillColor("#FFFFFF").fontSize(8.5).font("Helvetica-Bold");
 
         let colX = margin;
         for (const col of columns) {
@@ -117,17 +117,17 @@ export async function generateDueListPdf(
         cellX += 80;
 
         // DUE AMOUNT
-        doc.font("Helvetica-Bold").fillColor(due > 0 ? "#DC2626" : "#1E293B");
+        doc.font("Helvetica-Bold").fillColor(due > 0 ? "#C0262D" : "#1E293B");
         doc.text(dueText, cellX + 4, currentY + 4, { width: 91 - 8, align: "right", lineBreak: true });
         cellX += 91;
 
         // ADVANCE
-        doc.font("Helvetica-Bold").fillColor(adv > 0 ? "#046A38" : "#1E293B");
+        doc.font("Helvetica-Bold").fillColor(adv > 0 ? "#0E3B6C" : "#1E293B");
         doc.text(advText, cellX + 4, currentY + 4, { width: 91 - 8, align: "right", lineBreak: true });
         cellX += 91;
 
         // STATUS
-        const statusColor = statusText === "Due" ? "#DC2626" : statusText === "Advance" ? "#046A38" : "#64748B";
+        const statusColor = statusText === "Due" ? "#C0262D" : statusText === "Advance" ? "#0E3B6C" : "#64748B";
         doc.font("Helvetica-Bold").fillColor(statusColor);
         doc.text(statusText.toUpperCase(), cellX + 4, currentY + 4, { width: 96 - 8, align: "center", lineBreak: true });
 
@@ -141,9 +141,9 @@ export async function generateDueListPdf(
         currentY = 40;
       }
 
-      doc.rect(margin, currentY, contentWidth, footerHeight).fill("#E8F5E9");
+      doc.rect(margin, currentY, contentWidth, footerHeight).fill("#F1F5F9");
       doc
-        .strokeColor("#046A38")
+        .strokeColor("#0E3B6C")
         .lineWidth(1)
         .moveTo(margin, currentY)
         .lineTo(margin + contentWidth, currentY)
@@ -152,20 +152,34 @@ export async function generateDueListPdf(
         .stroke();
 
       // Merged Label for non-amount columns (CODE + MEMBER NAME + MOBILE NO = 43 + 134 + 80 = 257pt)
-      doc.fillColor("#046A38").fontSize(8.5).font("Helvetica-Bold");
+      doc.fillColor("#0E3B6C").fontSize(8.5).font("Helvetica-Bold");
       doc.text(`TOTAL RECORDS (${items.length})`, margin + 6, currentY + 7, { width: 245, align: "left" });
 
-      // Total Due
+      // Total Due in Crimson Red #C0262D
+      doc.fillColor("#C0262D");
       doc.text(totalDue.toLocaleString(undefined, { minimumFractionDigits: 2 }), margin + 257 + 4, currentY + 7, {
         width: 91 - 8,
         align: "right",
       });
 
-      // Total Advance
+      // Total Advance in Navy Blue #0E3B6C
+      doc.fillColor("#0E3B6C");
       doc.text(totalAdvance.toLocaleString(undefined, { minimumFractionDigits: 2 }), margin + 257 + 91 + 4, currentY + 7, {
         width: 91 - 8,
         align: "right",
       });
+
+      // Disclaimer Note & Dual-Tone Accent Bar
+      const pageHeight = 841.89;
+      const barY = pageHeight - 6;
+      const pageWidth = 595.28;
+      const halfWidth = pageWidth / 2;
+
+      doc.fontSize(7).font("Helvetica").fillColor("#64748B");
+      doc.text("This is an auto-generated document, no signature required.", margin, currentY + footerHeight + 10);
+
+      doc.rect(0, barY, halfWidth, 6).fill("#C0262D");
+      doc.rect(halfWidth, barY, halfWidth, 6).fill("#0E3B6C");
 
       doc.end();
     } catch (err) {

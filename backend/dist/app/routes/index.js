@@ -9,10 +9,18 @@ const expense_route_1 = require("../modules/Expense/expense.route");
 const investment_route_1 = require("../modules/Investment/investment.route");
 const disbursement_route_1 = require("../modules/Disbursement/disbursement.route");
 const withdrawal_route_1 = require("../modules/Withdrawal/withdrawal.route");
+const investmentIncome_route_1 = require("../modules/InvestmentIncome/investmentIncome.route");
 const auditLog_route_1 = require("../modules/AuditLog/auditLog.route");
 const report_route_1 = require("../modules/Report/report.route");
 const analytics_route_1 = require("../modules/Analytics/analytics.route");
 const notification_route_1 = require("../modules/Notification/notification.route");
+const notice_route_1 = require("../modules/Notice/notice.route");
+const marquee_route_1 = require("../modules/Marquee/marquee.route");
+const gallery_route_1 = require("../modules/Gallery/gallery.route");
+const stats_route_1 = require("../modules/Stats/stats.route");
+const upload_route_1 = require("../modules/Upload/upload.route");
+const noticeSchedule_route_1 = require("../modules/NoticeSchedule/noticeSchedule.route");
+const googleForm_route_1 = require("../modules/GoogleForm/googleForm.route");
 const router = (0, express_1.Router)();
 const moduleRoutes = [
     {
@@ -22,6 +30,26 @@ const moduleRoutes = [
     {
         path: "/members",
         route: member_route_1.MemberRoutes,
+    },
+    {
+        path: "/notices",
+        route: notice_route_1.NoticeRoutes,
+    },
+    {
+        path: "/marquee",
+        route: marquee_route_1.MarqueeRoutes,
+    },
+    {
+        path: "/gallery",
+        route: gallery_route_1.GalleryRoutes,
+    },
+    {
+        path: "/stats",
+        route: stats_route_1.StatRoutes,
+    },
+    {
+        path: "/upload",
+        route: upload_route_1.UploadRoutes,
     },
     {
         path: "/reports",
@@ -46,6 +74,10 @@ const moduleRoutes = [
     {
         path: "/investments",
         route: investment_route_1.InvestmentRoutes,
+    },
+    {
+        path: "/investment-incomes",
+        route: investmentIncome_route_1.InvestmentIncomeRoutes,
     },
     {
         path: "/disbursements",
@@ -78,6 +110,22 @@ const moduleRoutes = [
     {
         path: "/admin/notifications",
         route: notification_route_1.AdminNotificationRoutes,
+    },
+    {
+        path: "/notice-schedules",
+        route: noticeSchedule_route_1.NoticeScheduleRoutes,
+    },
+    {
+        path: "/admin/notice-schedules",
+        route: noticeSchedule_route_1.NoticeScheduleRoutes,
+    },
+    {
+        path: "/google-forms",
+        route: googleForm_route_1.GoogleFormRoutes,
+    },
+    {
+        path: "/admin/google-forms",
+        route: googleForm_route_1.GoogleFormRoutes,
     },
 ];
 moduleRoutes.forEach((route) => router.use(route.path, route.route));

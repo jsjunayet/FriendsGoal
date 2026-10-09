@@ -9,9 +9,10 @@ const handleZodError = (err) => {
         };
     });
     const statusCode = 400;
+    const detailedMsg = errorSources.map((es) => es.message).filter(Boolean).join(". ");
     return {
         statusCode,
-        message: "Validation Error",
+        message: detailedMsg || "Validation Error",
         errorSources,
     };
 };

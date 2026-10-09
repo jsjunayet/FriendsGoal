@@ -9,57 +9,7 @@ const http_status_1 = __importDefault(require("http-status"));
 const AppError_1 = __importDefault(require("../../errors/AppError"));
 const investment_model_1 = require("./investment.model");
 const member_model_1 = require("../Member/member.model");
-// ─── Default seed investments matching Screenshot 1 ───────────────────────────
-const DEFAULT_INVESTMENTS = [
-    {
-        investmentId: "001",
-        numericId: 1,
-        name: "The Barik Brother's",
-        startDate: new Date("2025-01-05"),
-        endDate: new Date("2026-03-09"),
-        amount: 500000,
-        remarks: "Business Development",
-        status: "Closed",
-        isActive: false,
-        isDeleted: false,
-    },
-    {
-        investmentId: "002",
-        numericId: 2,
-        name: "WIN Homes Limited (Land Share)",
-        startDate: new Date("2025-06-24"),
-        endDate: new Date("2025-12-23"),
-        amount: 1350000,
-        remarks: "First 200000 and second 1000000...",
-        status: "Closed",
-        isActive: false,
-        isDeleted: false,
-    },
-    {
-        investmentId: "003",
-        numericId: 3,
-        name: "WIN Homes Limited (Land Share 2)",
-        startDate: new Date("2025-12-25"),
-        endDate: new Date("2026-05-03"),
-        amount: 1200000,
-        remarks: "1200000tk Transfer from Previous...",
-        status: "Closed",
-        isActive: false,
-        isDeleted: false,
-    },
-    {
-        investmentId: "004",
-        numericId: 4,
-        name: "WIN Homes Limited (3nos Share)",
-        startDate: new Date("2026-05-07"),
-        endDate: null,
-        amount: 1350000,
-        remarks: "C.S.A&C.A 139, R.S 683, DHAKA 41<",
-        status: "Running",
-        isActive: true,
-        isDeleted: false,
-    },
-];
+const auditLog_service_1 = require("../AuditLog/auditLog.service");
 /**
  * 1. Create a new Investment
  * - Financial Accounting Rule: Selecting member is ONLY for tracking; NEVER alters member ledger.
@@ -107,17 +57,20 @@ const createInvestmentInDB = async (payload, userId) => {
         docData.createdBy = new mongoose_1.default.Types.ObjectId(userId);
     }
     const createdInvestment = await investment_model_1.Investment.create(docData);
+    // Record Audit Log
+    await auditLog_service_1.AuditLogServices.createAuditLogInDB({
+        adminName: "Super Admin",
+        adminRole: "Super Admin",
+        action: "Investment Recorded",
+        target: `${payload.name}`,
+        details: `New investment "${payload.name}" recorded with amount ৳${Number(payload.amount).toLocaleString()}.`,
+    }).catch((err) => console.error("Failed to record investment audit log:", err));
     return createdInvestment;
 };
 /**
  * 2. Get All Investments with Search & Filter
  */
 const getInvestmentsFromDB = async (query) => {
-    // Ensure default seed data exists if DB is empty
-    const count = await investment_model_1.Investment.countDocuments({ isDeleted: false });
-    if (count === 0) {
-        await investment_model_1.Investment.insertMany(DEFAULT_INVESTMENTS).catch(() => { });
-    }
     const filter = { isDeleted: false };
     // Search filter
     if (query.search && query.search.trim()) {

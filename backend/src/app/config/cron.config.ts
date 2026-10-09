@@ -30,8 +30,8 @@ export const getCronConfig = (): ICronConfiguration => {
       isTestMode: true,
       dueGeneration: {
         schedule: "* * * * *", // Every 1 minute
-        amount: 1, // 1 BDT for testing
-        description: "⚡ TEST MODE: 1-minute interval, ৳1 due allocation",
+        amount: Number(process.env.TEST_CHARGE_AMOUNT) || 1000, // 1000 BDT (1k) for testing
+        description: "⚡ TEST MODE: 1-minute interval, ৳1,000 due allocation",
       },
       dueReminder: {
         schedule: "*/3 * * * *", // Every 3 minutes

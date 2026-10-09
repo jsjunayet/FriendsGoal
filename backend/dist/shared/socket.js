@@ -14,7 +14,14 @@ const initSocket = (server) => {
         console.log("Client connected:", socket.id);
         // Clients can join rooms
         socket.on("join-room", (roomName) => {
-            socket.join(roomName);
+            if (roomName) {
+                socket.join(roomName.toString());
+            }
+        });
+        socket.on("join_room", (roomName) => {
+            if (roomName) {
+                socket.join(roomName.toString());
+            }
         });
         socket.on("disconnect", () => {
             console.log("Client disconnected:", socket.id);

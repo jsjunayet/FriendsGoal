@@ -13,10 +13,18 @@ const memberSchema = new mongoose_1.Schema({
         unique: true,
         trim: true,
     },
+    memberId: {
+        type: String,
+        trim: true,
+    },
     fullName: {
         type: String,
         required: [true, "Full name is required"],
         trim: true,
+    },
+    name: {
+        bn: { type: String, trim: true },
+        en: { type: String, trim: true },
     },
     email: {
         type: String,
@@ -55,6 +63,10 @@ const memberSchema = new mongoose_1.Schema({
         required: [true, "Mobile number is required"],
         trim: true,
     },
+    phone: {
+        type: String,
+        trim: true,
+    },
     dateOfBirth: {
         type: String,
         trim: true,
@@ -86,10 +98,19 @@ const memberSchema = new mongoose_1.Schema({
         trim: true,
         default: "সাধারণ সদস্য",
     },
+    roleTitle: {
+        bn: { type: String, trim: true },
+        en: { type: String, trim: true },
+    },
     councilCategory: {
         type: String,
-        enum: ["core_leadership", "financial_leadership", "general_member"],
+        enum: ["core_leadership", "financial_leadership", "general_member", "executive", "financial", "general"],
         default: "general_member",
+    },
+    councilType: {
+        type: String,
+        default: "general",
+        trim: true,
     },
     // Account Security & Savings
     role: {
@@ -136,6 +157,11 @@ const memberSchema = new mongoose_1.Schema({
         default: 0.0,
         get: (v) => (v != null ? parseFloat(v.toString()) : 0),
     },
+    othersReceived: {
+        type: mongoose_1.Schema.Types.Decimal128,
+        default: 0.0,
+        get: (v) => (v != null ? parseFloat(v.toString()) : 0),
+    },
     // Nominee Details & Media
     nomineeName: {
         type: String,
@@ -162,6 +188,10 @@ const memberSchema = new mongoose_1.Schema({
         trim: true,
     },
     pictureUrl: {
+        type: String,
+        trim: true,
+    },
+    photoUrl: {
         type: String,
         trim: true,
     },

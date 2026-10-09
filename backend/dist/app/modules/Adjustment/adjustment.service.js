@@ -9,17 +9,11 @@ const http_status_1 = __importDefault(require("http-status"));
 const AppError_1 = __importDefault(require("../../errors/AppError"));
 const member_model_1 = require("../Member/member.model");
 const adjustment_model_1 = require("./adjustment.model");
+const auditLog_service_1 = require("../AuditLog/auditLog.service");
 const TYPE_NAME_MAP = {
-    credit: "Balance Adjustment",
-    debit: "Balance Adjustment",
-    fee_reversal: "Fee Reversal",
-    operational: "Operational Adjustment",
-    PROFIT: "Profit Adjustment",
-    profit: "Profit Adjustment",
-    DEPOSIT: "Deposit Adjustment",
-    deposit: "Deposit Adjustment",
-    DUE: "Due Adjustment",
-    due: "Due Adjustment",
+    ADD: "Add Deposit",
+    SUB: "Deduct Balance",
+    OTHER_RECEIVED: "Other Received",
 };
 /**
  * 1. Create Adjustment with atomic financial recalculation
@@ -48,6 +42,7 @@ const createAdjustmentInDB = async (payload, userId) => {
     const prevSavings = Number(member.savingsBalance?.toString?.() ?? member.savingsBalance ?? 0);
     const prevDue = Number(member.dueAmount?.toString?.() ?? member.dueAmount ?? 0);
     const prevProfit = Number(member.profitBalance?.toString?.() ?? member.profitBalance ?? 0);
+    const prevOthers = Number(member.othersReceived?.toString?.() ?? member.othersReceived ?? 0);
     const previousBalance = {
         totalDeposit: prevDeposit,
         savingsBalance: prevSavings,
@@ -58,31 +53,12 @@ const createAdjustmentInDB = async (payload, userId) => {
     let newSavings = prevSavings;
     let newDue = prevDue;
     let newProfit = prevProfit;
+    let newOthers = prevOthers;
     let signedAmount = amount;
     // 2. Financial Ledger Recalculation Math
     const normalizedType = adjustmentType.toUpperCase();
     switch (normalizedType) {
-        case "PROFIT": {
-            // Positive amount: $inc { profitBalance: amount }, Negative amount: $inc { profitBalance: -amount }
-            signedAmount = amount;
-            newProfit = Math.max(0, prevProfit + amount);
-            break;
-        }
-        case "DEPOSIT": {
-            // Update totalDeposit
-            signedAmount = amount;
-            newDeposit = Math.max(0, prevDeposit + amount);
-            newSavings = Math.max(0, prevSavings + amount);
-            break;
-        }
-        case "DUE": {
-            // Update dueAmount
-            signedAmount = amount;
-            newDue = Math.max(0, prevDue + amount);
-            break;
-        }
-        case "CREDIT": {
-            // Credit: Add to lifetime deposit. Clear dues first, remainder to advance/savings
+        case "ADD": {
             signedAmount = amount;
             newDeposit = prevDeposit + amount;
             if (prevDue > 0) {
@@ -102,8 +78,7 @@ const createAdjustmentInDB = async (payload, userId) => {
             }
             break;
         }
-        case "DEBIT": {
-            // Debit: Excess payment recorded by mistake. Deduct from lifetime deposit and savings.
+        case "SUB": {
             signedAmount = -Math.abs(amount);
             newDeposit = Math.max(0, prevDeposit - Math.abs(amount));
             if (prevSavings >= Math.abs(amount)) {
@@ -117,17 +92,9 @@ const createAdjustmentInDB = async (payload, userId) => {
             }
             break;
         }
-        case "FEE_REVERSAL": {
-            // Fee Reversal: Waive dues/penalties
+        case "OTHER_RECEIVED": {
             signedAmount = amount;
-            newDue = Math.max(0, prevDue - amount);
-            break;
-        }
-        case "OPERATIONAL": {
-            // Operational: Manual adjustments
-            signedAmount = amount;
-            newDeposit = prevDeposit + amount;
-            newSavings = prevSavings + amount;
+            newOthers = prevOthers + amount;
             break;
         }
         default:
@@ -159,6 +126,7 @@ const createAdjustmentInDB = async (payload, userId) => {
         previousBalance,
         updatedBalance,
         remarks,
+        isDeleted: false,
     };
     if (userId && mongoose_1.default.isValidObjectId(userId)) {
         docData.createdBy = new mongoose_1.default.Types.ObjectId(userId);
@@ -176,8 +144,16 @@ const createAdjustmentInDB = async (payload, userId) => {
             savingsBalance: newSavings,
             dueAmount: newDue,
             profitBalance: newProfit,
+            othersReceived: newOthers,
         }, { session, runValidators: true });
         await session.commitTransaction();
+        await auditLog_service_1.AuditLogServices.createAuditLogInDB({
+            adminName: "Super Admin",
+            adminRole: "Super Admin",
+            action: adjustmentType === "ADD" ? "Due Updated" : "Amount Modified",
+            target: `${member.fullName} (${member.memberCode})`,
+            details: `Balance adjustment of ৳${amount.toLocaleString()} (${adjustmentType}) applied to ${member.fullName}. Remarks: ${remarks || "N/A"}`,
+        }).catch((err) => console.error("Failed to record adjustment audit log:", err));
         return createdAdjustment;
     }
     catch (error) {
@@ -193,7 +169,15 @@ const createAdjustmentInDB = async (payload, userId) => {
                 savingsBalance: newSavings,
                 dueAmount: newDue,
                 profitBalance: newProfit,
+                othersReceived: newOthers,
             }, { runValidators: true });
+            await auditLog_service_1.AuditLogServices.createAuditLogInDB({
+                adminName: "Super Admin",
+                adminRole: "Super Admin",
+                action: adjustmentType === "ADD" ? "Due Updated" : "Amount Modified",
+                target: `${member.fullName} (${member.memberCode})`,
+                details: `Balance adjustment of ৳${amount.toLocaleString()} (${adjustmentType}) applied to ${member.fullName}. Remarks: ${remarks || "N/A"}`,
+            }).catch((err) => console.error("Failed to record adjustment audit log:", err));
             return createdAdjustment;
         }
         throw error;

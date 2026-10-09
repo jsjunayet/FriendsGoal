@@ -70,65 +70,78 @@ export function ExpenseVoucherModal({
 
         {/* Voucher Printable Content */}
         <div className="p-8 overflow-y-auto space-y-6 print:p-0 print:space-y-4 text-gray-900 bg-white">
-          {/* Header */}
-          <div className="text-center border-b border-gray-200 pb-5">
-            <div className="inline-flex items-center justify-center gap-2 mb-1">
-              <div className="w-7 h-7 rounded-lg bg-[#00B074] flex items-center justify-center text-white font-bold text-sm">
+          {/* Brand Header */}
+          <div className="flex items-center justify-between pb-4 border-b-2 border-[#0E3B6C]">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full border-2.5 border-[#0E3B6C] flex items-center justify-center font-black text-lg text-[#C0262D] -rotate-12 shadow-xs bg-white">
                 FG
               </div>
-              <h2 className="text-xl font-bold tracking-tight text-gray-900">
-                FRIENDS GOAL
-              </h2>
+              <div>
+                <div className="text-xl font-black leading-none">
+                  <span className="text-[#0E3B6C]">Friends</span> <span className="text-[#C0262D]">Goal</span>
+                </div>
+                <div className="inline-block mt-1 bg-[#0E3B6C] text-white text-[8.5px] font-extrabold tracking-wider px-2 py-0.5 rounded uppercase">
+                  LET'S GO TOGETHER
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-gray-500 uppercase tracking-widest font-medium">
-              Expense Debit Voucher
-            </p>
+            <div className="text-right">
+              <h2 className="text-base font-black text-[#0E3B6C] uppercase tracking-tight">
+                Expense Debit Voucher
+              </h2>
+              <p className="text-[11px] font-semibold text-gray-500 mt-0.5">
+                Date: {formatDate(expense.expenseDate)}
+              </p>
+              <p className="text-[10px] font-bold text-[#C0262D]">
+                www.friendsgoal.com
+              </p>
+            </div>
           </div>
 
           {/* Voucher Info Grid */}
-          <div className="grid grid-cols-2 gap-4 text-xs bg-gray-50 p-4 rounded-xl border border-gray-100">
+          <div className="grid grid-cols-2 gap-4 text-xs bg-[#F8FAFC] p-4 rounded-xl border border-gray-200">
             <div>
-              <span className="text-gray-500 block mb-0.5">Voucher No:</span>
-              <span className="font-bold text-gray-900 text-sm">
+              <span className="text-gray-500 block mb-0.5 text-[11px]">Voucher No:</span>
+              <span className="font-bold text-[#0E3B6C] text-sm font-mono">
                 {expense.voucherNo || `EXP-${String(expense.expenseId).padStart(5, "0")}`}
               </span>
             </div>
             <div className="text-right">
-              <span className="text-gray-500 block mb-0.5">Date:</span>
-              <span className="font-bold text-gray-900 text-sm">
-                {formatDate(expense.expenseDate)}
+              <span className="text-gray-500 block mb-0.5 text-[11px]">Status:</span>
+              <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Official Voucher
               </span>
             </div>
             <div>
-              <span className="text-gray-500 block mb-0.5">Paid To / Member:</span>
+              <span className="text-gray-500 block mb-0.5 text-[11px]">Paid To / Member:</span>
               <span className="font-bold text-gray-900 uppercase">
                 {expense.memberName}
               </span>
             </div>
             <div className="text-right">
-              <span className="text-gray-500 block mb-0.5">Expense Head:</span>
-              <span className="font-bold text-[#056839]">
+              <span className="text-gray-500 block mb-0.5 text-[11px]">Expense Head:</span>
+              <span className="font-bold text-[#0E3B6C]">
                 {expense.expenseHead}
               </span>
             </div>
           </div>
 
           {/* Amount Box */}
-          <div className="border border-gray-200 rounded-xl overflow-hidden">
+          <div className="border border-gray-200 rounded-xl overflow-hidden shadow-xs">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#FAFBFD] border-b border-gray-200 text-gray-600 font-semibold uppercase">
+              <thead className="bg-[#0E3B6C] text-white font-bold uppercase text-[11px]">
                 <tr>
                   <th className="py-2.5 px-4">Description / Remarks</th>
-                  <th className="py-2.5 px-4 text-right">Amount (BDT / $)</th>
+                  <th className="py-2.5 px-4 text-right">Amount (BDT)</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
+                <tr className="bg-white">
                   <td className="py-4 px-4 text-gray-700 font-medium">
-                    {expense.remarks}
+                    {expense.remarks || "Official organization operational expense"}
                   </td>
-                  <td className="py-4 px-4 text-right text-base font-bold text-gray-900">
-                    {(Number(expense.amount) || 0).toLocaleString("en-US", {
+                  <td className="py-4 px-4 text-right text-base font-extrabold text-[#0E3B6C]">
+                    BDT {(Number(expense.amount) || 0).toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -138,8 +151,23 @@ export function ExpenseVoucherModal({
             </table>
           </div>
 
+          {/* Verification Bar */}
+          <div className="flex items-center justify-between p-2.5 bg-[#F8FAFC] border border-dashed border-[#0E3B6C] rounded-lg">
+            <div className="flex items-center gap-2">
+              <span className="bg-[#0E3B6C] text-white text-[9.5px] font-bold px-2 py-0.5 rounded tracking-wider uppercase">
+                VERIFIED AUTHENTIC
+              </span>
+              <span className="font-mono text-xs font-bold text-slate-800">
+                FG-VERIFY-EXP-{String(expense.expenseId || "001").padStart(3, "0")}
+              </span>
+            </div>
+            <span className="text-[11px] font-bold text-emerald-700">
+              ✓ Valid Official Debit Voucher
+            </span>
+          </div>
+
           {/* Signature Areas */}
-          <div className="pt-12 grid grid-cols-3 gap-6 text-center text-xs text-gray-600">
+          <div className="pt-8 grid grid-cols-3 gap-6 text-center text-xs text-gray-600">
             <div className="border-t border-gray-300 pt-2 font-medium">
               Prepared By
             </div>
@@ -148,6 +176,23 @@ export function ExpenseVoucherModal({
             </div>
             <div className="border-t border-gray-300 pt-2 font-bold text-gray-900">
               Authorized Signatory
+            </div>
+          </div>
+
+          {/* Disclaimer & Bottom Dual-Tone Accent Bar */}
+          <div>
+            <div className="text-[11px] font-medium text-gray-500 mb-2">
+              This is an auto-generated document, no signature required.
+            </div>
+            <div className="h-2.5 flex overflow-hidden rounded-xs -mx-8 -mb-8">
+              <div
+                className="bg-[#C0262D] w-[53%]"
+                style={{ clipPath: "polygon(0 0, 100% 0, 94% 100%, 0 100%)" }}
+              />
+              <div
+                className="bg-[#0E3B6C] w-[49%] -ml-[2%]"
+                style={{ clipPath: "polygon(6% 0, 100% 0, 100% 100%, 0 100%)" }}
+              />
             </div>
           </div>
         </div>

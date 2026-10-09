@@ -31,6 +31,7 @@ import {
   type IMember,
 } from "@/lib/memberApi";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
+import { MemberDownloadDropdown } from "./MemberDownloadDropdown";
 import { printMemberProfilePdf } from "@/lib/memberProfilePdfGenerator";
 
 // Predefined designation mapping to Bangla
@@ -320,38 +321,11 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
 
         <div className="flex items-center gap-3">
           {!isCreateMode && (
-            <button
-              type="button"
-              onClick={() => {
-                const summaryMock = {
-                  memberId: initialMember?._id || "",
-                  fullName: formData.fullName || "",
-                  memberCode: formData.memberCode || initialMember?.memberCode || "",
-                  email: formData.email || "",
-                  role: formData.role || "member",
-                  status: formData.status || "active",
-                  bloodGroup: formData.bloodGroup,
-                  dateOfBirth: formData.dateOfBirth,
-                  division: formData.division,
-                  district: formData.district,
-                  thana: formData.thana,
-                  pictureUrl: formData.pictureUrl,
-                  totalDeposit: 0,
-                  dueAmount: 0,
-                  profitBalance: 0,
-                  totalWithdrawn: 0,
-                  savingsBalance: 0,
-                  depositBalance: 0,
-                  pendingWithdrawal: 0,
-                  activePaymentSchedule: [],
-                };
-                printMemberProfilePdf(summaryMock);
-              }}
-              className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-white border border-[#E5E7EB] text-[#0F172A] text-[13px] font-semibold hover:bg-gray-50 transition-colors shadow-sm"
-            >
-              <Download className="w-4 h-4 text-red-500" />
-              Download ID Card
-            </button>
+            <MemberDownloadDropdown
+              member={{ ...initialMember, ...formData }}
+              size="default"
+              align="right"
+            />
           )}
         </div>
       </div>

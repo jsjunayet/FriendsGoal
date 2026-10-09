@@ -190,13 +190,13 @@ export function printMoneyReceipt(data: IReceiptData): void {
           width: 64px;
           height: 64px;
           border-radius: 50%;
-          border: 3.5px solid #2B388F;
+          border: 3.5px solid #0E3B6C;
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: 900;
           font-size: 26px;
-          color: #E31E24;
+          color: #C0262D;
           transform: rotate(-10deg);
           box-shadow: 0 2px 4px rgba(0,0,0,0.08);
         }
@@ -206,10 +206,10 @@ export function printMoneyReceipt(data: IReceiptData): void {
           line-height: 1.1;
           letter-spacing: -0.5px;
         }
-        .logo-title .friends { color: #2B388F; }
-        .logo-title .goal { color: #E31E24; }
+        .logo-title .friends { color: #0E3B6C; }
+        .logo-title .goal { color: #C0262D; }
         .logo-subtitle {
-          background-color: #2B388F;
+          background-color: #0E3B6C;
           color: #ffffff;
           font-size: 9px;
           font-weight: 800;
@@ -223,7 +223,7 @@ export function printMoneyReceipt(data: IReceiptData): void {
 
         /* Title Box */
         .title-box {
-          background-color: #B81D24;
+          background-color: #C0262D;
           color: #ffffff;
           font-weight: 800;
           font-size: 22px;
@@ -232,7 +232,7 @@ export function printMoneyReceipt(data: IReceiptData): void {
           text-align: center;
           margin-top: 10px;
           letter-spacing: 0.5px;
-          box-shadow: 0 4px 6px rgba(184, 29, 36, 0.2);
+          box-shadow: 0 4px 6px rgba(192, 38, 45, 0.2);
         }
 
         /* Contact Details */
@@ -253,7 +253,7 @@ export function printMoneyReceipt(data: IReceiptData): void {
           width: 22px;
           height: 22px;
           border-radius: 50%;
-          background-color: #0288D1;
+          background-color: #0E3B6C;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -331,7 +331,7 @@ export function printMoneyReceipt(data: IReceiptData): void {
           margin-top: 20px;
           padding: 10px 16px;
           background-color: #f8fafc;
-          border: 1px dashed #0288D1;
+          border: 1px dashed #0E3B6C;
           border-radius: 6px;
           display: flex;
           align-items: center;
@@ -343,7 +343,7 @@ export function printMoneyReceipt(data: IReceiptData): void {
           gap: 10px;
         }
         .verification-badge {
-          background-color: #0288D1;
+          background-color: #0E3B6C;
           color: white;
           font-size: 10px;
           font-weight: 800;
@@ -387,13 +387,13 @@ export function printMoneyReceipt(data: IReceiptData): void {
           overflow: hidden;
         }
         .banner-red {
-          background-color: #E31E24;
+          background-color: #C0262D;
           width: 53%;
           height: 100%;
           clip-path: polygon(0 0, 100% 0, 94% 100%, 0 100%);
         }
         .banner-blue {
-          background-color: #0073E6;
+          background-color: #0E3B6C;
           width: 49%;
           height: 100%;
           margin-left: -2%;
@@ -542,6 +542,435 @@ export function printMoneyReceipt(data: IReceiptData): void {
         <div class="bottom-banner">
           <div class="banner-red"></div>
           <div class="banner-blue"></div>
+        </div>
+      </div>
+
+      <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+          }, 300);
+        };
+      </script>
+    </body>
+    </html>
+  `;
+
+  win.document.write(html);
+  win.document.close();
+}
+
+export interface IWithdrawalReceiptData {
+  referenceId: string;
+  memberName: string;
+  memberCode?: string;
+  amount: number;
+  method: string;
+  accountDetails?: string;
+  submittedDate?: string;
+  status: string;
+  reviewedByName?: string;
+  adminNote?: string;
+}
+
+export function printWithdrawalReceipt(data: IWithdrawalReceiptData): void {
+  const win = window.open("", "_blank");
+  if (!win) {
+    alert("Please allow popups to view and print the withdrawal receipt.");
+    return;
+  }
+
+  const refId = data.referenceId ? data.referenceId.replace(/^WD-/i, "") : "1001";
+  const amountNum = Number(data.amount || 0);
+  const amountFormatted = amountNum.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const words = numberToWords(amountNum);
+  const dateStr =
+    data.submittedDate ||
+    new Date().toLocaleDateString("en-US", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  const verificationId = generateVerificationId(
+    data.referenceId || "WD-001",
+    data.memberCode || "MEMBER",
+    amountNum
+  );
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <title>Withdrawal Receipt #${data.referenceId} - Friends Goal</title>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;600;700;800&display=swap');
+
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+
+        body {
+          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+          background-color: #F8FAFC;
+          color: #0F172A;
+          display: flex;
+          justify-content: center;
+          padding: 24px;
+        }
+
+        .receipt-card {
+          width: 210mm;
+          min-height: 297mm;
+          background: #FFFFFF;
+          padding: 40px 48px 30px 48px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          position: relative;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+          overflow: hidden;
+        }
+
+        .top-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-bottom: 20px;
+          border-bottom: 2px solid #0E3B6C;
+        }
+
+        .logo-wrap {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+
+        .logo-circle {
+          width: 58px;
+          height: 58px;
+          border-radius: 50%;
+          border: 3px solid #0E3B6C;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: 'Cinzel', serif;
+          font-size: 24px;
+          font-weight: 800;
+          color: #C0262D;
+          background: #FFFFFF;
+          transform: rotate(-10deg);
+        }
+
+        .logo-title-group h1 {
+          font-family: 'Cinzel', serif;
+          font-size: 26px;
+          font-weight: 900;
+          line-height: 1.1;
+          letter-spacing: -0.5px;
+        }
+
+        .logo-title-group h1 .navy { color: #0E3B6C; }
+        .logo-title-group h1 .red { color: #C0262D; }
+
+        .slogan-pill {
+          display: inline-block;
+          margin-top: 4px;
+          background: #0E3B6C;
+          color: #FFFFFF;
+          font-size: 9px;
+          font-weight: 800;
+          letter-spacing: 1.5px;
+          padding: 2.5px 8px;
+          border-radius: 4px;
+          text-transform: uppercase;
+        }
+
+        .header-meta {
+          text-align: right;
+        }
+
+        .meta-badge {
+          background: #0E3B6C;
+          color: #FFFFFF;
+          font-size: 11px;
+          font-weight: 800;
+          padding: 4px 12px;
+          border-radius: 4px;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+          display: inline-block;
+        }
+
+        .meta-ref {
+          font-size: 13px;
+          font-weight: 700;
+          color: #0E3B6C;
+          margin-top: 6px;
+        }
+
+        .meta-date {
+          font-size: 12px;
+          font-weight: 600;
+          color: #64748B;
+          margin-top: 3px;
+        }
+
+        .content-body {
+          flex: 1;
+          margin-top: 28px;
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+        }
+
+        .info-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          background: #F8FAFC;
+          border: 1px solid #E2E8F0;
+          border-radius: 8px;
+          padding: 16px;
+        }
+
+        .info-item {
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .info-label {
+          font-size: 10px;
+          font-weight: 800;
+          text-transform: uppercase;
+          color: #64748B;
+          letter-spacing: 0.5px;
+        }
+
+        .info-value {
+          font-size: 14px;
+          font-weight: 700;
+          color: #0F172A;
+        }
+
+        .amount-highlight {
+          background: #FEF2F2;
+          border: 1.5px solid #FECACA;
+          border-radius: 8px;
+          padding: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .amount-highlight .label {
+          font-size: 12px;
+          font-weight: 800;
+          text-transform: uppercase;
+          color: #991B1B;
+          letter-spacing: 0.8px;
+        }
+
+        .amount-highlight .value {
+          font-size: 24px;
+          font-weight: 900;
+          color: #C0262D;
+          font-family: 'Montserrat', sans-serif;
+        }
+
+        .words-box {
+          font-size: 12px;
+          font-weight: 600;
+          color: #334155;
+          padding: 10px 14px;
+          background: #FFFFFF;
+          border: 1px dashed #CBD5E1;
+          border-radius: 6px;
+        }
+
+        .words-box strong {
+          color: #0E3B6C;
+        }
+
+        .notes-box {
+          font-size: 12px;
+          color: #475569;
+          background: #F8FAFC;
+          border: 1px solid #E2E8F0;
+          border-radius: 6px;
+          padding: 12px;
+        }
+
+        .verification-bar {
+          margin-top: 24px;
+          padding: 10px 16px;
+          background: #F8FAFC;
+          border: 1px dashed #0E3B6C;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .verification-badge {
+          background: #0E3B6C;
+          color: #FFFFFF;
+          font-size: 9.5px;
+          font-weight: 800;
+          padding: 3px 8px;
+          border-radius: 4px;
+          letter-spacing: 0.8px;
+        }
+
+        .verification-id {
+          font-family: monospace;
+          font-weight: 700;
+          font-size: 11.5px;
+          color: #1E293B;
+          margin-left: 8px;
+        }
+
+        .verification-status {
+          font-size: 11px;
+          font-weight: 700;
+          color: #059669;
+        }
+
+        .signature-note {
+          font-size: 10.5px;
+          font-weight: 600;
+          color: #64748B;
+          text-align: center;
+          margin-top: 14px;
+          margin-bottom: 8px;
+        }
+
+        .bottom-banner {
+          height: 14px;
+          display: flex;
+          overflow: hidden;
+          margin-left: -48px;
+          margin-right: -48px;
+          margin-bottom: -30px;
+        }
+
+        .banner-red {
+          background-color: #C0262D;
+          width: 53%;
+          height: 100%;
+          clip-path: polygon(0 0, 100% 0, 94% 100%, 0 100%);
+        }
+
+        .banner-blue {
+          background-color: #0E3B6C;
+          width: 49%;
+          height: 100%;
+          margin-left: -2%;
+          clip-path: polygon(6% 0, 100% 0, 100% 100%, 0 100%);
+        }
+
+        @media print {
+          body {
+            background: #FFFFFF !important;
+            padding: 0 !important;
+          }
+          .receipt-card {
+            box-shadow: none !important;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="receipt-card">
+        <!-- Header -->
+        <div class="top-header">
+          <div class="logo-wrap">
+            <div class="logo-circle">FG</div>
+            <div class="logo-title-group">
+              <h1><span class="navy">Friends</span> <span class="red">Goal</span></h1>
+              <div class="slogan-pill">LET'S GO TOGETHER</div>
+            </div>
+          </div>
+          <div class="header-meta">
+            <div class="meta-badge">WITHDRAWAL RECEIPT</div>
+            <div class="meta-ref">Ref: WD-${refId}</div>
+            <div class="meta-date">Date: ${dateStr}</div>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content-body">
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Member Name</span>
+              <span class="info-value">${data.memberName}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Member ID / Code</span>
+              <span class="info-value">${data.memberCode || "FG-" + refId}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Disbursement Method</span>
+              <span class="info-value">${data.method}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Account / Phone Details</span>
+              <span class="info-value">${data.accountDetails || "N/A"}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Request Status</span>
+              <span class="info-value" style="color: ${data.status === "Approved" ? "#059669" : data.status === "Pending" ? "#D97706" : "#DC2626"}">${data.status}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Reviewed By</span>
+              <span class="info-value">${data.reviewedByName || "Authorized Admin"}</span>
+            </div>
+          </div>
+
+          <div class="amount-highlight">
+            <div>
+              <div class="label">Total Withdrawal Amount</div>
+              <div style="font-size: 11px; color: #7F1D1D; margin-top: 2px;">Debited from Member Profit Share</div>
+            </div>
+            <div class="value">BDT ${amountFormatted}</div>
+          </div>
+
+          <div class="words-box">
+            <strong>In Words:</strong> ${words}
+          </div>
+
+          ${data.adminNote ? `
+          <div class="notes-box">
+            <div style="font-size: 10px; font-weight: 800; color: #64748B; text-transform: uppercase; margin-bottom: 4px;">Admin Note / Remarks</div>
+            <div>${data.adminNote}</div>
+          </div>
+          ` : ""}
+        </div>
+
+        <!-- Footer -->
+        <div>
+          <div class="verification-bar">
+            <div>
+              <span class="verification-badge">VERIFIED AUTHENTIC</span>
+              <span class="verification-id">UNIQUE ID: ${verificationId}</span>
+            </div>
+            <div class="verification-status">✓ Valid Official Withdrawal Receipt</div>
+          </div>
+
+          <div class="signature-note">
+            This is an auto-generated document, no signature required.
+          </div>
+
+          <div class="bottom-banner">
+            <div class="banner-red"></div>
+            <div class="banner-blue"></div>
+          </div>
         </div>
       </div>
 

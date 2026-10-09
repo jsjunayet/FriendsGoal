@@ -37,6 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MemberServices = void 0;
+const mongoose_1 = __importDefault(require("mongoose"));
 const http_status_1 = __importDefault(require("http-status"));
 const exceljs_1 = __importDefault(require("exceljs"));
 const AppError_1 = __importDefault(require("../../errors/AppError"));
@@ -51,11 +52,31 @@ const memberPdfStream_service_1 = require("../../services/memberPdfStream.servic
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const crypto_1 = __importDefault(require("crypto"));
 const notification_service_1 = require("../Notification/notification.service");
+const auditLog_service_1 = require("../AuditLog/auditLog.service");
 // ─── 1. Create Member ─────────────────────────────────────────────────────────
 const createMemberIntoDB = async (payload) => {
-    const existingMember = await member_model_1.Member.findOne({ email: payload.email });
-    if (existingMember) {
-        throw new AppError_1.default(http_status_1.default.BAD_REQUEST, "A member with this email already exists!");
+    if (payload.email) {
+        payload.email = payload.email.trim().toLowerCase();
+        const existingMember = await member_model_1.Member.findOne({
+            email: { $regex: new RegExp(`^${payload.email}$`, "i") },
+        });
+        if (existingMember) {
+            throw new AppError_1.default(http_status_1.default.BAD_REQUEST, `A member with email "${payload.email}" already exists! Please use a unique email.`);
+        }
+    }
+    if (payload.memberCode) {
+        payload.memberCode = payload.memberCode.trim();
+        const existingCode = await member_model_1.Member.findOne({ memberCode: payload.memberCode });
+        if (existingCode) {
+            throw new AppError_1.default(http_status_1.default.BAD_REQUEST, `Member ID "${payload.memberCode}" already exists! Please use a unique ID.`);
+        }
+    }
+    if (payload.mobileNo) {
+        payload.mobileNo = payload.mobileNo.trim();
+        const existingMobile = await member_model_1.Member.findOne({ mobileNo: payload.mobileNo });
+        if (existingMobile) {
+            throw new AppError_1.default(http_status_1.default.BAD_REQUEST, `A member with mobile number "${payload.mobileNo}" already exists! Please use a unique mobile number.`);
+        }
     }
     // Auto-map designationBn if not given
     if (payload.designation && !payload.designationBn) {
@@ -107,6 +128,14 @@ const createMemberIntoDB = async (payload) => {
         channel: ["EMAIL", "SMS"],
         metadata: { temporaryPassword: rawPassword },
     });
+    // Record Audit Log for Admin Action
+    await auditLog_service_1.AuditLogServices.createAuditLogInDB({
+        adminName: "Super Admin",
+        adminRole: "Super Admin",
+        action: "Member Added",
+        target: `${result.fullName} (${result.memberCode})`,
+        details: `New member ${result.fullName} (ID: ${result.memberCode}) enrolled into the organization with role ${result.role}.`,
+    }).catch((err) => console.error("Failed to record member creation audit log:", err));
     return result;
 };
 // ─── 2. Get All Members (Admin with Search & Pagination) ───────────────────────
@@ -159,13 +188,22 @@ const getAllMembersFromDB = async (query) => {
 };
 // ─── 3. Get Public Council Members ────────────────────────────────────────────
 const getPublicCouncilMembersFromDB = async (query) => {
-    const { category, designation, search } = query;
+    const { category, councilType, designation, search } = query;
     const filterConditions = {
         isDeleted: false,
         status: "active",
     };
     if (category) {
-        filterConditions.councilCategory = category;
+        filterConditions.$or = [
+            { councilCategory: category },
+            { councilType: category },
+        ];
+    }
+    else if (councilType) {
+        filterConditions.$or = [
+            { councilType: councilType },
+            { councilCategory: councilType === "executive" ? "core_leadership" : councilType === "financial" ? "financial_leadership" : "general_member" },
+        ];
     }
     if (designation) {
         filterConditions.designation = designation;
@@ -173,24 +211,30 @@ const getPublicCouncilMembersFromDB = async (query) => {
     if (search) {
         filterConditions.$or = [
             { fullName: { $regex: search, $options: "i" } },
+            { "name.en": { $regex: search, $options: "i" } },
+            { "name.bn": { $regex: search, $options: "i" } },
             { designation: { $regex: search, $options: "i" } },
             { designationBn: { $regex: search, $options: "i" } },
+            { "roleTitle.en": { $regex: search, $options: "i" } },
+            { "roleTitle.bn": { $regex: search, $options: "i" } },
         ];
     }
     const result = await member_model_1.Member.find(filterConditions)
-        .select("memberCode fullName designation designationBn councilCategory bloodGroup profession mobileNo dateOfBirth division district thana presentAddress pictureUrl totalDeposit savingsBalance")
+        .select("memberCode memberId fullName name designation designationBn roleTitle councilCategory councilType bloodGroup profession mobileNo phone dateOfBirth division district thana presentAddress pictureUrl photoUrl totalDeposit savingsBalance")
         .sort("memberCode");
     return result;
 };
 // ─── 4. Get Single Member Details ─────────────────────────────────────────────
 const getSingleMemberFromDB = async (id) => {
-    // Support both Mongo _id and memberCode
+    // Support Mongo _id, memberCode, email, or custom id
     let result = null;
     if (id.match(/^[0-9a-fA-F]{24}$/)) {
         result = await member_model_1.Member.findById(id);
     }
-    else {
-        result = await member_model_1.Member.findOne({ memberCode: id });
+    if (!result) {
+        result = await member_model_1.Member.findOne({
+            $or: [{ memberCode: id }, { email: id }, { id: id }],
+        });
     }
     if (!result || result.isDeleted) {
         throw new AppError_1.default(http_status_1.default.NOT_FOUND, "Member not found!");
@@ -204,11 +248,43 @@ const updateMemberIntoDB = async (id, payload) => {
     if (id.match(/^[0-9a-fA-F]{24}$/)) {
         member = await member_model_1.Member.findById(id);
     }
-    else {
-        member = await member_model_1.Member.findOne({ memberCode: id });
+    if (!member) {
+        member = await member_model_1.Member.findOne({
+            $or: [{ memberCode: id }, { email: id }, { id: id }],
+        });
     }
     if (!member || member.isDeleted) {
         throw new AppError_1.default(http_status_1.default.NOT_FOUND, "Member not found!");
+    }
+    if (payload.email) {
+        payload.email = payload.email.trim().toLowerCase();
+        const existingEmail = await member_model_1.Member.findOne({
+            _id: { $ne: member._id },
+            email: { $regex: new RegExp(`^${payload.email}$`, "i") },
+        });
+        if (existingEmail) {
+            throw new AppError_1.default(http_status_1.default.BAD_REQUEST, `A member with email "${payload.email}" already exists! Please use a unique email.`);
+        }
+    }
+    if (payload.memberCode) {
+        payload.memberCode = payload.memberCode.trim();
+        const existingCode = await member_model_1.Member.findOne({
+            _id: { $ne: member._id },
+            memberCode: payload.memberCode,
+        });
+        if (existingCode) {
+            throw new AppError_1.default(http_status_1.default.BAD_REQUEST, `Member ID "${payload.memberCode}" already exists! Please use a unique ID.`);
+        }
+    }
+    if (payload.mobileNo) {
+        payload.mobileNo = payload.mobileNo.trim();
+        const existingMobile = await member_model_1.Member.findOne({
+            _id: { $ne: member._id },
+            mobileNo: payload.mobileNo,
+        });
+        if (existingMobile) {
+            throw new AppError_1.default(http_status_1.default.BAD_REQUEST, `A member with mobile number "${payload.mobileNo}" already exists! Please use a unique mobile number.`);
+        }
     }
     // If designation is updated, auto-update designationBn if not supplied
     if (payload.designation && !payload.designationBn) {
@@ -222,6 +298,15 @@ const updateMemberIntoDB = async (id, payload) => {
         new: true,
         runValidators: true,
     });
+    if (updatedMember) {
+        await auditLog_service_1.AuditLogServices.createAuditLogInDB({
+            adminName: "Super Admin",
+            adminRole: "Super Admin",
+            action: "Settings Changed",
+            target: `${updatedMember.fullName} (${updatedMember.memberCode})`,
+            details: `Profile and role configuration updated for ${updatedMember.fullName}.`,
+        }).catch((err) => console.error("Failed to record member update audit log:", err));
+    }
     return updatedMember;
 };
 // ─── 6. Permanently Delete Member ─────────────────────────────────────────────
@@ -230,14 +315,24 @@ const deleteMemberFromDB = async (id) => {
     if (id.match(/^[0-9a-fA-F]{24}$/)) {
         member = await member_model_1.Member.findById(id);
     }
-    else {
-        member = await member_model_1.Member.findOne({ memberCode: id });
+    if (!member) {
+        member = await member_model_1.Member.findOne({
+            $or: [{ memberCode: id }, { email: id }, { id: id }],
+        });
     }
     if (!member) {
         throw new AppError_1.default(http_status_1.default.NOT_FOUND, "Member not found!");
     }
-    // Permanently delete as requested in requirement
     const result = await member_model_1.Member.findByIdAndDelete(member._id);
+    if (result) {
+        await auditLog_service_1.AuditLogServices.createAuditLogInDB({
+            adminName: "Super Admin",
+            adminRole: "Super Admin",
+            action: "Amount Modified",
+            target: `${result.fullName} (${result.memberCode})`,
+            details: `Member account ${result.fullName} (ID: ${result.memberCode}) deleted from the system.`,
+        }).catch((err) => console.error("Failed to record member deletion audit log:", err));
+    }
     return result;
 };
 // ─── 7. Member Dashboard Summary & Profit Balance ────────────────────────────
@@ -330,18 +425,33 @@ const getMemberDashboardSummaryFromDB = async (userIdOrEmail) => {
 const getMemberProfitBalanceFromDB = async (userIdOrId) => {
     let member = null;
     if (userIdOrId) {
-        if (userIdOrId.match(/^[0-9a-fA-F]{24}$/)) {
-            member = await member_model_1.Member.findById(userIdOrId);
+        if (mongoose_1.default.isValidObjectId(userIdOrId)) {
+            member = await member_model_1.Member.findOne({ _id: userIdOrId, isDeleted: false });
         }
-        else {
+        if (!member) {
+            const cleanId = decodeURIComponent(userIdOrId).trim();
             member = await member_model_1.Member.findOne({
-                $or: [{ email: userIdOrId }, { memberCode: userIdOrId }],
+                isDeleted: false,
+                $or: [
+                    { email: cleanId },
+                    { memberCode: cleanId },
+                    { fullName: { $regex: new RegExp(`^${cleanId}$`, "i") } },
+                ],
             });
         }
     }
     if (!member) {
         if (userIdOrId && userIdOrId.includes("@")) {
-            return { profitBalance: 0 };
+            return {
+                memberId: "system",
+                fullName: "System",
+                memberName: "System",
+                memberCode: "SYSTEM",
+                profitBalance: 0,
+                totalDeposit: 0,
+                dueAmount: 0,
+                totalWithdrawn: 0,
+            };
         }
         throw new AppError_1.default(http_status_1.default.NOT_FOUND, "Member record not found");
     }

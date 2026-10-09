@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ReportServices = void 0;
 const expense_model_1 = require("../Expense/expense.model");
-const investment_model_1 = require("../Investment/investment.model");
+const investmentIncome_model_1 = require("../InvestmentIncome/investmentIncome.model");
 const operation_model_1 = require("../Operation/operation.model");
 const adjustment_model_1 = require("../Adjustment/adjustment.model");
 const reportPdfStream_service_1 = require("../../services/reportPdfStream.service");
@@ -122,7 +122,7 @@ async function exportInvestmentReport(res, query) {
     const format = (query.format || "pdf").toLowerCase();
     const dateFilter = buildDateFilter("startDate", query.fromDate, query.toDate);
     const filter = { isDeleted: false, ...dateFilter };
-    const [summary] = await investment_model_1.Investment.aggregate([
+    const [summary] = await investmentIncome_model_1.InvestmentIncome.aggregate([
         { $match: filter },
         {
             $group: {
@@ -136,15 +136,15 @@ async function exportInvestmentReport(res, query) {
     const totalAmount = summary?.totalAmount || 0;
     const filtersSummary = buildDateRangeSummary(query.fromDate, query.toDate);
     const timestamp = new Date().toISOString().slice(0, 10);
-    const cursor = investment_model_1.Investment.find(filter)
+    const cursor = investmentIncome_model_1.InvestmentIncome.find(filter)
         .sort({ numericId: 1 })
         .lean()
         .cursor();
     if (format === "excel") {
         const columns = [
             { header: "ID", key: "numericId", width: 10, alignment: "center" },
-            { header: "INVESTMENT NAME", key: "name", width: 28 },
-            { header: "DATE", key: "startDate", width: 15, alignment: "center", isDate: true },
+            { header: "INVESTMENT NAME", key: "investmentName", width: 28 },
+            { header: "DATE", key: "date", width: 15, alignment: "center", isDate: true },
             { header: "AMOUNT", key: "amount", width: 18, alignment: "right", isCurrency: true },
             { header: "REMARKS", key: "remarks", width: 35 },
         ];
@@ -165,8 +165,8 @@ async function exportInvestmentReport(res, query) {
     else {
         const columns = [
             { header: "ID", key: "numericId", width: 35, align: "center" },
-            { header: "INVESTMENT NAME", key: "name", width: 155 },
-            { header: "DATE", key: "startDate", width: 75, align: "center", isDate: true },
+            { header: "INVESTMENT NAME", key: "investmentName", width: 155 },
+            { header: "DATE", key: "date", width: 75, align: "center", isDate: true },
             { header: "AMOUNT", key: "amount", width: 85, align: "right", isCurrency: true },
             { header: "REMARKS", key: "remarks", width: 173 },
         ];

@@ -5,6 +5,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateDueListPdf = generateDueListPdf;
 const pdfkit_1 = __importDefault(require("pdfkit"));
+/**
+ * Lead Frontend Engineer - Dynamic PDF Generation System
+ * Generates due list PDF with dynamic cell heights, auto-wrapping text,
+ * protected header cells, balanced column ratios, and merged summary footer.
+ */
 async function generateDueListPdf(items, filtersSummary = "All Records") {
     return new Promise((resolve, reject) => {
         try {
@@ -13,49 +18,138 @@ async function generateDueListPdf(items, filtersSummary = "All Records") {
             doc.on("data", (chunk) => chunks.push(chunk));
             doc.on("end", () => resolve(Buffer.concat(chunks)));
             doc.on("error", (err) => reject(err));
-            // Header Banner
-            doc.rect(30, 30, 535, 45).fill("#046A38");
-            doc.fillColor("#FFFFFF").fontSize(18).text("Friends Goal Organization", 45, 42);
-            doc.fontSize(10).text("Due List Statement Report", 45, 62);
-            let currentY = 85;
-            doc.fillColor("#64748B").fontSize(9).text(`Filter: ${filtersSummary}`, 30, currentY);
-            doc.text(`Generated: ${new Date().toLocaleString("en-US")}`, 380, currentY, { align: "right" });
+            const margin = 30;
+            const contentWidth = 535; // 595.28 - 2 * 30
+            const bottomBoundary = 780;
+            // 1. Header Banner (Deep Navy #0E3B6C with Crimson Red Accent)
+            doc.rect(margin, margin, contentWidth, 48).fill("#0E3B6C");
+            doc.fillColor("#FFFFFF").fontSize(17).font("Helvetica-Bold").text("Friends Goal Organization", 45, 38);
+            doc.fontSize(9).font("Helvetica").text("Due List Statement Report  |  LET'S GO TOGETHER", 45, 59);
+            let currentY = 88;
+            doc.fillColor("#64748B").fontSize(8.5).font("Helvetica").text(`Filter: ${filtersSummary}`, margin, currentY);
+            doc.text(`Generated: ${new Date().toLocaleString("en-US")}`, 350, currentY, { width: 215, align: "right" });
             currentY += 20;
-            // Table Header
-            doc.rect(30, currentY, 535, 20).fill("#F1F5F9");
-            doc.fillColor("#334155").fontSize(9);
-            doc.text("CODE", 35, currentY + 5, { width: 50 });
-            doc.text("MEMBER NAME", 90, currentY + 5, { width: 140 });
-            doc.text("MOBILE NO", 235, currentY + 5, { width: 90 });
-            doc.text("DUE AMOUNT", 330, currentY + 5, { width: 80, align: "right" });
-            doc.text("ADVANCE", 415, currentY + 5, { width: 75, align: "right" });
-            doc.text("STATUS", 495, currentY + 5, { width: 65, align: "center" });
-            currentY += 22;
-            let totalDue = 0;
-            for (const item of items) {
-                if (currentY > 750) {
-                    doc.addPage();
-                    currentY = 40;
+            // 2. Column Ratios & Definitions
+            // CODE (~8%), MEMBER NAME (~25%), MOBILE NO (~15%), DUE AMOUNT (~17%), ADVANCE (~17%), STATUS (~18%)
+            const columns = [
+                { header: "CODE", width: 43, align: "center" },
+                { header: "MEMBER NAME", width: 134, align: "left" },
+                { header: "MOBILE NO", width: 80, align: "left" },
+                { header: "DUE AMOUNT", width: 91, align: "right" },
+                { header: "ADVANCE", width: 91, align: "right" },
+                { header: "STATUS", width: 96, align: "center" },
+            ];
+            const drawHeaderRow = (y) => {
+                const headerHeight = 22;
+                doc.rect(margin, y, contentWidth, headerHeight).fill("#0E3B6C");
+                doc.fillColor("#FFFFFF").fontSize(8.5).font("Helvetica-Bold");
+                let colX = margin;
+                for (const col of columns) {
+                    const padX = 4;
+                    doc.text(col.header, colX + padX, y + 6, {
+                        width: col.width - 2 * padX,
+                        align: col.align,
+                    });
+                    colX += col.width;
                 }
+                return y + headerHeight;
+            };
+            currentY = drawHeaderRow(currentY);
+            let totalDue = 0;
+            let totalAdvance = 0;
+            // 3. Body Rows with Dynamic Cell Heights & Word Wrapping
+            for (const item of items) {
                 const due = Number(item.dueAmount || 0);
                 const adv = Number(item.advanceBalance || 0);
                 totalDue += due;
-                doc.fillColor("#1E293B").fontSize(8.5);
-                doc.text(item.memberCode || "-", 35, currentY, { width: 50 });
-                doc.text(item.memberName || "-", 90, currentY, { width: 140 });
-                doc.text(item.mobileNo || "-", 235, currentY, { width: 90 });
-                doc.text(due.toLocaleString(undefined, { minimumFractionDigits: 2 }), 330, currentY, { width: 80, align: "right" });
-                doc.text(adv.toLocaleString(undefined, { minimumFractionDigits: 2 }), 415, currentY, { width: 75, align: "right" });
-                const statusColor = item.status === "Due" ? "#DC2626" : item.status === "Advance" ? "#059669" : "#64748B";
-                doc.fillColor(statusColor).text(item.status || "-", 495, currentY, { width: 65, align: "center" });
-                currentY += 16;
-                doc.moveTo(30, currentY - 2).lineTo(565, currentY - 2).strokeColor("#E2E8F0").lineWidth(0.5).stroke();
+                totalAdvance += adv;
+                const codeText = item.memberCode || "-";
+                const nameText = item.memberName || "-";
+                const mobileText = item.mobileNo || "-";
+                const dueText = due.toLocaleString(undefined, { minimumFractionDigits: 2 });
+                const advText = adv.toLocaleString(undefined, { minimumFractionDigits: 2 });
+                const statusText = item.status || "-";
+                // Calculate dynamic height based on content wrapping
+                doc.fontSize(8).font("Helvetica");
+                const nameHeight = doc.heightOfString(nameText, { width: 134 - 8 }) + 8;
+                const dynamicRowHeight = Math.max(18, nameHeight);
+                if (currentY + dynamicRowHeight > bottomBoundary) {
+                    doc.addPage();
+                    currentY = drawHeaderRow(40);
+                }
+                // Row background line
+                doc
+                    .strokeColor("#E2E8F0")
+                    .lineWidth(0.5)
+                    .moveTo(margin, currentY + dynamicRowHeight)
+                    .lineTo(margin + contentWidth, currentY + dynamicRowHeight)
+                    .stroke();
+                let cellX = margin;
+                // CODE
+                doc.fillColor("#1E293B").font("Helvetica");
+                doc.text(codeText, cellX + 4, currentY + 4, { width: 43 - 8, align: "center", lineBreak: true });
+                cellX += 43;
+                // MEMBER NAME (Auto-wrapping text)
+                doc.font("Helvetica-Bold");
+                doc.text(nameText, cellX + 4, currentY + 4, { width: 134 - 8, align: "left", lineBreak: true });
+                cellX += 134;
+                // MOBILE NO
+                doc.font("Helvetica");
+                doc.text(mobileText, cellX + 4, currentY + 4, { width: 80 - 8, align: "left", lineBreak: true });
+                cellX += 80;
+                // DUE AMOUNT
+                doc.font("Helvetica-Bold").fillColor(due > 0 ? "#C0262D" : "#1E293B");
+                doc.text(dueText, cellX + 4, currentY + 4, { width: 91 - 8, align: "right", lineBreak: true });
+                cellX += 91;
+                // ADVANCE
+                doc.font("Helvetica-Bold").fillColor(adv > 0 ? "#0E3B6C" : "#1E293B");
+                doc.text(advText, cellX + 4, currentY + 4, { width: 91 - 8, align: "right", lineBreak: true });
+                cellX += 91;
+                // STATUS
+                const statusColor = statusText === "Due" ? "#C0262D" : statusText === "Advance" ? "#0E3B6C" : "#64748B";
+                doc.font("Helvetica-Bold").fillColor(statusColor);
+                doc.text(statusText.toUpperCase(), cellX + 4, currentY + 4, { width: 96 - 8, align: "center", lineBreak: true });
+                currentY += dynamicRowHeight;
             }
-            currentY += 10;
-            doc.rect(30, currentY, 535, 25).fill("#F8FAFC");
-            doc.fillColor("#0F172A").fontSize(9);
-            doc.text(`Total Records: ${items.length}`, 40, currentY + 7);
-            doc.text(`Total Due: ${totalDue.toLocaleString(undefined, { minimumFractionDigits: 2 })} BDT`, 330, currentY + 7, { width: 220, align: "right" });
+            // 4. Dynamic Summary Footer Row with Merged colSpan Title Cell & 6px Padding
+            const footerHeight = 26;
+            if (currentY + footerHeight > bottomBoundary) {
+                doc.addPage();
+                currentY = 40;
+            }
+            doc.rect(margin, currentY, contentWidth, footerHeight).fill("#F1F5F9");
+            doc
+                .strokeColor("#0E3B6C")
+                .lineWidth(1)
+                .moveTo(margin, currentY)
+                .lineTo(margin + contentWidth, currentY)
+                .moveTo(margin, currentY + footerHeight)
+                .lineTo(margin + contentWidth, currentY + footerHeight)
+                .stroke();
+            // Merged Label for non-amount columns (CODE + MEMBER NAME + MOBILE NO = 43 + 134 + 80 = 257pt)
+            doc.fillColor("#0E3B6C").fontSize(8.5).font("Helvetica-Bold");
+            doc.text(`TOTAL RECORDS (${items.length})`, margin + 6, currentY + 7, { width: 245, align: "left" });
+            // Total Due in Crimson Red #C0262D
+            doc.fillColor("#C0262D");
+            doc.text(totalDue.toLocaleString(undefined, { minimumFractionDigits: 2 }), margin + 257 + 4, currentY + 7, {
+                width: 91 - 8,
+                align: "right",
+            });
+            // Total Advance in Navy Blue #0E3B6C
+            doc.fillColor("#0E3B6C");
+            doc.text(totalAdvance.toLocaleString(undefined, { minimumFractionDigits: 2 }), margin + 257 + 91 + 4, currentY + 7, {
+                width: 91 - 8,
+                align: "right",
+            });
+            // Disclaimer Note & Dual-Tone Accent Bar
+            const pageHeight = 841.89;
+            const barY = pageHeight - 6;
+            const pageWidth = 595.28;
+            const halfWidth = pageWidth / 2;
+            doc.fontSize(7).font("Helvetica").fillColor("#64748B");
+            doc.text("This is an auto-generated document, no signature required.", margin, currentY + footerHeight + 10);
+            doc.rect(0, barY, halfWidth, 6).fill("#C0262D");
+            doc.rect(halfWidth, barY, halfWidth, 6).fill("#0E3B6C");
             doc.end();
         }
         catch (err) {

@@ -85,7 +85,7 @@ export async function streamMemberProfileToPdf(
     doc
       .fontSize(14)
       .font("Helvetica-Bold")
-      .fillColor("#046A38")
+      .fillColor("#0E3B6C")
       .text(organizationName, margin + 40, topY + 2);
 
     doc
@@ -106,7 +106,7 @@ export async function streamMemberProfileToPdf(
     doc
       .fontSize(8)
       .font("Helvetica")
-      .fillColor("#046A38")
+      .fillColor("#C0262D")
       .text(website, margin, topY + 18, {
         width: contentWidth,
         align: "right",
@@ -114,7 +114,7 @@ export async function streamMemberProfileToPdf(
 
     // Divider Line
     doc
-      .strokeColor("#046A38")
+      .strokeColor("#0E3B6C")
       .lineWidth(1.5)
       .moveTo(margin, topY + 38)
       .lineTo(margin + contentWidth, topY + 38)
@@ -226,10 +226,10 @@ export async function streamMemberProfileToPdf(
   const cardHeight = 44;
 
   const kpiData = [
-    { label: "TOTAL DEPOSIT", value: formatCurrency(totalDeposit), color: "#046A38", bg: "#EAF8F1" },
-    { label: "PROFIT BALANCE", value: formatCurrency(profitBalance), color: "#2563EB", bg: "#EFF6FF" },
+    { label: "TOTAL DEPOSIT", value: formatCurrency(totalDeposit), color: "#0E3B6C", bg: "#F1F5F9" },
+    { label: "PROFIT BALANCE", value: formatCurrency(profitBalance), color: "#0288D1", bg: "#EFF6FF" },
     { label: "PENDING WITHDRAWAL", value: formatCurrency(pendingWithdrawals), color: "#D97706", bg: "#FFFBEB" },
-    { label: "CURRENT DUE", value: formatCurrency(dueAmount), color: "#DC2626", bg: "#FEF2F2" },
+    { label: "CURRENT DUE", value: formatCurrency(dueAmount), color: "#C0262D", bg: "#FEF2F2" },
   ];
 
   kpiData.forEach((kpi, idx) => {
@@ -271,7 +271,7 @@ export async function streamMemberProfileToPdf(
 
   const drawTableHeader = (y: number): number => {
     const rowHeight = 20;
-    doc.roundedRect(margin, y, contentWidth, rowHeight, 2).fill("#046A38");
+    doc.roundedRect(margin, y, contentWidth, rowHeight, 2).fill("#0E3B6C");
 
     let colX = margin;
     doc.fontSize(8).font("Helvetica-Bold").fillColor("#FFFFFF");
@@ -382,7 +382,7 @@ export async function streamMemberProfileToPdf(
   const pages = doc.bufferedPageRange();
   for (let i = 0; i < pages.count; i++) {
     doc.switchToPage(i);
-    const footerY = pageHeight - margin - 15;
+    const footerY = pageHeight - margin - 18;
 
     doc
       .strokeColor("#E2E8F0")
@@ -392,7 +392,7 @@ export async function streamMemberProfileToPdf(
       .stroke();
 
     doc
-      .fontSize(7.5)
+      .fontSize(7)
       .font("Helvetica")
       .fillColor("#94A3B8")
       .text(
@@ -405,11 +405,29 @@ export async function streamMemberProfileToPdf(
     doc
       .fontSize(7.5)
       .font("Helvetica-Bold")
-      .fillColor("#64748B")
+      .fillColor("#0E3B6C")
       .text(`Page ${i + 1} of ${pages.count}`, margin, footerY, {
         width: contentWidth,
         align: "right",
       });
+
+    // Auto-generated disclaimer note
+    doc
+      .fontSize(6.5)
+      .font("Helvetica")
+      .fillColor("#64748B")
+      .text(
+        "This is an auto-generated document, no signature required.",
+        margin,
+        footerY + 9,
+        { width: contentWidth, align: "left" }
+      );
+
+    // Dual-Tone Bottom Accent Bar (Crimson Red Left 50% + Deep Navy Right 50%)
+    const barY = pageHeight - 5;
+    const halfWidth = pageWidth / 2;
+    doc.rect(0, barY, halfWidth, 5).fill("#C0262D");
+    doc.rect(halfWidth, barY, halfWidth, 5).fill("#0E3B6C");
   }
 
   doc.end();

@@ -10,6 +10,8 @@ router.get("/", StatController.getAllStats);
 
 // Admin / SuperAdmin Protected routes
 router.post("/", auth(USER_ROLE.admin, USER_ROLE.superAdmin), StatController.createStat);
+router.put("/", auth(USER_ROLE.admin, USER_ROLE.superAdmin), StatController.bulkUpdateStats);
+router.patch("/bulk", auth(USER_ROLE.admin, USER_ROLE.superAdmin), StatController.bulkUpdateStats);
 router.patch("/:id", auth(USER_ROLE.admin, USER_ROLE.superAdmin), StatController.updateStat);
 
 export const StatRoutes = router;

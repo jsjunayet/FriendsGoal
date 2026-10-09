@@ -63,11 +63,11 @@ export function generateDynamicPdf(options: IPdfGeneratorOptions): jsPDF {
   // 1. Draw Branded Page Header
   let startY = margin;
 
-  // Header Banner Green Accent Box
-  doc.setFillColor(4, 106, 56); // Theme Green #046A38
+  // Header Banner Brand Badge (Deep Navy #0E3B6C)
+  doc.setFillColor(14, 59, 108); // Theme Navy #0E3B6C
   doc.roundedRect(margin, startY, 32, 32, 4, 4, "F");
   
-  // Draw Logo Pillars inside Green Box
+  // Draw Logo Pillars inside Navy Box with Crimson Accent
   doc.setFillColor(255, 255, 255);
   const pillarW = 2.5;
   const gap = 2.5;
@@ -75,13 +75,18 @@ export function generateDynamicPdf(options: IPdfGeneratorOptions): jsPDF {
   const baseY = startY + 32 - 6;
   const heights = [8, 17, 13, 7];
   heights.forEach((h, i) => {
+    if (i === 1) {
+      doc.setFillColor(192, 38, 45); // Crimson Red accent pillar
+    } else {
+      doc.setFillColor(255, 255, 255);
+    }
     doc.roundedRect(startX + i * (pillarW + gap), baseY - h, pillarW, h, 1, 1, "F");
   });
 
   // Header Titles (Left)
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
-  doc.setTextColor(4, 106, 56);
+  doc.setTextColor(14, 59, 108); // #0E3B6C
   doc.text(organizationName, margin + 40, startY + 14);
 
   doc.setFont("helvetica", "normal");
@@ -97,12 +102,12 @@ export function generateDynamicPdf(options: IPdfGeneratorOptions): jsPDF {
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(4, 106, 56);
+  doc.setTextColor(192, 38, 45); // Crimson Red #C0262D
   doc.text(website, pageWidth - margin, startY + 26, { align: "right" });
 
-  // Divider Line
+  // Divider Line in Navy Blue
   startY += 38;
-  doc.setDrawColor(4, 106, 56);
+  doc.setDrawColor(14, 59, 108); // #0E3B6C
   doc.setLineWidth(1.5);
   doc.line(margin, startY, pageWidth - margin, startY);
 
@@ -129,7 +134,7 @@ export function generateDynamicPdf(options: IPdfGeneratorOptions): jsPDF {
     kpis.forEach((kpi) => {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7.5);
-      doc.setTextColor(4, 106, 56);
+      doc.setTextColor(14, 59, 108); // #0E3B6C
       doc.text(`${kpi.label}: `, kpiX, kpiY);
       const labelWidth = doc.getTextWidth(`${kpi.label}: `);
       doc.setTextColor(15, 23, 42);
@@ -221,8 +226,8 @@ export function generateDynamicPdf(options: IPdfGeneratorOptions): jsPDF {
       styles: {
         halign: "left",
         fontStyle: "bold",
-        textColor: [4, 106, 56],
-        fillColor: [232, 245, 233],
+        textColor: [14, 59, 108], // #0E3B6C
+        fillColor: [241, 245, 249], // #F1F5F9
         cellPadding: 6,
       },
     });
@@ -237,8 +242,8 @@ export function generateDynamicPdf(options: IPdfGeneratorOptions): jsPDF {
           styles: {
             halign: col.align || "right",
             fontStyle: "bold",
-            textColor: [4, 106, 56],
-            fillColor: [232, 245, 233],
+            textColor: [192, 38, 45], // Crimson Red #C0262D
+            fillColor: [241, 245, 249],
             cellPadding: 6,
           },
         });
@@ -246,7 +251,7 @@ export function generateDynamicPdf(options: IPdfGeneratorOptions): jsPDF {
         footRow.push({
           content: "",
           styles: {
-            fillColor: [232, 245, 233],
+            fillColor: [241, 245, 249],
             cellPadding: 6,
           },
         });
@@ -273,7 +278,7 @@ export function generateDynamicPdf(options: IPdfGeneratorOptions): jsPDF {
       lineWidth: 0.5,
     },
     headStyles: {
-      fillColor: [4, 106, 56], // Theme Green #046A38
+      fillColor: [14, 59, 108], // Deep Navy #0E3B6C
       textColor: [255, 255, 255],
       fontSize: 8.5,
       fontStyle: "bold",
@@ -281,8 +286,8 @@ export function generateDynamicPdf(options: IPdfGeneratorOptions): jsPDF {
       minCellHeight: 20,
     },
     footStyles: {
-      fillColor: [232, 245, 233],
-      textColor: [4, 106, 56],
+      fillColor: [241, 245, 249],
+      textColor: [14, 59, 108],
       fontSize: 8.5,
       fontStyle: "bold",
       cellPadding: 6,
@@ -299,7 +304,7 @@ export function generateDynamicPdf(options: IPdfGeneratorOptions): jsPDF {
       if (data.pageNumber > 1) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(9);
-        doc.setTextColor(4, 106, 56);
+        doc.setTextColor(14, 59, 108); // #0E3B6C
         doc.text(organizationName, margin, margin - 10);
 
         doc.setFont("helvetica", "normal");
@@ -314,11 +319,11 @@ export function generateDynamicPdf(options: IPdfGeneratorOptions): jsPDF {
     },
   });
 
-  // 7. Add Dynamic Page Footers ("Page X of Y")
+  // 7. Add Dynamic Page Footers ("Page X of Y") & Brand Bottom Accent Bar
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    const footerY = pageHeight - margin + 10;
+    const footerY = pageHeight - margin + 8;
 
     // Thin top border line
     doc.setDrawColor(226, 232, 240);
@@ -328,7 +333,7 @@ export function generateDynamicPdf(options: IPdfGeneratorOptions): jsPDF {
     // Footer Left: System metadata
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
-    doc.setTextColor(148, 163, 184);
+    doc.setTextColor(100, 116, 139);
     doc.text(
       `Printed By: ${printedBy}  |  ${organizationName}  |  ${website}`,
       margin,
@@ -337,8 +342,22 @@ export function generateDynamicPdf(options: IPdfGeneratorOptions): jsPDF {
 
     // Footer Right: Dynamic "Page X of Y"
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(100, 116, 139);
+    doc.setTextColor(14, 59, 108);
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, footerY, { align: "right" });
+
+    // Standardized disclaimer note
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(148, 163, 184);
+    doc.text("This is an auto-generated document, no signature required.", margin, footerY + 10);
+
+    // Dual-Tone Bottom Accent Bar (Crimson Red #C0262D + Deep Navy #0E3B6C)
+    const barY = pageHeight - 6;
+    const halfWidth = pageWidth / 2;
+    doc.setFillColor(192, 38, 45); // Left Crimson Red #C0262D
+    doc.rect(0, barY, halfWidth, 6, "F");
+    doc.setFillColor(14, 59, 108); // Right Deep Navy #0E3B6C
+    doc.rect(halfWidth, barY, halfWidth, 6, "F");
   }
 
   return doc;

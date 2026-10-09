@@ -1,11 +1,17 @@
 import type { Model } from "mongoose";
-export type TCouncilCategory = "core_leadership" | "financial_leadership" | "general_member";
+export type TCouncilCategory = "core_leadership" | "financial_leadership" | "general_member" | "executive" | "financial" | "general";
 export type TMemberRole = "superadmin" | "admin" | "manager" | "member";
 export type TMemberStatus = "active" | "inactive" | "blocked";
+export interface IBilingualText {
+    bn: string;
+    en: string;
+}
 export interface IMember {
     _id?: string;
     memberCode: string;
+    memberId?: string;
     fullName: string;
+    name?: IBilingualText;
     email: string;
     bloodGroup?: string;
     profession?: string;
@@ -14,6 +20,7 @@ export interface IMember {
     fatherName?: string;
     motherName?: string;
     mobileNo: string;
+    phone?: string;
     dateOfBirth?: string;
     division?: string;
     district?: string;
@@ -21,7 +28,9 @@ export interface IMember {
     presentAddress?: string;
     designation: string;
     designationBn: string;
+    roleTitle?: IBilingualText;
     councilCategory: TCouncilCategory;
+    councilType?: string;
     role: TMemberRole;
     password?: string;
     profitBalance: number | any;
@@ -31,6 +40,7 @@ export interface IMember {
     totalWithdrawn?: number | any;
     depositBalance?: number | any;
     pendingWithdrawal?: number | any;
+    othersReceived?: number | any;
     nomineeName?: string;
     nomineeRelation?: string;
     nomineeDob?: string;
@@ -38,6 +48,7 @@ export interface IMember {
     nomineeAddress?: string;
     nomineePictureUrl?: string;
     pictureUrl?: string;
+    photoUrl?: string;
     signatureUrl?: string;
     status: TMemberStatus;
     isDeleted: boolean;

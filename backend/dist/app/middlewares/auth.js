@@ -38,6 +38,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const http_status_1 = __importDefault(require("http-status"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const mongoose_1 = __importDefault(require("mongoose"));
 const index_1 = __importDefault(require("../config/index"));
 const AppError_1 = __importDefault(require("../errors/AppError"));
 const user_model_1 = require("../modules/User/user.model");
@@ -59,7 +60,10 @@ const auth = (...requiredRoles) => {
         // checking if user exists in User or Member
         let user = await user_model_1.User.isUserExistsByCustomId(userId);
         if (!user) {
-            const member = await (await Promise.resolve().then(() => __importStar(require("../modules/Member/member.model")))).Member.findById(userId);
+            const { Member } = await Promise.resolve().then(() => __importStar(require("../modules/Member/member.model")));
+            const member = mongoose_1.default.Types.ObjectId.isValid(userId)
+                ? await Member.findById(userId)
+                : await Member.findOne({ memberCode: userId });
             if (member) {
                 user = {
                     _id: member._id,
@@ -87,8 +91,12 @@ const auth = (...requiredRoles) => {
             user_model_1.User.isJWTIssuedBeforePasswordChanged(user.passwordChangedAt, iat)) {
             throw new AppError_1.default(http_status_1.default.UNAUTHORIZED, 'You are not authorized !');
         }
-        if (requiredRoles && !requiredRoles.includes(role)) {
-            throw new AppError_1.default(http_status_1.default.UNAUTHORIZED, 'You are not authorized  hi!');
+        if (requiredRoles && requiredRoles.length > 0) {
+            const normalizedUserRole = role ? String(role).toLowerCase() : "";
+            const hasRole = requiredRoles.some((r) => String(r).toLowerCase() === normalizedUserRole);
+            if (!hasRole) {
+                throw new AppError_1.default(http_status_1.default.UNAUTHORIZED, 'You are not authorized!');
+            }
         }
         req.user = { ...decoded, _id: user._id, id: user.id || user._id, email: user.email };
         next();

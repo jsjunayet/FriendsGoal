@@ -5,15 +5,15 @@ const zod_1 = require("zod");
 const createMemberValidationSchema = zod_1.z.object({
     body: zod_1.z.object({
         memberCode: zod_1.z.string().optional(),
-        fullName: zod_1.z.string().min(1, "Full name is required"),
-        email: zod_1.z.string().email("Invalid email address"),
+        fullName: zod_1.z.string().trim().min(1, "Full name is required"),
+        email: zod_1.z.string().trim().email("Please enter a valid email address (e.g. user@example.com)"),
         bloodGroup: zod_1.z.string().optional(),
         profession: zod_1.z.string().optional(),
         nidNo: zod_1.z.string().optional(),
         birthRegistrationNo: zod_1.z.string().optional(),
         fatherName: zod_1.z.string().optional(),
         motherName: zod_1.z.string().optional(),
-        mobileNo: zod_1.z.string().min(1, "Mobile number is required"),
+        mobileNo: zod_1.z.string().trim().min(1, "Mobile number is required"),
         dateOfBirth: zod_1.z.string().optional(),
         division: zod_1.z.string().optional(),
         district: zod_1.z.string().optional(),

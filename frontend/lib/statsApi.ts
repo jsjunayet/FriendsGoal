@@ -59,3 +59,14 @@ export async function updateStatApi(
     body: JSON.stringify(payload),
   });
 }
+
+export async function bulkUpdateStatsApi(
+  payload:
+    | Array<{ key: string; value: string; label?: IBilingualField; order?: number }>
+    | Record<string, any>
+): Promise<StatCounterItem[]> {
+  return request<StatCounterItem[]>("/stats/bulk", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}

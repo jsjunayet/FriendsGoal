@@ -6,13 +6,14 @@ import { ICreateDisbursementPayload, IDisbursementFilterQuery } from "./disburse
 declare const getMemberProfitBalanceFromDB: (memberId: string) => Promise<{
     memberId: string;
     memberName: string;
+    fullName: string;
     memberCode: string;
     profitBalance: number;
     totalDeposit: number;
     dueAmount: number;
 }>;
 /**
- * 2. Process Payout Transaction with Atomic Balance Deduction
+ * 2. Process Payout Transaction with Atomic Balance Deduction & Merging to Deposit
  */
 declare const createDisbursementInDB: (payload: ICreateDisbursementPayload, userId?: string) => Promise<mongoose.Document<unknown, {}, import("./disbursement.interface").IDisbursement, {}, mongoose.DefaultSchemaOptions> & import("./disbursement.interface").IDisbursement & Required<{
     _id: string | mongoose.Types.ObjectId;

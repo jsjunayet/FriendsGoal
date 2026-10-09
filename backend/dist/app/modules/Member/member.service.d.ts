@@ -1,6 +1,7 @@
+import mongoose from "mongoose";
 import type { Response } from "express";
 import type { IMember } from "./member.interface";
-declare const createMemberIntoDB: (payload: IMember) => Promise<import("mongoose").Document<unknown, {}, IMember, {}, import("mongoose").DefaultSchemaOptions> & IMember & Required<{
+declare const createMemberIntoDB: (payload: IMember) => Promise<mongoose.Document<unknown, {}, IMember, {}, mongoose.DefaultSchemaOptions> & IMember & Required<{
     _id: string;
 }> & {
     __v: number;
@@ -14,7 +15,7 @@ declare const getAllMembersFromDB: (query: Record<string, unknown>) => Promise<{
         total: number;
         totalPage: number;
     };
-    data: (import("mongoose").Document<unknown, {}, IMember, {}, import("mongoose").DefaultSchemaOptions> & IMember & Required<{
+    data: (mongoose.Document<unknown, {}, IMember, {}, mongoose.DefaultSchemaOptions> & IMember & Required<{
         _id: string;
     }> & {
         __v: number;
@@ -22,28 +23,28 @@ declare const getAllMembersFromDB: (query: Record<string, unknown>) => Promise<{
         id: string;
     })[];
 }>;
-declare const getPublicCouncilMembersFromDB: (query: Record<string, unknown>) => Promise<(import("mongoose").Document<unknown, {}, IMember, {}, import("mongoose").DefaultSchemaOptions> & IMember & Required<{
+declare const getPublicCouncilMembersFromDB: (query: Record<string, unknown>) => Promise<(mongoose.Document<unknown, {}, IMember, {}, mongoose.DefaultSchemaOptions> & IMember & Required<{
     _id: string;
 }> & {
     __v: number;
 } & {
     id: string;
 })[]>;
-declare const getSingleMemberFromDB: (id: string) => Promise<import("mongoose").Document<unknown, {}, IMember, {}, import("mongoose").DefaultSchemaOptions> & IMember & Required<{
+declare const getSingleMemberFromDB: (id: string) => Promise<mongoose.Document<unknown, {}, IMember, {}, mongoose.DefaultSchemaOptions> & IMember & Required<{
     _id: string;
 }> & {
     __v: number;
 } & {
     id: string;
 }>;
-declare const updateMemberIntoDB: (id: string, payload: Partial<IMember>) => Promise<(import("mongoose").Document<unknown, {}, IMember, {}, import("mongoose").DefaultSchemaOptions> & IMember & Required<{
+declare const updateMemberIntoDB: (id: string, payload: Partial<IMember>) => Promise<(mongoose.Document<unknown, {}, IMember, {}, mongoose.DefaultSchemaOptions> & IMember & Required<{
     _id: string;
 }> & {
     __v: number;
 } & {
     id: string;
 }) | null>;
-declare const deleteMemberFromDB: (id: string) => Promise<(import("mongoose").Document<unknown, {}, IMember, {}, import("mongoose").DefaultSchemaOptions> & IMember & Required<{
+declare const deleteMemberFromDB: (id: string) => Promise<(mongoose.Document<unknown, {}, IMember, {}, mongoose.DefaultSchemaOptions> & IMember & Required<{
     _id: string;
 }> & {
     __v: number;
@@ -101,15 +102,6 @@ declare const getMemberDashboardSummaryFromDB: (userIdOrEmail?: string) => Promi
     }[];
 }>;
 declare const getMemberProfitBalanceFromDB: (userIdOrId?: string) => Promise<{
-    profitBalance: number;
-    memberId?: never;
-    fullName?: never;
-    memberName?: never;
-    memberCode?: never;
-    totalDeposit?: never;
-    dueAmount?: never;
-    totalWithdrawn?: never;
-} | {
     memberId: string;
     fullName: string;
     memberName: string;
