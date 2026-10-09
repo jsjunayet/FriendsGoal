@@ -58,12 +58,39 @@ app.use(
 
 import path from "path";
 import os from "os";
+import fs from "fs";
 
-// Serve static uploads (both local workspace and serverless tmp)
-const localUploads = path.join(process.cwd(), "uploads");
-const tmpUploads = path.join(os.tmpdir(), "uploads");
-app.use("/uploads", express.static(localUploads));
-app.use("/uploads", express.static(tmpUploads));
+// Serve static uploads (candidate directories across local workspace and serverless deployment)
+const possibleUploadDirs = [
+  path.join(process.cwd(), "uploads"),
+  path.join(process.cwd(), "backend", "uploads"),
+  path.join(__dirname, "../uploads"),
+  path.join(__dirname, "../../uploads"),
+  path.join(__dirname, "../../../uploads"),
+  path.join(os.tmpdir(), "uploads"),
+];
+
+possibleUploadDirs.forEach((dir) => {
+  try {
+    if (fs.existsSync(dir)) {
+      app.use("/uploads", express.static(dir));
+    }
+  } catch (_) {}
+});
+
+// Explicit route fallback to ensure static uploads are always sent if found
+app.get("/uploads/:filename", (req: Request, res: Response, next) => {
+  const filename = path.basename((req.params as any).filename || "");
+  for (const dir of possibleUploadDirs) {
+    try {
+      const candidate = path.join(dir, filename);
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+        return res.sendFile(candidate);
+      }
+    } catch (_) {}
+  }
+  return next();
+});
 
 // Application routes
 app.use("/api/v1", router);

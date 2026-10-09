@@ -21,7 +21,8 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+    const apiBase =
+      process.env.NEXT_PUBLIC_API_URL || "https://friends-goal-a86e.vercel.app/api/v1";
     const backendOrigin = apiBase.replace(/\/api\/v1\/?$/, "");
     return [
       {
