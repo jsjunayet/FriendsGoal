@@ -1,3 +1,4 @@
+import "../utils/pdfFontLoader";
 import type { Response } from "express";
 import type { IMember } from "../modules/Member/member.interface";
 export interface IMemberExportData {

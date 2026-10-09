@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.drawBrandLogo = drawBrandLogo;
 exports.streamReportToPdf = streamReportToPdf;
+require("../utils/pdfFontLoader");
 const pdfkit_1 = __importDefault(require("pdfkit"));
 // Force bundlers and Vercel NFT to trace and include PDFKit standard fonts
 try {

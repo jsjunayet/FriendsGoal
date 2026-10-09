@@ -1,3 +1,4 @@
+import "../../utils/pdfFontLoader";
 import type { IDueListItem } from "./operation.interface";
 /**
  * Lead Frontend Engineer - Dynamic PDF Generation System

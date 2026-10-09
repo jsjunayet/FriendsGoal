@@ -1,3 +1,4 @@
+import "./app/utils/pdfFontLoader";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";

@@ -1,3 +1,4 @@
+import "../utils/pdfFontLoader";
 import type { Response } from "express";
 export interface IPdfColumnConfig {
     header: string;

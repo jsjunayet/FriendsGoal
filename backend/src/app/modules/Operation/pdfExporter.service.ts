@@ -1,3 +1,4 @@
+import "../../utils/pdfFontLoader";
 import PDFDocument from "pdfkit";
 import type { IDueListItem } from "./operation.interface";
 
