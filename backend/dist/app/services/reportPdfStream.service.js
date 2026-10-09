@@ -6,6 +6,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.drawBrandLogo = drawBrandLogo;
 exports.streamReportToPdf = streamReportToPdf;
 const pdfkit_1 = __importDefault(require("pdfkit"));
+// Force bundlers and Vercel NFT to trace and include PDFKit standard fonts
+try {
+    require("pdfkit/standard-fonts/Helvetica");
+    require("pdfkit/standard-fonts/HelveticaBold");
+    require("pdfkit/standard-fonts/HelveticaOblique");
+    require("pdfkit/standard-fonts/HelveticaBoldOblique");
+    require("pdfkit/standard-fonts/Courier");
+    require("pdfkit/standard-fonts/CourierBold");
+    require("pdfkit/standard-fonts/TimesRoman");
+    require("pdfkit/standard-fonts/TimesBold");
+    require("pdfkit/standard-fonts/Symbol");
+    require("pdfkit/standard-fonts/ZapfDingbats");
+}
+catch (_) { }
 /**
  * Draw the Friends Goal official vector brand logo badge (Navy ring with Crimson FG).
  */

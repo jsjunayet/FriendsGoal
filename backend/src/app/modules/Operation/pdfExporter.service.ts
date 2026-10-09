@@ -1,6 +1,20 @@
 import PDFDocument from "pdfkit";
 import type { IDueListItem } from "./operation.interface";
 
+// Force bundlers and Vercel NFT to trace and include PDFKit standard fonts
+try {
+  require("pdfkit/standard-fonts/Helvetica");
+  require("pdfkit/standard-fonts/HelveticaBold");
+  require("pdfkit/standard-fonts/HelveticaOblique");
+  require("pdfkit/standard-fonts/HelveticaBoldOblique");
+  require("pdfkit/standard-fonts/Courier");
+  require("pdfkit/standard-fonts/CourierBold");
+  require("pdfkit/standard-fonts/TimesRoman");
+  require("pdfkit/standard-fonts/TimesBold");
+  require("pdfkit/standard-fonts/Symbol");
+  require("pdfkit/standard-fonts/ZapfDingbats");
+} catch (_) {}
+
 /**
  * Lead Frontend Engineer - Dynamic PDF Generation System
  * Generates due list PDF with dynamic cell heights, auto-wrapping text,

@@ -5,6 +5,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.streamMemberProfileToPdf = streamMemberProfileToPdf;
 const pdfkit_1 = __importDefault(require("pdfkit"));
+// Force bundlers and Vercel NFT to trace and include PDFKit standard fonts
+try {
+    require("pdfkit/standard-fonts/Helvetica");
+    require("pdfkit/standard-fonts/HelveticaBold");
+    require("pdfkit/standard-fonts/HelveticaOblique");
+    require("pdfkit/standard-fonts/HelveticaBoldOblique");
+    require("pdfkit/standard-fonts/Courier");
+    require("pdfkit/standard-fonts/CourierBold");
+    require("pdfkit/standard-fonts/TimesRoman");
+    require("pdfkit/standard-fonts/TimesBold");
+    require("pdfkit/standard-fonts/Symbol");
+    require("pdfkit/standard-fonts/ZapfDingbats");
+}
+catch (_) { }
 const reportPdfStream_service_1 = require("./reportPdfStream.service");
 /**
  * Stream a Single Member Master Profile Card & Financial Statement to PDF.
