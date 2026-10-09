@@ -57,9 +57,13 @@ app.use(
 );
 
 import path from "path";
+import os from "os";
 
-// Serve static uploads
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+// Serve static uploads (both local workspace and serverless tmp)
+const localUploads = path.join(process.cwd(), "uploads");
+const tmpUploads = path.join(os.tmpdir(), "uploads");
+app.use("/uploads", express.static(localUploads));
+app.use("/uploads", express.static(tmpUploads));
 
 // Application routes
 app.use("/api/v1", router);

@@ -11,14 +11,30 @@ const fs_1 = __importDefault(require("fs"));
 const catchAsync_1 = __importDefault(require("../../utils/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../utils/sendResponse"));
 const http_status_1 = __importDefault(require("http-status"));
-// Ensure uploads folder exists
-const uploadsDir = path_1.default.join(process.cwd(), "uploads");
-if (!fs_1.default.existsSync(uploadsDir)) {
-    fs_1.default.mkdirSync(uploadsDir, { recursive: true });
+const os_1 = __importDefault(require("os"));
+// On Vercel / serverless environments, the root directory (/var/task) is read-only.
+// Writable temporary storage is only available under os.tmpdir() (/tmp).
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const uploadsDir = isServerless
+    ? path_1.default.join(os_1.default.tmpdir(), "uploads")
+    : path_1.default.join(process.cwd(), "uploads");
+try {
+    if (!fs_1.default.existsSync(uploadsDir)) {
+        fs_1.default.mkdirSync(uploadsDir, { recursive: true });
+    }
+}
+catch (err) {
+    console.warn("Notice: could not create uploads directory at module init:", err);
 }
 // Storage config
 const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
+        try {
+            if (!fs_1.default.existsSync(uploadsDir)) {
+                fs_1.default.mkdirSync(uploadsDir, { recursive: true });
+            }
+        }
+        catch (_) { }
         cb(null, uploadsDir);
     },
     filename: (req, file, cb) => {

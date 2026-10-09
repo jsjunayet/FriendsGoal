@@ -49,8 +49,12 @@ app.use((0, cors_1.default)({
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 }));
 const path_1 = __importDefault(require("path"));
-// Serve static uploads
-app.use("/uploads", express_1.default.static(path_1.default.join(process.cwd(), "uploads")));
+const os_1 = __importDefault(require("os"));
+// Serve static uploads (both local workspace and serverless tmp)
+const localUploads = path_1.default.join(process.cwd(), "uploads");
+const tmpUploads = path_1.default.join(os_1.default.tmpdir(), "uploads");
+app.use("/uploads", express_1.default.static(localUploads));
+app.use("/uploads", express_1.default.static(tmpUploads));
 // Application routes
 app.use("/api/v1", index_1.default);
 app.get("/", (req, res) => {

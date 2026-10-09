@@ -33,9 +33,27 @@ const sendImageToCloudinary = (imageName, path) => {
     });
 };
 exports.sendImageToCloudinary = sendImageToCloudinary;
+const os_1 = __importDefault(require("os"));
+const path_1 = __importDefault(require("path"));
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const safeUploadsDir = isServerless
+    ? path_1.default.join(os_1.default.tmpdir(), "uploads")
+    : path_1.default.join(process.cwd(), "uploads");
+try {
+    if (!fs_1.default.existsSync(safeUploadsDir)) {
+        fs_1.default.mkdirSync(safeUploadsDir, { recursive: true });
+    }
+}
+catch (_) { }
 const storage = multer_1.default.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, process.cwd() + "/uploads/");
+        try {
+            if (!fs_1.default.existsSync(safeUploadsDir)) {
+                fs_1.default.mkdirSync(safeUploadsDir, { recursive: true });
+            }
+        }
+        catch (_) { }
+        cb(null, safeUploadsDir);
     },
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
