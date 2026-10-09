@@ -7,10 +7,7 @@
   ],
   "functions": {
     "api/index.ts": {
-      "includeFiles": [
-        "uploads/**",
-        "node_modules/pdfkit/**"
-      ]
+      "includeFiles": "{uploads/**,node_modules/pdfkit/**}"
     }
   }
 }
