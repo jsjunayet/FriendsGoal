@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, GripVertical, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   IExpenseCategory,
   createExpenseCategoryApi,
   reorderExpenseCategoriesApi,
+  deduplicateCategories,
+  fetchExpenseCategoriesApi,
 } from "@/lib/expenseApi";
 
 interface ManageCategoriesModalProps {
@@ -22,16 +24,16 @@ export function ManageCategoriesModal({
   categories,
   onCategoriesUpdated,
 }: ManageCategoriesModalProps) {
-  const [items, setItems] = useState<IExpenseCategory[]>(categories);
+  const [items, setItems] = useState<IExpenseCategory[]>(() => deduplicateCategories(categories));
   const [newCatName, setNewCatName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
 
-  // Sync when categories prop changes
-  if (categories !== items && categories.length !== items.length && !isAdding) {
-    setItems(categories);
-  }
+  // Sync and deduplicate when categories prop changes
+  useEffect(() => {
+    setItems(deduplicateCategories(categories));
+  }, [categories]);
 
   if (!isOpen) return null;
 
@@ -49,7 +51,7 @@ export function ManageCategoriesModal({
     newItems.splice(draggedIndex, 1);
     newItems.splice(index, 0, draggedItem);
     setDraggedIndex(index);
-    setItems(newItems);
+    setItems(deduplicateCategories(newItems));
   };
 
   const handleDragEnd = async () => {
@@ -61,8 +63,9 @@ export function ManageCategoriesModal({
         order: idx,
       }));
       const updated = await reorderExpenseCategoriesApi(reorderedPayload);
-      setItems(updated);
-      onCategoriesUpdated(updated);
+      const uniqueUpdated = deduplicateCategories(updated);
+      setItems(uniqueUpdated);
+      onCategoriesUpdated(uniqueUpdated);
     } catch (err) {
       console.error("Failed to persist category order:", err);
     } finally {
@@ -84,10 +87,13 @@ export function ManageCategoriesModal({
     try {
       setIsAdding(true);
       const created = await createExpenseCategoryApi(trimmed);
-      const updated = [...items, created];
+      // Fetch fresh categories from backend to guarantee exact state without duplicates
+      const fresh = await fetchExpenseCategoriesApi().catch(() => []);
+      const updated = deduplicateCategories([...fresh, ...items, created]);
       setItems(updated);
       onCategoriesUpdated(updated);
       setNewCatName("");
+      toast.success(`Category "${trimmed}" added!`);
     } catch (err: any) {
       toast.error("Failed to add category: " + (err.message || "Unknown error"));
     } finally {

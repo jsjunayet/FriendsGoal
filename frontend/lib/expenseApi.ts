@@ -210,6 +210,21 @@ export async function createExpenseApi(
   return newExpense;
 }
 
+export function deduplicateCategories(cats: IExpenseCategory[]): IExpenseCategory[] {
+  const seenIds = new Set<string>();
+  const seenNames = new Set<string>();
+  return (cats || []).filter((cat) => {
+    if (!cat) return false;
+    const idKey = cat._id ? String(cat._id) : null;
+    const nameKey = cat.name ? cat.name.trim().toLowerCase() : "";
+    if (idKey && seenIds.has(idKey)) return false;
+    if (nameKey && seenNames.has(nameKey)) return false;
+    if (idKey) seenIds.add(idKey);
+    if (nameKey) seenNames.add(nameKey);
+    return true;
+  });
+}
+
 /**
  * 3. GET /api/v1/expense-categories
  */
@@ -222,14 +237,15 @@ export async function fetchExpenseCategoriesApi(): Promise<IExpenseCategory[]> {
     if (res.ok) {
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
-        inMemoryCategories = json.data;
-        return json.data;
+        inMemoryCategories = deduplicateCategories(json.data);
+        return inMemoryCategories;
       }
     }
   } catch (err) {
     console.warn("Backend /expense-categories failed, using client fallback", err);
   }
 
+  inMemoryCategories = deduplicateCategories(inMemoryCategories);
   return [...inMemoryCategories].sort((a, b) => a.order - b.order);
 }
 
@@ -246,7 +262,7 @@ export async function createExpenseCategoryApi(name: string): Promise<IExpenseCa
     if (res.ok) {
       const json = await res.json();
       if (json.success && json.data) {
-        inMemoryCategories.push(json.data);
+        inMemoryCategories = deduplicateCategories([...inMemoryCategories, json.data]);
         return json.data;
       }
     }
@@ -266,7 +282,7 @@ export async function createExpenseCategoryApi(name: string): Promise<IExpenseCa
     name,
     order: inMemoryCategories.length,
   };
-  inMemoryCategories.push(newCat);
+  inMemoryCategories = deduplicateCategories([...inMemoryCategories, newCat]);
   return newCat;
 }
 

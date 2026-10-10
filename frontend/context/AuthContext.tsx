@@ -127,12 +127,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     try {
       sessionStorage.removeItem(STORAGE_KEY_TOKEN);
+      sessionStorage.removeItem("accessToken");
+      localStorage.removeItem(STORAGE_KEY_TOKEN);
+      localStorage.removeItem("accessToken");
     } catch {
       // ignore
     }
-    // Clear middleware cookies
-    document.cookie = "fg_auth=; path=/; max-age=0";
-    document.cookie = "fg_auth_role=; path=/; max-age=0";
+    // Clear middleware cookies with explicit past expiry date
+    document.cookie = "fg_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0";
+    document.cookie = "fg_auth_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0";
     setState({ user: null, accessToken: null, isAuthenticated: false, isLoading: false });
   }, []);
 

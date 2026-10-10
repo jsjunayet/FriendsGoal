@@ -111,7 +111,7 @@ export function RoleGuard({
             <button
               onClick={() => {
                 logout();
-                router.push("/login");
+                window.location.href = "/login";
               }}
               type="button"
               className="w-full h-11 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-700 font-semibold text-sm flex items-center justify-center gap-2 transition-colors border border-gray-200"

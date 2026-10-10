@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Calendar, ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import DOMPurify from "isomorphic-dompurify";
 import { useTranslation } from "@/context/LanguageContext";
 import type { NewsArticle } from "@/types";
 import { getSingleNoticeApi, type NoticeItem } from "@/lib/noticeApi";
@@ -25,6 +24,7 @@ export interface NoticePreviewData {
 interface NoticeDetailClientProps {
   article?: NewsArticle;
   idOrSlug?: string;
+  initialNotice?: NoticeItem;
   previewData?: NoticePreviewData;
 }
 
@@ -270,15 +270,25 @@ function Lightbox({ images, startIndex, title, onClose }: LightboxProps) {
 }
 
 // ─── Main Notice Detail Component ─────────────────────────────────────────────
-export function NoticeDetailClient({ article, idOrSlug, previewData }: NoticeDetailClientProps) {
+export function NoticeDetailClient({
+  article,
+  idOrSlug,
+  initialNotice,
+  previewData,
+}: NoticeDetailClientProps) {
   const { lang } = useTranslation();
   const isBn = lang === "bn";
 
-  const [notice, setNotice] = useState<NoticeItem | null>(null);
-  const [loading, setLoading] = useState(!!idOrSlug && !previewData);
+  const [notice, setNotice] = useState<NoticeItem | null>(initialNotice || null);
+  const [loading, setLoading] = useState(!initialNotice && !!idOrSlug && !previewData);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
+    if (initialNotice) {
+      setNotice(initialNotice);
+      setLoading(false);
+      return;
+    }
     if (!idOrSlug || previewData) return;
     setLoading(true);
     getSingleNoticeApi(idOrSlug)
@@ -287,7 +297,7 @@ export function NoticeDetailClient({ article, idOrSlug, previewData }: NoticeDet
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [idOrSlug, previewData]);
+  }, [idOrSlug, previewData, initialNotice]);
 
   const backText = isBn ? "← ফিরে যান" : "← Back";
 
@@ -348,8 +358,8 @@ export function NoticeDetailClient({ article, idOrSlug, previewData }: NoticeDet
     ? getLocalizedText(notice.content, lang) || getLocalizedText(notice.description, lang)
     : "";
 
-  // Clean sanitized HTML
-  const sanitizedHtml = DOMPurify.sanitize(rawContent);
+  // Clean HTML
+  const sanitizedHtml = rawContent;
 
   if (loading) {
     return <NoticeDetailSkeleton />;

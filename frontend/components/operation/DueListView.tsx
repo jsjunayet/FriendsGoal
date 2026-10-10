@@ -69,22 +69,21 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
       };
       const res = await fetchDueListApi(filters);
       setData(res.data);
-      setMeta(res.meta);
-      if (res.counts) {
-        setCounts({
-          total: res.counts.total || 0,
-          advance: res.counts.advance || 0,
-          due: res.counts.due || 0,
-          zero: res.counts.zero || 0,
-        });
-      } else if (res.meta) {
-        setCounts({
-          total: res.meta.total || 0,
-          advance: 0,
-          due: 0,
-          zero: 0,
-        });
-      }
+      if (res.meta) setMeta(res.meta);
+      const rawCounts = (res as any).counts;
+      const rawMeta = (res as any).meta;
+
+      const totalVal = rawCounts?.total ?? rawMeta?.allCount ?? rawMeta?.total ?? 0;
+      const advanceVal = rawCounts?.advance ?? rawMeta?.advanceCount ?? 0;
+      const dueVal = rawCounts?.due ?? rawMeta?.dueCount ?? 0;
+      const zeroVal = rawCounts?.zero ?? rawMeta?.zeroCount ?? 0;
+
+      setCounts({
+        total: Number(totalVal) || 0,
+        advance: Number(advanceVal) || 0,
+        due: Number(dueVal) || 0,
+        zero: Number(zeroVal) || 0,
+      });
     } catch (err) {
       console.error("Failed to load due list", err);
     } finally {

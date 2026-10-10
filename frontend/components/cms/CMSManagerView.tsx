@@ -126,14 +126,14 @@ export default function CMSManagerView({ initialTab = "marquee" }: CMSManagerVie
     images: [] as string[],
   });
 
-  const loadData = () => {
-    setLoading(true);
-    Promise.all([
-      getStatsApi().catch(() => []),
-      getNoticesApi().catch(() => []),
-      getMarqueeItemsApi().catch(() => []),
-      getGalleryItemsApi().catch(() => []),
-    ]).then(([statData, noticeData, marqueeData, galleryData]) => {
+  const loadData = async () => {
+    try {
+      const [statData, noticeData, marqueeData, galleryData] = await Promise.all([
+        getStatsApi().catch(() => []),
+        getNoticesApi().catch(() => []),
+        getMarqueeItemsApi().catch(() => []),
+        getGalleryItemsApi().catch(() => []),
+      ]);
       setStats(statData || []);
       if (statData && Array.isArray(statData) && statData.length > 0) {
         const memberStat = statData.find((s) => s.key === "active_members" || s.key === "members");
@@ -155,8 +155,10 @@ export default function CMSManagerView({ initialTab = "marquee" }: CMSManagerVie
       setNotices(noticeData || []);
       setMarqueeItems(marqueeData || []);
       setGalleryItems(galleryData || []);
+      return { statData, noticeData, marqueeData, galleryData };
+    } finally {
       setLoading(false);
-    });
+    }
   };
 
   useEffect(() => {
@@ -172,15 +174,20 @@ export default function CMSManagerView({ initialTab = "marquee" }: CMSManagerVie
   // Toggle Marquee Ticker status directly from table row
   const handleToggleTicker = async (n: NoticeItem) => {
     try {
-      await updateNoticeApi(n._id, { isTickerActive: !n.isTickerActive });
+      const updatedStatus = !n.isTickerActive;
+      setNotices((prev) =>
+        prev.map((item) => (item._id === n._id ? { ...item, isTickerActive: updatedStatus } : item))
+      );
+      await updateNoticeApi(n._id, { isTickerActive: updatedStatus });
       triggerToast(
-        !n.isTickerActive
+        updatedStatus
           ? "Activated notice on Home Marquee Ticker!"
           : "Deactivated from Home Marquee Ticker"
       );
-      loadData();
+      await loadData();
     } catch (err: any) {
       toast.error(err.message || "Failed to update ticker status");
+      await loadData();
     }
   };
 
@@ -306,14 +313,18 @@ export default function CMSManagerView({ initialTab = "marquee" }: CMSManagerVie
       };
 
       if (editingId) {
-        await updateNoticeApi(editingId, payload);
+        const updated = await updateNoticeApi(editingId, payload);
+        setNotices((prev) => prev.map((n) => (n._id === editingId ? { ...n, ...updated } : n)));
         triggerToast("Notice updated successfully!");
       } else {
-        await createNoticeApi(payload);
+        const created = await createNoticeApi(payload);
+        setNotices((prev) => [created, ...prev.filter((n) => n._id !== created._id)]);
+        setNoticeSearchQuery(""); // Clear search filter so newly created notice is immediately visible
+        setNoticeFilterTab("all");
         triggerToast("Notice created successfully!");
       }
       setIsModalOpen(false);
-      loadData();
+      await loadData();
     } catch (err: any) {
       toast.error(err.message || "Failed to save notice");
     } finally {
@@ -335,14 +346,16 @@ export default function CMSManagerView({ initialTab = "marquee" }: CMSManagerVie
       };
 
       if (editingId) {
-        await updateGalleryItemApi(editingId, payload);
+        const updated = await updateGalleryItemApi(editingId, payload);
+        setGalleryItems((prev) => prev.map((g) => (g._id === editingId ? { ...g, ...updated } : g)));
         triggerToast("Gallery item updated successfully!");
       } else {
-        await createGalleryItemApi(payload);
+        const created = await createGalleryItemApi(payload);
+        setGalleryItems((prev) => [created, ...prev.filter((g) => g._id !== created._id)]);
         triggerToast("Gallery item created successfully!");
       }
       setIsModalOpen(false);
-      loadData();
+      await loadData();
     } catch (err: any) {
       toast.error(err.message || "Failed to save gallery item");
     } finally {
@@ -365,14 +378,16 @@ export default function CMSManagerView({ initialTab = "marquee" }: CMSManagerVie
       };
 
       if (editingId) {
-        await updateMarqueeItemApi(editingId, payload);
+        const updated = await updateMarqueeItemApi(editingId, payload);
+        setMarqueeItems((prev) => prev.map((m) => (m._id === editingId ? { ...m, ...updated } : m)));
         triggerToast("Marquee ticker headline updated!");
       } else {
-        await createMarqueeItemApi(payload);
+        const created = await createMarqueeItemApi(payload);
+        setMarqueeItems((prev) => [created, ...prev.filter((m) => m._id !== created._id)]);
         triggerToast("Marquee ticker headline created!");
       }
       setIsModalOpen(false);
-      loadData();
+      await loadData();
     } catch (err: any) {
       toast.error(err.message || "Failed to save marquee item");
     } finally {
@@ -388,11 +403,13 @@ export default function CMSManagerView({ initialTab = "marquee" }: CMSManagerVie
         label: "Confirm Delete",
         onClick: async () => {
           try {
+            setNotices((prev) => prev.filter((n) => n._id !== id));
             await deleteNoticeApi(id);
             triggerToast("Notice deleted");
-            loadData();
+            await loadData();
           } catch (err: any) {
             toast.error(err.message || "Failed to delete notice");
+            await loadData();
           }
         },
       },
@@ -406,11 +423,13 @@ export default function CMSManagerView({ initialTab = "marquee" }: CMSManagerVie
         label: "Confirm Delete",
         onClick: async () => {
           try {
+            setGalleryItems((prev) => prev.filter((g) => g._id !== id));
             await deleteGalleryItemApi(id);
             triggerToast("Gallery item deleted");
-            loadData();
+            await loadData();
           } catch (err: any) {
             toast.error(err.message || "Failed to delete item");
+            await loadData();
           }
         },
       },
@@ -424,11 +443,13 @@ export default function CMSManagerView({ initialTab = "marquee" }: CMSManagerVie
         label: "Confirm Delete",
         onClick: async () => {
           try {
+            setMarqueeItems((prev) => prev.filter((m) => m._id !== id));
             await deleteMarqueeItemApi(id);
             triggerToast("Marquee headline deleted");
-            loadData();
+            await loadData();
           } catch (err: any) {
             toast.error(err.message || "Failed to delete item");
+            await loadData();
           }
         },
       },
@@ -437,11 +458,16 @@ export default function CMSManagerView({ initialTab = "marquee" }: CMSManagerVie
 
   const handleToggleMarqueeItem = async (m: MarqueeItem) => {
     try {
-      await updateMarqueeItemApi(m._id, { isActive: !m.isActive });
-      triggerToast(!m.isActive ? "Activated on Home Marquee Ticker!" : "Paused from Home Marquee Ticker");
-      loadData();
+      const nextActive = !m.isActive;
+      setMarqueeItems((prev) =>
+        prev.map((item) => (item._id === m._id ? { ...item, isActive: nextActive } : item))
+      );
+      await updateMarqueeItemApi(m._id, { isActive: nextActive });
+      triggerToast(nextActive ? "Activated on Home Marquee Ticker!" : "Paused from Home Marquee Ticker");
+      await loadData();
     } catch (err: any) {
       toast.error(err.message || "Failed to update ticker status");
+      await loadData();
     }
   };
 
@@ -546,11 +572,24 @@ export default function CMSManagerView({ initialTab = "marquee" }: CMSManagerVie
   const filteredNotices = notices.filter((n) => {
     if (noticeFilterTab === "ticker" && !n.isTickerActive) return false;
     if (noticeSearchQuery.trim()) {
-      const q = noticeSearchQuery.toLowerCase();
-      const matchEn = n.title?.en?.toLowerCase().includes(q);
-      const matchBn = n.title?.bn?.toLowerCase().includes(q);
-      const matchCat = n.category?.en?.toLowerCase().includes(q) || n.category?.bn?.toLowerCase().includes(q);
-      return matchEn || matchBn || matchCat;
+      const q = noticeSearchQuery.toLowerCase().trim();
+      const titleEn = typeof n.title === "string" ? n.title : (n.title?.en || "");
+      const titleBn = typeof n.title === "string" ? "" : (n.title?.bn || "");
+      const catEn = typeof n.category === "string" ? n.category : (n.category?.en || "");
+      const catBn = typeof n.category === "string" ? "" : (n.category?.bn || "");
+      const descEn = typeof n.description === "string" ? n.description : (n.description?.en || "");
+      const descBn = typeof n.description === "string" ? "" : (n.description?.bn || "");
+      const author = n.author || "";
+
+      return (
+        titleEn.toLowerCase().includes(q) ||
+        titleBn.toLowerCase().includes(q) ||
+        catEn.toLowerCase().includes(q) ||
+        catBn.toLowerCase().includes(q) ||
+        descEn.toLowerCase().includes(q) ||
+        descBn.toLowerCase().includes(q) ||
+        author.toLowerCase().includes(q)
+      );
     }
     return true;
   });
@@ -1213,8 +1252,18 @@ export default function CMSManagerView({ initialTab = "marquee" }: CMSManagerVie
                 placeholder="Search notices by title or category..."
                 value={noticeSearchQuery}
                 onChange={(e) => setNoticeSearchQuery(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2 text-xs font-medium outline-none focus:border-[#00B074]"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-9 py-2 text-xs font-medium outline-none focus:border-[#00B074]"
               />
+              {noticeSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setNoticeSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 rounded-full cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -1236,8 +1285,12 @@ export default function CMSManagerView({ initialTab = "marquee" }: CMSManagerVie
                   {filteredNotices.map((n) => (
                     <tr key={n._id} className="hover:bg-gray-50/80 transition-colors">
                       <td className="px-6 py-4 max-w-[340px]">
-                        <p className="font-bold text-gray-900 line-clamp-1">{n.title?.en || "No English Title"}</p>
-                        <p className="text-xs text-gray-500 line-clamp-1">{n.title?.bn || "No Bangla Title"}</p>
+                        <p className="font-bold text-gray-900 line-clamp-1">
+                          {typeof n.title === "string" ? n.title : (n.title?.en || n.title?.bn || "Untitled Notice")}
+                        </p>
+                        <p className="text-xs text-gray-500 line-clamp-1">
+                          {typeof n.title === "object" ? n.title?.bn : ""}
+                        </p>
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-xs font-bold text-[#0E8A5A] bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">

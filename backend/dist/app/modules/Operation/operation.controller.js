@@ -18,6 +18,12 @@ const getDueList = (0, catchAsync_1.default)(async (req, res) => {
         success: true,
         message: "Due list retrieved successfully!",
         meta: result.meta,
+        counts: {
+            total: result.meta.allCount ?? result.meta.total ?? 0,
+            advance: result.meta.advanceCount ?? 0,
+            due: result.meta.dueCount ?? 0,
+            zero: result.meta.zeroCount ?? 0,
+        },
         data: result.data,
     });
 });

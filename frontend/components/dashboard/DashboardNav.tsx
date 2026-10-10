@@ -45,7 +45,7 @@ export function DashboardNav() {
 
   const handleLogout = () => {
     logout();
-    router.push("/login");
+    window.location.href = "/login";
   };
 
   return (
@@ -87,7 +87,7 @@ export function DashboardNav() {
           )}
 
           {/* Real-time Dynamic Notifications Bell */}
-          <div className="relative" ref={notifRef}>
+          {/* <div className="relative" ref={notifRef}>
             <button
               type="button"
               onClick={() => setIsNotifOpen((prev) => !prev)}
@@ -95,7 +95,6 @@ export function DashboardNav() {
               className="relative w-9 h-9 rounded-full flex items-center justify-center text-[#555555] hover:bg-[#F3F4F6] transition-colors focus:outline-none cursor-pointer"
             >
               <Bell className="w-5 h-5" />
-              {/* Dynamic Unread Badge - completely hidden when 0 unread */}
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[#EF4444] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white shadow-xs animate-in zoom-in-75 duration-150">
                   {unreadCount > 99 ? "99+" : unreadCount}
@@ -111,7 +110,7 @@ export function DashboardNav() {
               onMarkAsRead={markAsRead}
               onMarkAllAsRead={markAllAsRead}
             />
-          </div>
+          </div> */}
 
           {/* Logout */}
           <button

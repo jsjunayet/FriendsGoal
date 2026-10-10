@@ -70,8 +70,10 @@ const getDueListFromDB = async (query: DueListQueryParams) => {
   let zeroCount = 0;
 
   const computedItems: IDueListItem[] = allMembers.map((m) => {
-    const dueAmount = Number(m.dueAmount || 0);
-    const advanceBalance = Number(m.savingsBalance || 0);
+    const rawDue = m.dueAmount != null ? (m.dueAmount.toString ? m.dueAmount.toString() : m.dueAmount) : 0;
+    const rawAdvance = m.savingsBalance != null ? (m.savingsBalance.toString ? m.savingsBalance.toString() : m.savingsBalance) : 0;
+    const dueAmount = parseFloat(String(rawDue)) || 0;
+    const advanceBalance = parseFloat(String(rawAdvance)) || 0;
 
     let itemStatus: "Advance" | "Due" | "Zero" = "Zero";
     if (dueAmount > 0) {

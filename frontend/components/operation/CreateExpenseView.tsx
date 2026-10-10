@@ -17,6 +17,7 @@ import {
   fetchExpensesApi,
   IExpenseCategory,
   ICreateExpensePayload,
+  deduplicateCategories,
 } from "@/lib/expenseApi";
 import { fetchMembersApi, IMember } from "@/lib/memberApi";
 import { ManageCategoriesModal } from "./ManageCategoriesModal";
@@ -53,7 +54,7 @@ export function CreateExpenseView() {
           fetchExpenseCategoriesApi(),
           fetchMembersApi({ limit: 100 }),
         ]);
-        setCategories(cats);
+        setCategories(deduplicateCategories(cats));
         setMembers(memsRes.data);
 
         // If editing an existing expense
@@ -353,7 +354,7 @@ export function CreateExpenseView() {
         onClose={() => setIsCategoryModalOpen(false)}
         categories={categories}
         onCategoriesUpdated={(updatedCats) => {
-          setCategories(updatedCats);
+          setCategories(deduplicateCategories(updatedCats));
         }}
       />
     </div>

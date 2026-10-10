@@ -33,7 +33,7 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
 
   const handleLogout = () => {
     logout();
-    router.push("/login");
+    window.location.href = "/login";
   };
 
   const isFinancialAnalyticsActive =

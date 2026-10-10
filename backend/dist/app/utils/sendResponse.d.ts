@@ -10,6 +10,7 @@ type TResponse<T> = {
     success: boolean;
     message?: string;
     meta?: TMeta;
+    counts?: any;
     data: T;
 };
 declare const sendResponse: <T>(res: Response, data: TResponse<T>) => void;
