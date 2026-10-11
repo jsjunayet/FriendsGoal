@@ -70,6 +70,8 @@ export interface IWithdrawalResponse {
   remainingProfitBalance: number;
 }
 
+import { getStoredAccessToken } from "@/lib/authUtils";
+
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:5000/api/v1";
 
@@ -82,11 +84,9 @@ const inMemoryProfitBalances: Record<string, number> = {};
 
 function getAuthHeaders(): HeadersInit {
   const headers: HeadersInit = { "Content-Type": "application/json" };
-  if (typeof window !== "undefined") {
-    const token = sessionStorage.getItem("fg_access_token");
-    if (token) {
-      headers["Authorization"] = `Bearer ${token.replace(/^Bearer\s+/i, "")}`;
-    }
+  const token = getStoredAccessToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token.replace(/^Bearer\s+/i, "")}`;
   }
   return headers;
 }

@@ -6,12 +6,22 @@ import { downloadReportFile } from "@/lib/reportApi";
 import { toast } from "sonner";
 
 interface ExportDropdownProps {
-  endpointUrl: string;
-  defaultFilename: string;
+  endpointUrl?: string;
+  defaultFilename?: string;
+  onExport?: (type: "pdf" | "excel") => Promise<void> | void;
   disabled?: boolean;
+  buttonLabel?: string;
+  className?: string;
 }
 
-export function ExportDropdown({ endpointUrl, defaultFilename, disabled }: ExportDropdownProps) {
+export function ExportDropdown({
+  endpointUrl,
+  defaultFilename = "Report",
+  onExport,
+  disabled,
+  buttonLabel = "Export",
+  className = "",
+}: ExportDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -30,8 +40,15 @@ export function ExportDropdown({ endpointUrl, defaultFilename, disabled }: Expor
     try {
       setIsExporting(true);
       setIsOpen(false);
-      await downloadReportFile(endpointUrl, type, defaultFilename);
-      toast.success(`${type.toUpperCase()} downloaded successfully`);
+
+      if (onExport) {
+        await onExport(type);
+      } else if (endpointUrl) {
+        await downloadReportFile(endpointUrl, type, defaultFilename);
+      } else {
+        throw new Error("No export handler configured");
+      }
+      toast.success(`${type.toUpperCase()} exported successfully`);
     } catch (error: any) {
       toast.error(error.message || "Failed to download report");
     } finally {
@@ -40,7 +57,7 @@ export function ExportDropdown({ endpointUrl, defaultFilename, disabled }: Expor
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className={`relative ${className}`} ref={dropdownRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -52,7 +69,7 @@ export function ExportDropdown({ endpointUrl, defaultFilename, disabled }: Expor
         ) : (
           <Download className="w-4 h-4 text-gray-500" />
         )}
-        <span>{isExporting ? "Generating..." : "Export"}</span>
+        <span>{isExporting ? "Generating..." : buttonLabel}</span>
         <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
       </button>
 
@@ -80,7 +97,7 @@ export function ExportDropdown({ endpointUrl, defaultFilename, disabled }: Expor
             <FileSpreadsheet className="w-4 h-4 text-[#00B074]" />
             <div>
               <div className="font-medium">Download Excel</div>
-              <div className="text-[11px] text-gray-400">Formatted spreadsheet</div>
+              <div className="text-[11px] text-gray-400">Formatted spreadsheet (.xlsx)</div>
             </div>
           </button>
         </div>

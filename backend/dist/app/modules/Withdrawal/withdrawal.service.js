@@ -302,7 +302,8 @@ const getWithdrawalsFromDB = async (query) => {
             },
             {
                 $addFields: {
-                    member: { $arrayElemAt: ["$memberData", 0] }
+                    member: { $arrayElemAt: ["$memberData", 0] },
+                    availableBalance: { $ifNull: [{ $arrayElemAt: ["$memberData.totalDeposit", 0] }, 0] }
                 }
             },
             {
@@ -317,6 +318,28 @@ const getWithdrawalsFromDB = async (query) => {
         withdrawal_model_1.Withdrawal.countDocuments({ status: "Rejected" }),
     ]);
     const allCount = pendingCount + approvedCount + rejectedCount;
+    const mappedData = data.map((item) => {
+        let deposit = 0;
+        const rawVal = item.member?.totalDeposit ?? item.availableBalance;
+        if (rawVal != null) {
+            if (typeof rawVal === "number") {
+                deposit = rawVal;
+            }
+            else if (typeof rawVal === "object" && rawVal.$numberDecimal) {
+                deposit = parseFloat(rawVal.$numberDecimal) || 0;
+            }
+            else if (typeof rawVal === "object" && typeof rawVal.toString === "function") {
+                deposit = parseFloat(rawVal.toString()) || 0;
+            }
+            else {
+                deposit = parseFloat(String(rawVal)) || 0;
+            }
+        }
+        return {
+            ...item,
+            availableBalance: deposit,
+        };
+    });
     return {
         meta: {
             page,
@@ -330,7 +353,7 @@ const getWithdrawalsFromDB = async (query) => {
                 rejected: rejectedCount,
             },
         },
-        data,
+        data: mappedData,
     };
 };
 exports.WithdrawalServices = {

@@ -1,34 +1,54 @@
 /**
- * Next.js Edge Middleware — route protection for Friends Goal.
+ * Next.js Edge Middleware — High Security Route Protection for Friends Goal.
  *
- * Protected route map:
- *   /dashboard/**       → any authenticated user
- *   /admin/dashboard/** → admin or superAdmin only
- *
- * Token is read from sessionStorage on the client, but middleware runs on
- * the Edge before React hydrates. We bridge this by having the login page
- * write a lightweight non-HttpOnly cookie "fg_auth_role" alongside the
- * sessionStorage write so the middleware can read it.
- *
- * Cookie written by AuthContext: "fg_auth_role" = role string (e.g. "admin")
- * Cookie written by AuthContext: "fg_auth"      = "1"  (presence flag)
+ * Verifies JWT integrity and expiration at the Edge before allowing requests
+ * into protected administrative and member financial sections.
  */
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/", "/about", "/policy", "/faq", "/gallery", "/members", "/notice", "/council"];
+interface DecodedEdgePayload {
+  userId: string;
+  role: string;
+  exp?: number;
+}
 
-function isPublic(pathname: string): boolean {
-  return PUBLIC_PATHS.some(
-    (p) => pathname === p || pathname.startsWith(p + "/"),
-  );
+function decodeJwtPayloadEdge(token: string | undefined): DecodedEdgePayload | null {
+  if (!token || typeof token !== "string") return null;
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const json = atob(base64);
+    const payload = JSON.parse(json) as DecodedEdgePayload;
+
+    // Check expiration (exp is in seconds)
+    if (payload.exp && Date.now() / 1000 > payload.exp) {
+      return null;
+    }
+
+    if (!payload.userId || !payload.role) {
+      return null;
+    }
+
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+function purgeAuthCookies(response: NextResponse) {
+  response.cookies.set("fg_auth", "", { maxAge: 0, path: "/" });
+  response.cookies.set("fg_auth_role", "", { maxAge: 0, path: "/" });
+  response.cookies.set("fg_token", "", { maxAge: 0, path: "/" });
+  return response;
 }
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Let Next.js internals and static assets pass through
+  // Pass Next.js internal files, api routes, and static assets
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
@@ -37,61 +57,66 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isLoggedIn = request.cookies.get("fg_auth")?.value === "1";
-  const rawRole = request.cookies.get("fg_auth_role")?.value ?? "";
-  const role = rawRole.toLowerCase();
-  const isAdmin = role === "admin" || role === "superadmin";
+  // 1. Validate JWT Token from cookie
+  const rawToken = request.cookies.get("fg_token")?.value;
+  const decodedToken = decodeJwtPayloadEdge(rawToken);
 
-  // ── /admin/** ─────────────────────────────────────────────────────────────
+  // Fallback check on presence flags only if valid token payload exists
+  const hasAuthFlag = request.cookies.get("fg_auth")?.value === "1";
+  const isValidSession = Boolean(decodedToken && hasAuthFlag);
+
+  const userRole = (decodedToken?.role || request.cookies.get("fg_auth_role")?.value || "").toLowerCase();
+  const isAdmin = userRole === "admin" || userRole === "superadmin";
+
+  // ── 2. Route Protection: /admin/** ──────────────────────────────────────────
   if (pathname.startsWith("/admin")) {
-    if (!isLoggedIn) {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-    if (!isAdmin) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-    return NextResponse.next();
-  }
-
-  // ── /dashboard/member (Directory) ─────────────────────────────────────────
-  if (pathname === "/dashboard/member" || pathname === "/dashboard/member/") {
-    if (!isLoggedIn) {
+    if (!isValidSession) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("next", pathname);
-      return NextResponse.redirect(loginUrl);
+      const redirectRes = NextResponse.redirect(loginUrl);
+      return purgeAuthCookies(redirectRes);
     }
+
     if (!isAdmin) {
+      // Authenticated but insufficient privileges
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
+
     return NextResponse.next();
   }
 
-  // ── /dashboard/** ─────────────────────────────
+  // ── 3. Route Protection: /dashboard/** ──────────────────────────────────────
   if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
-    if (!isLoggedIn) {
+    if (!isValidSession) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("next", pathname);
-      return NextResponse.redirect(loginUrl);
+      const redirectRes = NextResponse.redirect(loginUrl);
+      return purgeAuthCookies(redirectRes);
     }
-    
-    // If a member tries to access an admin-only sub-path like /dashboard/expense
-    // We let the client-side RoleGuard handle it, OR we could check here.
-    // For now, allow them to pass to let RoleGuard handle specific routes.
+
+    // Admin-only sub-routes under /dashboard/ (e.g., /dashboard/member directory)
+    if (pathname === "/dashboard/member" || pathname === "/dashboard/member/") {
+      if (!isAdmin) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+    }
+
     return NextResponse.next();
   }
 
-  // ── /notifications ────────────────────────────────────────────────────────
+  // ── 4. Route Protection: /notifications/** ──────────────────────────────────
   if (pathname.startsWith("/notifications")) {
-    if (!isLoggedIn) {
+    if (!isValidSession) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("next", pathname);
-      return NextResponse.redirect(loginUrl);
+      const redirectRes = NextResponse.redirect(loginUrl);
+      return purgeAuthCookies(redirectRes);
     }
     return NextResponse.next();
   }
 
-  // ── /login — bounce already-authenticated users ───────────────────────────
-  if (pathname === "/login" && isLoggedIn) {
+  // ── 5. Redirect Already-Authenticated Users Away from /login ────────────────
+  if (pathname === "/login" && isValidSession) {
     const dest = isAdmin ? "/admin/dashboard" : "/dashboard";
     return NextResponse.redirect(new URL(dest, request.url));
   }
@@ -100,6 +125,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Run on every route except Next.js internals and static files
+  // Run on every route except static assets
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

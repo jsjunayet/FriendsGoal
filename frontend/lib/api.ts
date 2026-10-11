@@ -11,6 +11,8 @@
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:5000/api/v1";
 
+import { getStoredAccessToken, clearClientAuth } from "@/lib/authUtils";
+
 // ─── Error class ─────────────────────────────────────────────────────────────
 
 export class ApiError extends Error {
@@ -31,10 +33,7 @@ async function request<T>(
 ): Promise<T> {
   const url = `${BASE_URL}${path}`;
 
-  let token = null;
-  try {
-    token = sessionStorage.getItem("fg_access_token");
-  } catch (e) {}
+  const token = getStoredAccessToken();
 
   const mergedHeaders = {
     "Content-Type": "application/json",
@@ -56,6 +55,10 @@ async function request<T>(
   }
 
   if (!res.ok) {
+    // If backend rejects credentials with 401 on a protected endpoint, wipe session and redirect
+    if (res.status === 401 && !path.includes("/auth/login")) {
+      clearClientAuth(true);
+    }
     const errorBody = body as {
       message?: string;
       errorSources?: Array<{ path: string; message: string }>;

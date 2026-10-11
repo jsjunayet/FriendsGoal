@@ -4,6 +4,8 @@ interface DueListQueryParams {
     year?: string;
     status?: "All" | "Advance" | "Due" | "Zero";
     dateRange?: string;
+    startDate?: string;
+    endDate?: string;
     page?: number | string;
     limit?: number | string;
 }

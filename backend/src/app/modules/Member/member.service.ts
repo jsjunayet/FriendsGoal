@@ -67,8 +67,11 @@ const createMemberIntoDB = async (payload: IMember) => {
   if (payload.savingsBalance === undefined || payload.savingsBalance === null || Number(payload.savingsBalance) === 1000) {
     payload.savingsBalance = 0;
   }
-  if (payload.dueAmount === undefined || payload.dueAmount === null) {
-    payload.dueAmount = 0;
+  if (payload.dueAmount === undefined || payload.dueAmount === null || Number(payload.dueAmount) === 0) {
+    // Inception from January 2024: 1000 BDT per month elapsed (34 months to Oct 2026 = 34,000 BDT)
+    const now = new Date();
+    const months = Math.max(1, (now.getFullYear() - 2024) * 12 + now.getMonth() + 1);
+    payload.dueAmount = months * 1000;
   }
 
   // Generate temporary password if not provided
@@ -275,19 +278,9 @@ const updateMemberIntoDB = async (id: string, payload: Partial<IMember>) => {
     throw new AppError(httpStatus.NOT_FOUND, "Member not found!");
   }
 
-  if (payload.email) {
-    payload.email = payload.email.trim().toLowerCase();
-    const existingEmail = await Member.findOne({
-      _id: { $ne: member._id },
-      email: { $regex: new RegExp(`^${payload.email}$`, "i") },
-    });
-    if (existingEmail) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        `A member with email "${payload.email}" already exists! Please use a unique email.`
-      );
-    }
-  }
+  // Protection: fullName and email cannot be updated once created
+  delete payload.fullName;
+  delete payload.email;
 
   if (payload.memberCode) {
     payload.memberCode = payload.memberCode.trim();

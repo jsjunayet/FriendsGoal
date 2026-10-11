@@ -1,9 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, FileText, CreditCard, Loader2, Download } from "lucide-react";
+import { ChevronDown, FileText, CreditCard, Loader2, Download, FileSpreadsheet } from "lucide-react";
+import { toast } from "sonner";
 import { printMemberStatementPdf, printMemberIdCardPdf, type IMemberPdfData } from "@/lib/memberProfilePdfGenerator";
 import { fetchCollectionsApi } from "@/lib/operationApi";
+import {
+  exportReportToExcel,
+  IReportColumn,
+  IExportReportOptions,
+} from "@/lib/reportExportEngine";
 
 interface MemberDownloadDropdownProps {
   member: any;
@@ -23,6 +29,7 @@ export function MemberDownloadDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [isStatementLoading, setIsStatementLoading] = useState(false);
   const [isIdCardLoading, setIsIdCardLoading] = useState(false);
+  const [isExcelLoading, setIsExcelLoading] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -76,6 +83,89 @@ export function MemberDownloadDropdown({
       console.error("Error generating ID card:", err);
     } finally {
       setIsIdCardLoading(false);
+      setIsOpen(false);
+    }
+  };
+
+  // Handle Option C: Member Ledger Excel
+  const handleDownloadExcelStatement = async () => {
+    try {
+      setIsExcelLoading(true);
+      let collectionsData: any[] = [];
+      const memberId = member._id || member.memberId;
+
+      if (memberId) {
+        try {
+          const res = await fetchCollectionsApi(memberId);
+          if (res?.collections && Array.isArray(res.collections)) {
+            collectionsData = res.collections;
+          }
+        } catch {
+          // Fallback gracefully
+        }
+      }
+
+      const rowsList = collectionsData.length > 0
+        ? collectionsData
+        : Array.isArray(member.activePaymentSchedule) && member.activePaymentSchedule.length > 0
+        ? member.activePaymentSchedule
+        : [];
+
+      const mappedRows = rowsList.map((col: any, idx: number) => {
+        let dateStr = "—";
+        try {
+          const d = new Date(col.paymentDate || col.date || col.createdAt || Date.now());
+          if (!isNaN(d.getTime())) {
+            dateStr = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+          }
+        } catch (_) {}
+
+        return {
+          sl: idx + 1,
+          date: dateStr,
+          month: col.month || "—",
+          receiptNo: col.receiptNo || "-",
+          amount: Number(col.amount) || 0,
+          status: col.status || "Paid",
+          remarks: col.note || col.remarks || col.collectedByName || "—",
+        };
+      });
+
+      const columns: IReportColumn[] = [
+        { header: "SL#", dataKey: "sl", excelWidth: 8, align: "center" },
+        { header: "Date", dataKey: "date", excelWidth: 16, align: "center" },
+        { header: "Month", dataKey: "month", excelWidth: 18, align: "center" },
+        { header: "Receipt / Ref", dataKey: "receiptNo", excelWidth: 18, align: "center" },
+        { header: "Amount", dataKey: "amount", excelWidth: 16, align: "right", isCurrency: true },
+        { header: "Status", dataKey: "status", excelWidth: 14, align: "center" },
+        { header: "Remarks / Collector", dataKey: "remarks", excelWidth: 26, align: "left" },
+      ];
+
+      const exportOptions: IExportReportOptions = {
+        reportTitle: "Member Financial Statement",
+        filterSummary: `Member Code: ${member.memberCode || "001"} | Name: ${member.fullName || "Member"} | Mobile: ${member.mobileNo || member.phone || "N/A"}`,
+        columns,
+        rows: mappedRows,
+        amountColumnKey: "amount",
+        filenamePrefix: `Member_${member.memberCode || "001"}_Ledger`,
+        sheetName: `Ledger-${member.memberCode || "001"}`.substring(0, 31),
+        memberInfo: {
+          memberCode: member.memberCode || "001",
+          fullName: member.fullName || "Member",
+          phone: member.mobileNo || member.phone,
+          totalDeposit: Number(member.totalDeposit) || 0,
+          dueAmount: Number(member.dueAmount) || 0,
+          savingsBalance: Number(member.savingsBalance) || 0,
+        },
+      };
+
+      await exportReportToExcel(exportOptions);
+      toast.success("Member Excel ledger generated successfully");
+    } catch (err: any) {
+      console.error("Error generating member Excel ledger:", err);
+      toast.error("Failed to generate Excel ledger: " + (err.message || "Unknown error"));
+    } finally {
+      setIsExcelLoading(false);
       setIsOpen(false);
     }
   };
@@ -167,6 +257,31 @@ export function MemberDownloadDropdown({
               </div>
               <div className="text-[11px] text-slate-500 line-clamp-1">
                 Digital ID Card (Front & Back view)
+              </div>
+            </div>
+          </button>
+
+          {/* Option C: Member Ledger Excel */}
+          <button
+            type="button"
+            role="menuitem"
+            disabled={isExcelLoading}
+            onClick={handleDownloadExcelStatement}
+            className="w-full flex items-start gap-2.5 px-2.5 py-2 rounded-lg text-left text-slate-700 hover:bg-slate-50 hover:text-[#00B074] transition-colors group cursor-pointer disabled:opacity-50"
+          >
+            <div className="w-7 h-7 rounded-md bg-[#00B074]/10 flex items-center justify-center text-[#00B074] shrink-0 mt-0.5 group-hover:bg-[#00B074] group-hover:text-white transition-colors">
+              {isExcelLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="w-3.5 h-3.5" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[12.5px] font-bold text-slate-900 group-hover:text-[#00B074]">
+                Member Ledger (Excel)
+              </div>
+              <div className="text-[11px] text-slate-500 line-clamp-1">
+                Formatted financial spreadsheet (.xlsx)
               </div>
             </div>
           </button>

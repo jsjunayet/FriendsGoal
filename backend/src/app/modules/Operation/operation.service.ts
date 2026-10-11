@@ -16,6 +16,8 @@ interface DueListQueryParams {
   year?: string;
   status?: "All" | "Advance" | "Due" | "Zero";
   dateRange?: string;
+  startDate?: string;
+  endDate?: string;
   page?: number | string;
   limit?: number | string;
 }
@@ -39,7 +41,19 @@ const getDueListFromDB = async (query: DueListQueryParams) => {
     filter.createdAt = { $gte: startOfYear, $lte: endOfYear };
   }
 
-  if (query.dateRange) {
+  if (query.startDate || query.endDate) {
+    const dateQuery: Record<string, any> = {};
+    if (query.startDate) {
+      dateQuery.$gte = new Date(`${query.startDate}T00:00:00.000Z`);
+    }
+    if (query.endDate) {
+      dateQuery.$lte = new Date(`${query.endDate}T23:59:59.999Z`);
+    }
+    filter.createdAt = {
+      ...((filter.createdAt as any) || {}),
+      ...dateQuery,
+    };
+  } else if (query.dateRange) {
     if (query.dateRange.length === 7 && query.dateRange.includes("-")) {
       const [yearStr, monthStr] = query.dateRange.split("-");
       const startOfMonth = new Date(Date.UTC(Number(yearStr), Number(monthStr) - 1, 1, 0, 0, 0));

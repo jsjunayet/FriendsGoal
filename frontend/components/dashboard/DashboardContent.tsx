@@ -299,8 +299,9 @@ function PersonalFinancialCard() {
               <span className="text-[10px] font-bold tracking-[0.18em] text-[#555555] uppercase mb-1">
                 TOTAL DEPOSIT
               </span>
-              <div className="text-[32px] font-serif text-[#2B5A27] leading-none mb-3">
-                {(Number(totalDepositVal) || 0).toLocaleString("en-US")}
+              <div className="text-[32px] font-serif text-[#2B5A27] leading-none mb-3 flex items-center justify-center gap-1 font-bold">
+                <span className="font-extrabold text-[34px] leading-none select-none">৳</span>
+                <span>{(Number(totalDepositVal) || 0).toLocaleString("en-US")}</span>
               </div>
               <div className="w-6 h-[3px] bg-[#87A83C] rounded-full" />
             </div>
@@ -309,14 +310,23 @@ function PersonalFinancialCard() {
               <span className="text-[10px] font-bold tracking-[0.18em] text-[#555555] uppercase mb-1">
                 {Number(dueAmountVal) < 0 ? "ADVANCE PAYMENT" : "DUE AMOUNT"}
               </span>
-              <div className={`text-[32px] font-serif leading-none mb-3 ${
-                Number(dueAmountVal) < 0 ? "text-[#2B5A27]" : Number(dueAmountVal) > 0 ? "text-[#D62828]" : "text-[#1A1A1A]"
-              }`}>
-                {Number(dueAmountVal) < 0 ? "Advance ৳" + Math.abs(Number(dueAmountVal)).toLocaleString("en-US") : "৳" + (Number(dueAmountVal) || 0).toLocaleString("en-US")}
+              <div className={`text-[32px] font-serif leading-none mb-3 flex items-center justify-center gap-1 font-bold ${Number(dueAmountVal) < 0 ? "text-[#2B5A27]" : Number(dueAmountVal) > 0 ? "text-[#D62828]" : "text-[#1A1A1A]"
+                }`}>
+                {Number(dueAmountVal) < 0 ? (
+                  <>
+                    <span className="text-xs font-sans font-semibold mr-1">Advance</span>
+                    <span className="font-extrabold text-[34px] leading-none select-none">৳</span>
+                    <span>{Math.abs(Number(dueAmountVal)).toLocaleString("en-US")}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-extrabold text-[34px] leading-none select-none">৳</span>
+                    <span>{(Number(dueAmountVal) || 0).toLocaleString("en-US")}</span>
+                  </>
+                )}
               </div>
-              <div className={`w-6 h-[3px] rounded-full ${
-                Number(dueAmountVal) < 0 ? "bg-[#87A83C]" : Number(dueAmountVal) > 0 ? "bg-[#D62828]" : "bg-[#888888]"
-              }`} />
+              <div className={`w-6 h-[3px] rounded-full ${Number(dueAmountVal) < 0 ? "bg-[#87A83C]" : Number(dueAmountVal) > 0 ? "bg-[#D62828]" : "bg-[#888888]"
+                }`} />
             </div>
           </div>
 
@@ -325,11 +335,14 @@ function PersonalFinancialCard() {
             <span className="text-[10px] font-bold tracking-[0.18em] text-[#555555] uppercase mb-1">
               MY PROFIT
             </span>
-            <div className="text-[40px] font-serif text-[#1A1A1A] leading-none mb-4">
-              {(Number(myProfitVal) || 0).toLocaleString("en-US", {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 2,
-              })}
+            <div className="text-[40px] font-serif text-[#1A1A1A] leading-none mb-4 flex items-center justify-center gap-1.5 font-bold">
+              <span className="font-extrabold text-[42px] leading-none text-[#2B5A27] select-none">৳</span>
+              <span>
+                {(Number(myProfitVal) || 0).toLocaleString("en-US", {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
             </div>
             <div className="w-8 h-[3px] bg-[#1FDE64] rounded-full" />
           </div>
@@ -516,11 +529,10 @@ function PersonalFinancialCard() {
                       key={pageNum}
                       type="button"
                       onClick={() => setSchedulePage(pageNum)}
-                      className={`w-7 h-7 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
-                        schedulePage === pageNum
+                      className={`w-7 h-7 text-xs font-bold rounded-lg transition-colors cursor-pointer ${schedulePage === pageNum
                           ? "bg-[#2B5A27] text-white shadow-xs"
                           : "text-gray-600 hover:bg-gray-100 border border-gray-200"
-                      }`}
+                        }`}
                     >
                       {pageNum}
                     </button>
@@ -636,7 +648,7 @@ function OverviewSection({ overview }: { overview: IAnalyticsOverview | null }) 
               <span className="text-[10px] font-bold text-[#888888] uppercase tracking-[0.14em] block mb-0.5">
                 MEMBERS RECEIVED
               </span>
-              <span className="font-serif text-[20px] font-bold text-[#1A1A1A]">{membersReceived}</span>
+              <span className="font-serif text-[20px] font-bold text-[#1A1A1A] flex items-center"><span>{membersReceived}</span></span>
             </div>
           </div>
 
@@ -648,7 +660,7 @@ function OverviewSection({ overview }: { overview: IAnalyticsOverview | null }) 
               <span className="text-[10px] font-bold text-[#888888] uppercase tracking-[0.14em] block mb-0.5">
                 MEMBERS DUE
               </span>
-              <span className="font-serif text-[20px] font-bold text-[#1A1A1A]">{membersDue}</span>
+              <span className="font-serif text-[20px] font-bold text-[#1A1A1A] flex items-center"><span>{membersDue}</span></span>
             </div>
           </div>
 
@@ -660,7 +672,7 @@ function OverviewSection({ overview }: { overview: IAnalyticsOverview | null }) 
               <span className="text-[10px] font-bold text-[#888888] uppercase tracking-[0.14em] block mb-0.5">
                 OTHERS RECEIVES
               </span>
-              <span className="font-serif text-[20px] font-bold text-[#1A1A1A]">{othersReceived}</span>
+              <span className="font-serif text-[20px] font-bold text-[#1A1A1A] flex items-center"><span>{othersReceived}</span></span>
             </div>
           </div>
         </div>
@@ -864,11 +876,10 @@ function MemberGoogleFormsSection() {
                   key={pageNum}
                   type="button"
                   onClick={() => setPage(pageNum)}
-                  className={`w-7 h-7 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
-                    page === pageNum
+                  className={`w-7 h-7 text-xs font-bold rounded-lg transition-colors cursor-pointer ${page === pageNum
                       ? "bg-[#2B5A27] text-white shadow-xs"
                       : "text-gray-600 hover:bg-gray-100 border border-gray-200"
-                  }`}
+                    }`}
                 >
                   {pageNum}
                 </button>
@@ -989,7 +1000,7 @@ export default function DashboardContent() {
           No Member Profile Found
         </h1>
         <p className="text-[#555555] max-w-md">
-          We could not find a member profile associated with your login email. 
+          We could not find a member profile associated with your login email.
           If you believe this is a mistake, please check that you logged in with the correct email or contact administration.
         </p>
       </div>

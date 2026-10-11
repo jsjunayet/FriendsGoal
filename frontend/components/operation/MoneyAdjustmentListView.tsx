@@ -18,6 +18,12 @@ import {
   TMeta,
 } from "@/lib/adjustmentApi";
 import { ExportDropdown } from "@/components/shared";
+import {
+  exportReportToPdf,
+  exportReportToExcel,
+  IReportColumn,
+  IExportReportOptions,
+} from "@/lib/reportExportEngine";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TableRowsSkeleton } from "@/components/ui/Skeletons";
 
@@ -70,6 +76,83 @@ export function MoneyAdjustmentListView() {
     }
   };
 
+  const formatReportDate = (dStr?: string | Date | null) => {
+    if (!dStr) return "—";
+    try {
+      const d = new Date(dStr);
+      if (isNaN(d.getTime())) return String(dStr);
+      return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    } catch {
+      return String(dStr);
+    }
+  };
+
+  const handleExportAdjustments = async (type: "pdf" | "excel") => {
+    try {
+      let exportRows: IAdjustmentRecord[] = [];
+      try {
+        const fullRes = await fetchAdjustmentsApi({
+          fromDate: fromDate || undefined,
+          toDate: toDate || undefined,
+          page: 1,
+          limit: 1000,
+        });
+        if (fullRes?.data && fullRes.data.length > 0) {
+          exportRows = fullRes.data;
+        } else {
+          exportRows = adjustments;
+        }
+      } catch {
+        exportRows = adjustments;
+      }
+
+      const filterParts: string[] = [];
+      if (fromDate || toDate) {
+        filterParts.push(`Date Range: ${fromDate || "Start"} to ${toDate || "End"}`);
+      }
+      const filterSummary = filterParts.length > 0
+        ? `Active Filter: ${filterParts.join(" | ")} | Total Records: ${exportRows.length}`
+        : `All Adjustment Records | Total Records: ${exportRows.length}`;
+
+      const columns: IReportColumn[] = [
+        { header: "SL#", dataKey: "sl", excelWidth: 8, align: "center" },
+        { header: "Member Name", dataKey: "memberName", excelWidth: 26, align: "left" },
+        { header: "Adjustment Type", dataKey: "adjustmentType", excelWidth: 20, align: "left" },
+        { header: "Date", dataKey: "date", excelWidth: 16, align: "center" },
+        { header: "Amount", dataKey: "amount", excelWidth: 16, align: "right", isCurrency: true },
+        { header: "Remarks", dataKey: "remarks", excelWidth: 32, align: "left" },
+      ];
+
+      const mappedRows = exportRows.map((item, idx) => ({
+        sl: idx + 1,
+        memberName: item.memberName || "—",
+        adjustmentType: item.adjustmentTypeName || "Balance Adjustment",
+        date: formatReportDate(item.adjustmentDate),
+        amount: item.signedAmount !== undefined ? Number(item.signedAmount) : Number(item.adjustmentAmount) || 0,
+        remarks: item.remarks || "—",
+      }));
+
+      const exportOptions: IExportReportOptions = {
+        reportTitle: "Adjustment Reports",
+        filterSummary,
+        columns,
+        rows: mappedRows,
+        amountColumnKey: "amount",
+        filenamePrefix: "Adjustment_Report",
+        sheetName: "RptAdjustment",
+      };
+
+      if (type === "pdf") {
+        exportReportToPdf(exportOptions);
+      } else {
+        await exportReportToExcel(exportOptions);
+      }
+    } catch (err: any) {
+      console.error("Failed to export adjustment report:", err);
+      throw err;
+    }
+  };
+
   return (
     <div className="w-full flex flex-col gap-6 p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
       {/* ─── Top Header matching Screenshot 2 ───────────────────────────────────── */}
@@ -80,7 +163,11 @@ export function MoneyAdjustmentListView() {
         </div>
 
         <div className="flex items-center gap-3">
-          <ExportDropdown endpointUrl="/api/v1/reports/adjustments/export" defaultFilename="Adjustments_Report" />
+          <ExportDropdown
+            endpointUrl="/api/v1/reports/adjustments/export"
+            defaultFilename="Adjustments_Report"
+            onExport={handleExportAdjustments}
+          />
 
           {/* + MONEY ADJUST Button */}
           <Link

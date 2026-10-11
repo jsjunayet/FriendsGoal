@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Check,
   Info,
@@ -29,9 +30,10 @@ const formatTimeAgo = (dateStr: string) => {
 };
 
 export default function NotificationsClient() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const {
     notifications,
     unreadCount,
@@ -40,10 +42,31 @@ export default function NotificationsClient() {
     markAllAsRead,
   } = useNotifications();
 
-  const isAdmin =
-    user?.role === "admin" ||
-    user?.role === "superAdmin" ||
-    user?.role === "manager";
+  useEffect(() => {
+    if (!isAuthLoading && (!isAuthenticated || !user)) {
+      router.replace("/login");
+    }
+  }, [isAuthLoading, isAuthenticated, user, router]);
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#F8FAFC]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-3 border-[#00B074] border-t-transparent" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            Loading notifications...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
+    return null;
+  }
+
+  const role = (user.role || "").toLowerCase();
+  const isAdmin = role === "admin" || role === "superadmin" || role === "manager";
 
   const handleMarkAllRead = async () => {
     await markAllAsRead();

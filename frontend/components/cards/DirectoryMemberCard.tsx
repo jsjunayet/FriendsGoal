@@ -5,7 +5,8 @@ import Image from "next/image";
 import { MapPin, Droplet, Cake, IdCard, User } from "lucide-react";
 import type { DirectoryMember } from "@/types";
 import { useTranslation } from "@/context/LanguageContext";
-import { getLocalizedText, hasValidImage } from "@/lib/i18nHelpers";
+import { useState } from "react";
+import { getLocalizedText, hasValidImage, resolveImageUrl } from "@/lib/i18nHelpers";
 import type { CMSMemberItem } from "@/lib/cmsMemberApi";
 
 interface DirectoryMemberCardProps {
@@ -83,9 +84,10 @@ export function DirectoryMemberCard({ member, index }: DirectoryMemberCardProps)
   const locationText = formatLocation(member);
   const bloodGroupText = formatBloodGroup(member.bloodGroup);
   const dobText = formatDob(member.dob || member.dateOfBirth || member.joiningDate);
-  const photo = member.photoUrl || member.pictureUrl || member.image;
-
-  const hasPhoto = hasValidImage(photo);
+  const [imgError, setImgError] = useState(false);
+  const rawPhoto = member.photoUrl || member.pictureUrl || member.image;
+  const photo = resolveImageUrl(rawPhoto);
+  const hasPhoto = hasValidImage(photo) && !imgError;
 
   return (
     <motion.article
@@ -105,6 +107,7 @@ export function DirectoryMemberCard({ member, index }: DirectoryMemberCardProps)
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 380px"
             className="object-cover object-top transition-transform duration-500 hover:scale-[1.03]"
+            onError={() => setImgError(true)}
           />
         ) : (
           /* Fallback Avatar */

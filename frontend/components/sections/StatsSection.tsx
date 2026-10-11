@@ -48,13 +48,14 @@ export function StatsSection() {
   }, []);
 
   const statList = stats.map((s) => {
-    const numMatch = s.value.match(/(\d+)(.*)/);
+    const rawVal = s.value || "0";
+    const numMatch = rawVal.match(/(\d+)(.*)/);
     const valNum = numMatch ? parseInt(numMatch[1], 10) : 0;
     const suff = numMatch ? numMatch[2] : "";
     return {
       value: valNum,
       suffix: suff,
-      displayVal: s.value,
+      displayVal: rawVal,
       labelText: getLocalizedText(s.label, lang, s.key).toUpperCase(),
     };
   });

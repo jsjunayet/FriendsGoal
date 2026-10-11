@@ -34,8 +34,6 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   const mergedHeaders = {
     "Content-Type": "application/json",
-    "Cache-Control": "no-cache, no-store, must-revalidate",
-    Pragma: "no-cache",
     ...(token
       ? { Authorization: token.startsWith("Bearer ") ? token : `Bearer ${token}` }
       : {}),

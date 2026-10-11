@@ -21,6 +21,12 @@ import {
   TMeta,
 } from "@/lib/investmentApi";
 import { ExportDropdown } from "@/components/shared";
+import {
+  exportReportToPdf,
+  exportReportToExcel,
+  IReportColumn,
+  IExportReportOptions,
+} from "@/lib/reportExportEngine";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TableRowsSkeleton } from "@/components/ui/Skeletons";
 
@@ -105,6 +111,78 @@ export function InvestmentListView() {
     }
   };
 
+  const formatReportDate = (dateStr?: string | null) => {
+    if (!dateStr) return "—";
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const handleExportInvestments = async (type: "pdf" | "excel") => {
+    try {
+      let exportRows: IInvestmentRecord[] = [];
+      try {
+        const fullRes = await fetchInvestmentsApi({
+          search: searchTerm || undefined,
+          page: 1,
+          limit: 1000,
+        });
+        if (fullRes?.data && fullRes.data.length > 0) {
+          exportRows = fullRes.data;
+        } else {
+          exportRows = investments;
+        }
+      } catch {
+        exportRows = investments;
+      }
+
+      const filterSummary = searchTerm
+        ? `Active Filter: Search "${searchTerm}" | Total Records: ${exportRows.length}`
+        : `All Investment Portfolios | Total Records: ${exportRows.length}`;
+
+      const columns: IReportColumn[] = [
+        { header: "SL#", dataKey: "sl", excelWidth: 8, align: "center" },
+        { header: "Investment Name", dataKey: "name", excelWidth: 26, align: "left" },
+        { header: "Start Date", dataKey: "startDate", excelWidth: 16, align: "center" },
+        { header: "Amount", dataKey: "amount", excelWidth: 16, align: "right", isCurrency: true },
+        { header: "Status", dataKey: "status", excelWidth: 14, align: "center" },
+        { header: "Remarks", dataKey: "remarks", excelWidth: 32, align: "left" },
+      ];
+
+      const mappedRows = exportRows.map((item, idx) => ({
+        sl: idx + 1,
+        name: item.name || "—",
+        startDate: formatReportDate(item.startDate),
+        amount: Number(item.amount) || 0,
+        status: item.status || "Running",
+        remarks: item.remarks || "—",
+      }));
+
+      const exportOptions: IExportReportOptions = {
+        reportTitle: "Investment Portfolio Reports",
+        filterSummary,
+        columns,
+        rows: mappedRows,
+        amountColumnKey: "amount",
+        filenamePrefix: "Investment_Portfolio_Report",
+        sheetName: "RptInvestments",
+      };
+
+      if (type === "pdf") {
+        exportReportToPdf(exportOptions);
+      } else {
+        await exportReportToExcel(exportOptions);
+      }
+    } catch (err: any) {
+      console.error("Failed to export investment portfolios:", err);
+      throw err;
+    }
+  };
+
   return (
     <div className="w-full flex flex-col gap-6 p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
       {/* ─── Top Header matching Screenshot 1 ───────────────────────────────────── */}
@@ -119,7 +197,11 @@ export function InvestmentListView() {
         </div>
 
         <div className="flex items-center gap-3">
-          <ExportDropdown endpointUrl="/api/v1/reports/investments/export" defaultFilename="Investments_Report" />
+          <ExportDropdown
+            endpointUrl="/api/v1/reports/investments/export"
+            defaultFilename="Investments_Report"
+            onExport={handleExportInvestments}
+          />
           
           {/* + Add New Primary Green Button */}
           <Link

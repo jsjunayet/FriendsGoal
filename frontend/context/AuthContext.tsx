@@ -4,11 +4,9 @@
  * AuthContext — global authentication state for Friends Goal.
  *
  * Storage strategy:
- *   - accessToken  → sessionStorage  (cleared on tab close; not accessible by JS from other tabs)
- *   - role/userId  → sessionStorage  (decoded from the JWT payload on login)
- *
- * The refreshToken lives in an HttpOnly cookie set by the backend, so the
- * frontend never touches it directly.
+ *   - accessToken  → localStorage & sessionStorage (30-day session)
+ *   - role/userId  → decoded securely from JWT
+ *   - middleware   → fg_auth, fg_auth_role, fg_token cookies
  */
 
 import {
@@ -19,6 +17,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import {
+  STORAGE_KEY_TOKEN,
+  decodeJwtPayload,
+  setAuthCookies,
+  clearClientAuth,
+  type DecodedAuthUser,
+} from "@/lib/authUtils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -45,32 +50,6 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-// ─── JWT payload decode (no library needed) ───────────────────────────────────
-
-function decodeJwtPayload(token: string): AuthUser | null {
-  try {
-    const base64 = token.split(".")[1];
-    // Pad base64url to standard base64
-    const padded = base64.replace(/-/g, "+").replace(/_/g, "/");
-    const json = atob(padded);
-    const payload = JSON.parse(json) as {
-      userId?: string;
-      role?: UserRole;
-      exp?: number;
-    };
-
-    // Reject expired tokens before storing
-    if (payload.exp && Date.now() / 1000 > payload.exp) return null;
-    if (!payload.userId || !payload.role) return null;
-
-    return { userId: payload.userId, role: payload.role };
-  } catch {
-    return null;
-  }
-}
-
-const STORAGE_KEY_TOKEN = "fg_access_token";
-
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -81,61 +60,89 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading: true,
   });
 
-  // Hydrate from sessionStorage on mount (client-only)
+  // Hydrate from localStorage / sessionStorage on mount (client-only)
   useEffect(() => {
     try {
-      const stored = sessionStorage.getItem(STORAGE_KEY_TOKEN);
+      const stored =
+        sessionStorage.getItem(STORAGE_KEY_TOKEN) ||
+        localStorage.getItem(STORAGE_KEY_TOKEN) ||
+        sessionStorage.getItem("accessToken") ||
+        localStorage.getItem("accessToken");
+
       if (stored) {
-        const user = decodeJwtPayload(stored);
-        if (user) {
-          // Re-sync middleware cookies in case they were cleared (e.g. browser restart)
-          document.cookie = `fg_auth=1; path=/; SameSite=Lax`;
-          document.cookie = `fg_auth_role=${user.role}; path=/; SameSite=Lax`;
+        const decoded = decodeJwtPayload(stored);
+        if (decoded) {
+          // Keep both storage locations in sync for 30-day session
+          try {
+            localStorage.setItem(STORAGE_KEY_TOKEN, stored);
+            sessionStorage.setItem(STORAGE_KEY_TOKEN, stored);
+          } catch (_) {}
+
+          // Synchronize cookies for Edge middleware
+          setAuthCookies(stored, decoded.role);
+
           setState({
-            user,
+            user: { userId: decoded.userId, role: decoded.role },
             accessToken: stored,
             isAuthenticated: true,
             isLoading: false,
           });
           return;
         }
-        // Token invalid/expired — clear it
-        sessionStorage.removeItem(STORAGE_KEY_TOKEN);
+
+        // Token is invalid/expired — purge completely
+        clearClientAuth(false);
+      } else {
+        // No token present — ensure no stale cookies linger
+        clearClientAuth(false);
       }
     } catch {
-      // sessionStorage not available (e.g. incognito with storage blocked)
+      // storage unavailable
     }
-    setState((s) => ({ ...s, isLoading: false }));
+    setState({ user: null, accessToken: null, isAuthenticated: false, isLoading: false });
+  }, []);
+
+  // Listen to cross-tab logout or auth expiration events
+  useEffect(() => {
+    const handleAuthLogout = () => {
+      setState({ user: null, accessToken: null, isAuthenticated: false, isLoading: false });
+    };
+
+    window.addEventListener("fg_auth_logout", handleAuthLogout);
+    window.addEventListener("storage", (e) => {
+      if (e.key === STORAGE_KEY_TOKEN && !e.newValue) {
+        handleAuthLogout();
+      }
+    });
+
+    return () => {
+      window.removeEventListener("fg_auth_logout", handleAuthLogout);
+    };
   }, []);
 
   const login = useCallback((accessToken: string) => {
-    const user = decodeJwtPayload(accessToken);
-    if (!user) return;
+    const decoded = decodeJwtPayload(accessToken);
+    if (!decoded) return;
+
     try {
+      localStorage.setItem(STORAGE_KEY_TOKEN, accessToken);
       sessionStorage.setItem(STORAGE_KEY_TOKEN, accessToken);
     } catch {
-      // storage blocked — still keep in memory for this tab
+      // storage blocked — still keep in memory
     }
-    // Write lightweight cookies so the Edge middleware can read auth state.
-    // These are NOT HttpOnly so JS can clear them on logout.
-    // SameSite=Lax is safe here — they carry no sensitive data.
-    document.cookie = `fg_auth=1; path=/; SameSite=Lax`;
-    document.cookie = `fg_auth_role=${user.role}; path=/; SameSite=Lax`;
-    setState({ user, accessToken, isAuthenticated: true, isLoading: false });
+
+    setAuthCookies(accessToken, decoded.role);
+
+    setState({
+      user: { userId: decoded.userId, role: decoded.role },
+      accessToken,
+      isAuthenticated: true,
+      isLoading: false,
+    });
   }, []);
 
   const logout = useCallback(() => {
-    try {
-      sessionStorage.removeItem(STORAGE_KEY_TOKEN);
-      sessionStorage.removeItem("accessToken");
-      localStorage.removeItem(STORAGE_KEY_TOKEN);
-      localStorage.removeItem("accessToken");
-    } catch {
-      // ignore
-    }
-    // Clear middleware cookies with explicit past expiry date
-    document.cookie = "fg_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0";
-    document.cookie = "fg_auth_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0";
+    clearClientAuth(false);
     setState({ user: null, accessToken: null, isAuthenticated: false, isLoading: false });
   }, []);
 

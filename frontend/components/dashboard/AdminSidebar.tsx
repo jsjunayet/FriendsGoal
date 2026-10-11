@@ -374,19 +374,6 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
                   Income Disburs
                 </Link>
 
-                {/* Investment Income */}
-                <Link
-                  href="/dashboard/investment-income"
-                  onClick={onCloseMobile}
-                  className={cn(
-                    "flex-shrink-0 py-1.5 px-3 rounded-lg transition-all block truncate font-medium relative overflow-hidden",
-                    isInvestmentIncomeActive
-                      ? "bg-[#E8F8F5] text-[#0E8A5A] font-bold before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#0E8A5A]"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                  )}
-                >
-                  Investment Income
-                </Link>
               </div>
             )}
           </div>
@@ -411,6 +398,20 @@ export function AdminSidebar({ isMobileOpen = false, onCloseMobile }: AdminSideb
 
             {reportOpen && (
               <div className="pl-9 pr-2 py-1 flex flex-col gap-1 text-[13px]">
+                {/* Investment Income (moved under Report) */}
+                <Link
+                  href="/dashboard/investment-income"
+                  onClick={onCloseMobile}
+                  className={cn(
+                    "flex-shrink-0 py-1.5 px-3 rounded-lg transition-all block truncate font-medium relative overflow-hidden",
+                    isInvestmentIncomeActive
+                      ? "bg-[#E8F8F5] text-[#0E8A5A] font-bold before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-[#0E8A5A]"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  )}
+                >
+                  Investment Income
+                </Link>
+
                 <Link
                   href="/admin/dashboard/audit-logs"
                   onClick={onCloseMobile}

@@ -28,7 +28,20 @@ const getDueListFromDB = async (query) => {
         const endOfYear = new Date(`${query.year}-12-31T23:59:59.999Z`);
         filter.createdAt = { $gte: startOfYear, $lte: endOfYear };
     }
-    if (query.dateRange) {
+    if (query.startDate || query.endDate) {
+        const dateQuery = {};
+        if (query.startDate) {
+            dateQuery.$gte = new Date(`${query.startDate}T00:00:00.000Z`);
+        }
+        if (query.endDate) {
+            dateQuery.$lte = new Date(`${query.endDate}T23:59:59.999Z`);
+        }
+        filter.createdAt = {
+            ...(filter.createdAt || {}),
+            ...dateQuery,
+        };
+    }
+    else if (query.dateRange) {
         if (query.dateRange.length === 7 && query.dateRange.includes("-")) {
             const [yearStr, monthStr] = query.dateRange.split("-");
             const startOfMonth = new Date(Date.UTC(Number(yearStr), Number(monthStr) - 1, 1, 0, 0, 0));

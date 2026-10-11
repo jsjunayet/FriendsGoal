@@ -7,6 +7,7 @@ export interface IDueListItem {
   dueAmount: number;
   advanceBalance: number;
   status: "Advance" | "Due" | "Zero";
+  dueMonth?: string;
   totalDeposit: number;
   updatedAt?: string;
 }
@@ -50,6 +51,8 @@ export interface IDueListFilterParams {
   year?: string;
   status?: "All" | "Advance" | "Due" | "Zero";
   dateRange?: string;
+  startDate?: string;
+  endDate?: string;
   page?: number;
   limit?: number;
 }
@@ -92,6 +95,8 @@ export async function fetchDueListApi(
   if (filters.year) query.append("year", filters.year);
   if (filters.status && filters.status !== "All") query.append("status", filters.status);
   if (filters.dateRange) query.append("dateRange", filters.dateRange);
+  if (filters.startDate) query.append("startDate", filters.startDate);
+  if (filters.endDate) query.append("endDate", filters.endDate);
   if (filters.page) query.append("page", String(filters.page));
   if (filters.limit) query.append("limit", String(filters.limit));
 
@@ -224,6 +229,8 @@ export function getExportPdfUrl(filters: IDueListFilterParams = {}): string {
   if (filters.year) query.append("year", filters.year);
   if (filters.status && filters.status !== "All") query.append("status", filters.status);
   if (filters.dateRange) query.append("dateRange", filters.dateRange);
+  if (filters.startDate) query.append("startDate", filters.startDate);
+  if (filters.endDate) query.append("endDate", filters.endDate);
   return `${BASE_URL}/operations/export/pdf?${query.toString()}`;
 }
 
@@ -233,6 +240,8 @@ export function getExportExcelUrl(filters: IDueListFilterParams = {}): string {
   if (filters.year) query.append("year", filters.year);
   if (filters.status && filters.status !== "All") query.append("status", filters.status);
   if (filters.dateRange) query.append("dateRange", filters.dateRange);
+  if (filters.startDate) query.append("startDate", filters.startDate);
+  if (filters.endDate) query.append("endDate", filters.endDate);
   return `${BASE_URL}/operations/export/excel?${query.toString()}`;
 }
 

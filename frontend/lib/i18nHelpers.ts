@@ -32,11 +32,40 @@ export function hasValidImage(images?: string[] | string | null): boolean {
 }
 
 /**
- * Extracts array of image URLs safely.
+ * Resolves an image URL (normalizes local /uploads/ to same-origin paths, preserves external HTTPS URLs).
+ */
+export function resolveImageUrl(url?: string | null): string {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("data:")) {
+    return trimmed;
+  }
+  // If it's a local upload (either relative /uploads/... or http://localhost:5000/uploads/...)
+  // Normalize to /uploads/... so the browser fetches same-origin via Next.js rewrite or static public
+  if (trimmed.includes("/uploads/")) {
+    return trimmed.slice(trimmed.indexOf("/uploads/"));
+  }
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+}
+
+/**
+ * Safely extracts an array of image strings from string | string[] | null | undefined.
  */
 export function getImageList(images?: string[] | string | null): string[] {
   if (!images) return [];
-  if (typeof images === "string") return [images];
-  if (Array.isArray(images)) return images.filter((img) => Boolean(img && img.trim()));
+  if (typeof images === "string") {
+    const trimmed = resolveImageUrl(images);
+    return trimmed ? [trimmed] : [];
+  }
+  if (Array.isArray(images)) {
+    return images
+      .map((img) => resolveImageUrl(img))
+      .filter((img) => Boolean(img && img.trim().length > 0));
+  }
   return [];
 }
+

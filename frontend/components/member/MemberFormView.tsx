@@ -34,6 +34,16 @@ import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import { MemberDownloadDropdown } from "./MemberDownloadDropdown";
 import { printMemberProfilePdf } from "@/lib/memberProfilePdfGenerator";
 
+// Calculate initial due count starting from January 2024 (1,000 BDT/month)
+export function calculateInitialDueFromJan2024() {
+  const now = new Date();
+  const months = Math.max(1, (now.getFullYear() - 2024) * 12 + now.getMonth() + 1);
+  return {
+    months,
+    due: months * 1000,
+  };
+}
+
 // Predefined designation mapping to Bangla
 const DESIGNATION_PRESETS: Record<string, string> = {
   President: "সভাপতি",
@@ -174,7 +184,7 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
     signatureUrl: initialMember?.signatureUrl || "",
     totalDeposit: isCreateMode ? 0 : (initialMember?.totalDeposit ?? 0),
     savingsBalance: isCreateMode ? 0 : (initialMember?.savingsBalance ?? 0),
-    dueAmount: isCreateMode ? 0 : (initialMember?.dueAmount ?? 0),
+    dueAmount: isCreateMode ? calculateInitialDueFromJan2024().due : (initialMember?.dueAmount ?? 0),
     memberCode: isCreateMode ? undefined : (initialMember?.memberCode || undefined),
   });
 
@@ -291,7 +301,7 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
         ? {
             totalDeposit: 0,
             savingsBalance: 0,
-            dueAmount: 0,
+            dueAmount: Number(formData.dueAmount) > 0 ? Number(formData.dueAmount) : calculateInitialDueFromJan2024().due,
             memberCode: undefined,
           }
         : {}),
@@ -512,8 +522,16 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   placeholder="MD JUWEL HASAN"
-                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-800 focus:outline-none focus:border-[#00B074] focus:ring-1 focus:ring-[#00B074]"
+                  disabled={!isCreateMode}
+                  className={`w-full h-10 px-3 rounded-xl border text-[13px] transition-all ${
+                    !isCreateMode
+                      ? "bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200 select-none shadow-none"
+                      : "bg-white text-gray-800 border-gray-200 focus:outline-none focus:border-[#00B074] focus:ring-1 focus:ring-[#00B074]"
+                  }`}
                 />
+                {!isCreateMode && (
+                  <p className="text-[11px] text-gray-400 mt-1">Full name cannot be changed.</p>
+                )}
                 {formErrors.fullName && (
                   <p className="text-[11px] text-red-500 mt-1">{formErrors.fullName}</p>
                 )}
@@ -851,8 +869,16 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="member@friendsgoal.org"
-                className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-800 focus:outline-none focus:border-[#00B074]"
+                disabled={!isCreateMode}
+                className={`w-full h-10 px-3 rounded-xl border text-[13px] transition-all ${
+                  !isCreateMode
+                    ? "bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200 select-none shadow-none"
+                    : "bg-white text-gray-800 border-gray-200 focus:outline-none focus:border-[#00B074]"
+                }`}
               />
+              {!isCreateMode && (
+                <p className="text-[11px] text-gray-400 mt-1">Email address cannot be changed.</p>
+              )}
               {formErrors.email && (
                 <p className="text-[11px] text-red-500 mt-1">{formErrors.email}</p>
               )}

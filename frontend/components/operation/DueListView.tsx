@@ -18,13 +18,20 @@ import {
   IDueListFilterParams,
   TMeta,
 } from "@/lib/operationApi";
+import {
+  exportReportToPdf,
+  exportReportToExcel,
+  IReportColumn,
+  IExportReportOptions,
+} from "@/lib/reportExportEngine";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TableRowsSkeleton } from "@/components/ui/Skeletons";
 
 export function DueListView({ initialStatus }: { initialStatus?: string }) {
   // State for filters
   const [search, setSearch] = useState("");
-  const [dateRange, setDateRange] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [year, setYear] = useState("");
 
   const defaultStatus = initialStatus && ["All", "Advance", "Due", "Zero"].includes(initialStatus)
@@ -63,7 +70,8 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
         searchByCodeOrName: search || undefined,
         year: year || undefined,
         status: statusFilter,
-        dateRange: dateRange || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
         page: pageNumber,
         limit: 6,
       };
@@ -94,18 +102,80 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
   useEffect(() => {
     loadDueList(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, year, statusFilter, dateRange]);
+  }, [search, year, statusFilter, startDate, endDate]);
 
   const handleExport = async (type: "pdf" | "excel") => {
     try {
       setIsExporting(true);
       setDownloadOpen(false);
-      await downloadExportFile(type, {
-        searchByCodeOrName: search || undefined,
-        year: year || undefined,
-        status: statusFilter,
-        dateRange: dateRange || undefined,
-      });
+
+      // Fetch all records matching the active filter parameters
+      let exportRows: IDueListItem[] = [];
+      try {
+        const fullRes = await fetchDueListApi({
+          searchByCodeOrName: search || undefined,
+          year: year || undefined,
+          status: statusFilter,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+          page: 1,
+          limit: 1000,
+        });
+        if (fullRes?.data && fullRes.data.length > 0) {
+          exportRows = fullRes.data;
+        } else {
+          exportRows = data;
+        }
+      } catch {
+        exportRows = data;
+      }
+
+      // Explicit filter metadata summary
+      const filterParts: string[] = [];
+      if (statusFilter && statusFilter !== "All") filterParts.push(`Status: ${statusFilter}`);
+      if (year) filterParts.push(`Year: ${year}`);
+      if (startDate || endDate) filterParts.push(`Date Range: ${startDate || "Start"} to ${endDate || "End"}`);
+      if (search) filterParts.push(`Search: "${search}"`);
+      const filterSummary = filterParts.length > 0
+        ? `Active Filter: ${filterParts.join(" | ")} | Total Records: ${exportRows.length}`
+        : `All Records | Total: ${exportRows.length}`;
+
+      const columns: IReportColumn[] = [
+        { header: "SL#", dataKey: "sl", excelWidth: 8, align: "center" },
+        { header: "Member ID", dataKey: "memberCode", excelWidth: 14, align: "center" },
+        { header: "Member Name", dataKey: "memberName", excelWidth: 26, align: "left" },
+        { header: "Mobile No", dataKey: "mobileNo", excelWidth: 16, align: "center" },
+        { header: "Due Month", dataKey: "dueMonth", excelWidth: 16, align: "center" },
+        { header: "Total Due", dataKey: "dueAmount", excelWidth: 16, align: "right", isCurrency: true },
+        { header: "Status", dataKey: "status", excelWidth: 12, align: "center" },
+      ];
+
+      const mappedRows = exportRows.map((item, idx) => ({
+        sl: idx + 1,
+        memberCode: item.memberCode || "N/A",
+        memberName: item.memberName || "N/A",
+        mobileNo: item.mobileNo || "N/A",
+        dueMonth: item.dueMonth || "N/A",
+        dueAmount: Number(item.dueAmount) || 0,
+        status: item.status || "Due",
+      }));
+
+      const exportOptions: IExportReportOptions = {
+        reportTitle: "Due List Reports",
+        filterSummary,
+        columns,
+        rows: mappedRows,
+        amountColumnKey: "dueAmount",
+        filenamePrefix: "Due_List_Report",
+        sheetName: "RptDueList",
+      };
+
+      if (type === "pdf") {
+        exportReportToPdf(exportOptions);
+      } else {
+        await exportReportToExcel(exportOptions);
+      }
+      toast.success(`${type.toUpperCase()} exported successfully`);
     } catch (err: any) {
       toast.error("Export failed: " + (err.message || "Unknown error"));
     } finally {
@@ -177,11 +247,11 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
           RECEIVABLE INFORMATION FILTERS
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Search By ID */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Search By ID / Name */}
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-              Search By ID
+              Search By ID / Name
             </label>
             <div className="relative">
               <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -189,20 +259,33 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Enter Member ID"
+                placeholder="Enter ID or Name"
                 className="w-full pl-9 pr-3.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-[#00B074]/30 focus:border-[#00B074] transition-all"
               />
             </div>
           </div>
 
-          {/* Select Month */}
+          {/* Start Date */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Select Month</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Start Date</label>
             <div className="relative">
               <input
-                type="month"
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-[#00B074]/30 focus:border-[#00B074] transition-all"
+              />
+            </div>
+          </div>
+
+          {/* End Date */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">End Date</label>
+            <div className="relative">
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
                 className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-800 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-[#00B074]/30 focus:border-[#00B074] transition-all"
               />
             </div>

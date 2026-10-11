@@ -6,6 +6,12 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Plus } from "lucide-react";
 import { investmentIncomeApi } from "@/lib/investmentIncomeApi";
 import { ExportDropdown } from "@/components/shared";
+import {
+  exportReportToPdf,
+  exportReportToExcel,
+  IReportColumn,
+  IExportReportOptions,
+} from "@/lib/reportExportEngine";
 
 export function InvestmentIncomeView() {
   const [fromDate, setFromDate] = useState("");
@@ -24,6 +30,61 @@ export function InvestmentIncomeView() {
   const incomes = data?.incomes || [];
   const totalIncome = data?.totalIncome || 0;
   const totalRecords = data?.totalRecords || 0;
+
+  const formatReportDate = (dStr?: string | Date | null) => {
+    if (!dStr) return "—";
+    try {
+      const d = new Date(dStr);
+      if (isNaN(d.getTime())) return String(dStr);
+      return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    } catch {
+      return String(dStr);
+    }
+  };
+
+  const handleExportInvestmentIncome = async (type: "pdf" | "excel") => {
+    const filterParts: string[] = [];
+    if (appliedFilters.fromDate || appliedFilters.toDate) {
+      filterParts.push(`Date Range: ${appliedFilters.fromDate || "Start"} to ${appliedFilters.toDate || "End"}`);
+    }
+    const filterSummary = filterParts.length > 0
+      ? `Active Filter: ${filterParts.join(" | ")} | Total Records: ${incomes.length}`
+      : `All Investment Profit Records | Total Records: ${incomes.length}`;
+
+    const columns: IReportColumn[] = [
+      { header: "SL#", dataKey: "sl", excelWidth: 8, align: "center" },
+      { header: "Investment Name", dataKey: "investmentName", excelWidth: 26, align: "left" },
+      { header: "Date", dataKey: "date", excelWidth: 16, align: "center" },
+      { header: "Amount", dataKey: "amount", excelWidth: 16, align: "right", isCurrency: true },
+      { header: "Remarks", dataKey: "remarks", excelWidth: 32, align: "left" },
+      { header: "Created By", dataKey: "createdBy", excelWidth: 14, align: "center" },
+    ];
+
+    const mappedRows = incomes.map((item: any, idx: number) => ({
+      sl: idx + 1,
+      investmentName: item.investmentName || "—",
+      date: formatReportDate(item.date),
+      amount: Number(item.amount) || 0,
+      remarks: item.remarks || "—",
+      createdBy: item.createdBy || item.createdByName || "admin",
+    }));
+
+    const exportOptions: IExportReportOptions = {
+      reportTitle: "Investment Reports",
+      filterSummary,
+      columns,
+      rows: mappedRows,
+      amountColumnKey: "amount",
+      filenamePrefix: "Investment_Report",
+      sheetName: "RptInvestment",
+    };
+
+    if (type === "pdf") {
+      exportReportToPdf(exportOptions);
+    } else {
+      await exportReportToExcel(exportOptions);
+    }
+  };
 
   const queryParamsStr = new URLSearchParams();
   if (appliedFilters.fromDate) queryParamsStr.append("fromDate", appliedFilters.fromDate);
@@ -117,6 +178,7 @@ export function InvestmentIncomeView() {
           <ExportDropdown
             endpointUrl={exportUrl}
             defaultFilename="Investments_Income_Report"
+            onExport={handleExportInvestmentIncome}
           />
         </div>
         

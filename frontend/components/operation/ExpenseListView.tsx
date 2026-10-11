@@ -19,6 +19,12 @@ import {
 } from "@/lib/expenseApi";
 import { ExpenseVoucherModal } from "./ExpenseVoucherModal";
 import { ExportDropdown } from "@/components/shared";
+import {
+  exportReportToPdf,
+  exportReportToExcel,
+  IReportColumn,
+  IExportReportOptions,
+} from "@/lib/reportExportEngine";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TableRowsSkeleton } from "@/components/ui/Skeletons";
 
@@ -84,6 +90,79 @@ export function ExpenseListView() {
     }
   };
 
+  const formatReportDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const handleExportExpenses = async (type: "pdf" | "excel") => {
+    try {
+      let exportRows: IExpenseRecord[] = [];
+      try {
+        const fullRes = await fetchExpensesApi({
+          search: activeSearch || undefined,
+          page: 1,
+          limit: 1000,
+        });
+        if (fullRes?.data && fullRes.data.length > 0) {
+          exportRows = fullRes.data;
+        } else {
+          exportRows = expenses;
+        }
+      } catch {
+        exportRows = expenses;
+      }
+
+      const filterSummary = activeSearch
+        ? `Active Filter: Search "${activeSearch}" | Total Records: ${exportRows.length}`
+        : `All Recorded Expenses | Total Records: ${exportRows.length}`;
+
+      const columns: IReportColumn[] = [
+        { header: "SL#", dataKey: "sl", excelWidth: 8, align: "center" },
+        { header: "Date", dataKey: "date", excelWidth: 16, align: "center" },
+        { header: "Expense Head", dataKey: "expenseHead", excelWidth: 20, align: "left" },
+        { header: "Member Name", dataKey: "memberName", excelWidth: 24, align: "left" },
+        { header: "Amount", dataKey: "amount", excelWidth: 16, align: "right", isCurrency: true },
+        { header: "Remarks", dataKey: "remarks", excelWidth: 32, align: "left" },
+        { header: "Created By", dataKey: "createdBy", excelWidth: 14, align: "center" },
+      ];
+
+      const mappedRows = exportRows.map((item, idx) => ({
+        sl: idx + 1,
+        date: formatReportDate(item.expenseDate),
+        expenseHead: item.expenseHead || "General",
+        memberName: item.memberName || "—",
+        amount: Number(item.amount) || 0,
+        remarks: item.remarks || "—",
+        createdBy: (item as any).createdBy || (item as any).createdByName || "admin",
+      }));
+
+      const exportOptions: IExportReportOptions = {
+        reportTitle: "Expense Reports",
+        filterSummary,
+        columns,
+        rows: mappedRows,
+        amountColumnKey: "amount",
+        filenamePrefix: "Expense_Report",
+        sheetName: "RptExpense",
+      };
+
+      if (type === "pdf") {
+        exportReportToPdf(exportOptions);
+      } else {
+        await exportReportToExcel(exportOptions);
+      }
+    } catch (err: any) {
+      console.error("Failed to export expense report:", err);
+      throw err;
+    }
+  };
+
   const handleOpenVoucher = (item: IExpenseRecord) => {
     setSelectedExpense(item);
     setIsVoucherOpen(true);
@@ -124,7 +203,11 @@ export function ExpenseListView() {
             </button>
           </form>
 
-          <ExportDropdown endpointUrl="/api/v1/reports/expense/export" defaultFilename="Expense_Report" />
+          <ExportDropdown
+            endpointUrl="/api/v1/reports/expense/export"
+            defaultFilename="Expense_Report"
+            onExport={handleExportExpenses}
+          />
 
           {/* + ADD NEW Primary Green Button matching Screenshot 1 */}
           <Link

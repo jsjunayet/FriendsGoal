@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Menu } from "lucide-react";
 import { AdminSidebar } from "@/components/dashboard/AdminSidebar";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
@@ -13,9 +14,36 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const { user } = useAuth();
-  
-  const isAdmin = user?.role === "admin" || user?.role === "superAdmin" || user?.role === "manager";
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && (!isAuthenticated || !user)) {
+      router.replace("/login");
+    }
+  }, [isLoading, isAuthenticated, user, router]);
+
+  // Loading skeleton while validating session
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#F8FAFC]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-3 border-[#00B074] border-t-transparent" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            Verifying secure session...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Prevent any content flash/leak if unauthenticated
+  if (!isAuthenticated || !user) {
+    return null;
+  }
+
+  const role = (user.role || "").toLowerCase();
+  const isAdmin = role === "admin" || role === "superadmin" || role === "manager";
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC]">

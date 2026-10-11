@@ -56,5 +56,7 @@ export interface IExportFilterOptions {
     year?: string;
     status?: "All" | "Advance" | "Due" | "Zero";
     dateRange?: string;
+    startDate?: string;
+    endDate?: string;
 }
 //# sourceMappingURL=operation.interface.d.ts.map

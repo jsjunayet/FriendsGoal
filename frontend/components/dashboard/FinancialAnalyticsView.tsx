@@ -258,9 +258,12 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
                     <Icon className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="mt-4">
+                <div className="mt-4 flex items-baseline">
+                  <span className="font-extrabold text-[26px] sm:text-[28px] text-[#0F172A] tracking-tight mr-0.5 select-none">
+                    ৳
+                  </span>
                   <span className="text-[26px] sm:text-[28px] font-bold text-[#0F172A] tracking-tight">
-                    {card.value}
+                    {card.value.replace(/^৳/, "")}
                   </span>
                 </div>
               </div>
@@ -285,9 +288,12 @@ export function FinancialAnalyticsView({ onToggleMobileSidebar }: FinancialAnaly
                     <Icon className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="mt-4">
+                <div className="mt-4 flex items-baseline">
+                  <span className="font-extrabold text-[26px] sm:text-[28px] text-[#0F172A] tracking-tight mr-0.5 select-none">
+                    ৳
+                  </span>
                   <span className="text-[26px] sm:text-[28px] font-bold text-[#0F172A] tracking-tight">
-                    {card.value}
+                    {card.value.replace(/^৳/, "")}
                   </span>
                 </div>
               </div>

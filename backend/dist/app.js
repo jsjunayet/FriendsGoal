@@ -47,7 +47,7 @@ app.use((0, cors_1.default)({
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Cache-Control", "Pragma"],
 }));
 const path_1 = __importDefault(require("path"));
 const os_1 = __importDefault(require("os"));

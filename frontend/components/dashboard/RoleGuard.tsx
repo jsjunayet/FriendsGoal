@@ -15,9 +15,9 @@ interface RoleGuardProps {
 export function RoleGuard({
   children,
   allowedRoles = ["admin", "superadmin"],
-  redirectMemberTo = "/dashboard/member",
+  redirectMemberTo = "/dashboard",
 }: RoleGuardProps) {
-  const { user, isLoading, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [currentRole, setCurrentRole] = useState<string>("");
@@ -26,41 +26,38 @@ export function RoleGuard({
     // If still hydrating auth state, wait
     if (isLoading) return;
 
-    // Check role from AuthContext user or fallback to cookies
-    let role = user?.role?.toLowerCase() || "";
-    
-    if (!role && typeof document !== "undefined") {
-      const match = document.cookie.match(/(?:^|;\s*)fg_auth_role=([^;]*)/);
-      if (match) {
-        role = decodeURIComponent(match[1]).toLowerCase();
-      }
+    // Reject unauthenticated visitors immediately
+    if (!isAuthenticated || !user) {
+      setIsAuthorized(false);
+      router.replace("/login");
+      return;
     }
 
-    // Default to admin for development/preview if no user is logged in
-    // to allow viewing static mock dashboard seamlessly
-    if (!role) {
-      role = "admin";
-    }
-
+    const role = (user.role || "").toLowerCase();
     setCurrentRole(role);
 
-    const hasAccess = allowedRoles.some(
-      (r) => r.toLowerCase() === role || role === "superadmin" || role === "admin"
-    );
+    const hasAccess = allowedRoles.some((r) => {
+      const allowed = r.toLowerCase();
+      if (allowed === role) return true;
+      if (allowed === "admin" && (role === "admin" || role === "superadmin")) return true;
+      return false;
+    });
 
     if (hasAccess) {
       setIsAuthorized(true);
     } else {
       setIsAuthorized(false);
-      // If user is 'member' or 'manager', auto redirect to /dashboard/member after brief delay
+      // Auto redirect unauthorized roles (e.g. member trying to access admin)
       if (role === "member" || role === "manager") {
         const timer = setTimeout(() => {
           router.replace(redirectMemberTo);
-        }, 1800);
+        }, 1500);
         return () => clearTimeout(timer);
+      } else {
+        router.replace("/login");
       }
     }
-  }, [user, isLoading, allowedRoles, redirectMemberTo, router]);
+  }, [user, isAuthenticated, isLoading, allowedRoles, redirectMemberTo, router]);
 
   // Loading skeleton while checking authentication
   if (isLoading || isAuthorized === null) {
@@ -76,8 +73,13 @@ export function RoleGuard({
     );
   }
 
-  // 403 Forbidden Screen if unauthorized
+  // 403 Forbidden Screen if unauthorized (and user is logged in as another role)
   if (!isAuthorized) {
+    if (!isAuthenticated || !user) {
+      // Return null while redirect to /login completes
+      return null;
+    }
+
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-[#F8FAFC] p-4">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 p-8 text-center flex flex-col items-center">
@@ -95,7 +97,7 @@ export function RoleGuard({
           
           <p className="text-sm text-gray-500 leading-relaxed mb-6">
             Only users with <span className="font-semibold text-gray-700">admin</span> or{" "}
-            <span className="font-semibold text-gray-700">superadmin</span> roles are permitted to access Financial Analytics.
+            <span className="font-semibold text-gray-700">superadmin</span> roles are permitted to access this financial section.
             Your current role is <span className="font-bold text-red-600 capitalize">&quot;{currentRole || "member"}&quot;</span>.
           </p>
 
@@ -114,7 +116,7 @@ export function RoleGuard({
                 window.location.href = "/login";
               }}
               type="button"
-              className="w-full h-11 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-700 font-semibold text-sm flex items-center justify-center gap-2 transition-colors border border-gray-200"
+              className="w-full h-11 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-700 font-semibold text-sm flex items-center justify-center gap-2 transition-colors border border-gray-200 cursor-pointer"
             >
               <LogOut className="w-4 h-4 text-gray-500" />
               Sign in with another account
@@ -122,7 +124,7 @@ export function RoleGuard({
           </div>
 
           <p className="text-xs text-gray-400 mt-5">
-            Redirecting to member dashboard automatically...
+            Redirecting automatically...
           </p>
         </div>
       </div>

@@ -1,3 +1,5 @@
+import { getStoredAccessToken, clearClientAuth } from "@/lib/authUtils";
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
@@ -46,16 +48,18 @@ export interface IWithdrawalRequestPayload {
 export const memberDashboardApi = {
   getDashboardSummary: async (): Promise<IMemberDashboardSummary> => {
     try {
-      let token = null;
-      if (typeof window !== "undefined") {
-        token = sessionStorage.getItem("fg_access_token");
-      }
+      const token = getStoredAccessToken();
 
       const res = await fetch(`${API_BASE_URL}/members/me/dashboard-summary`, {
         cache: "no-store",
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
+
+      if (res.status === 401) {
+        clearClientAuth(true);
+        throw new Error("Session expired or invalid. Please sign in again.");
+      }
 
       if (res.ok) {
         const json = await res.json();
@@ -76,16 +80,18 @@ export const memberDashboardApi = {
         ? `${API_BASE_URL}/members/${memberId}/profit-balance`
         : `${API_BASE_URL}/members/me/profit-balance`;
 
-      let token = null;
-      if (typeof window !== "undefined") {
-        token = sessionStorage.getItem("fg_access_token");
-      }
+      const token = getStoredAccessToken();
 
       const res = await fetch(endpoint, {
         cache: "no-store",
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
+
+      if (res.status === 401) {
+        clearClientAuth(true);
+        throw new Error("Session expired or invalid. Please sign in again.");
+      }
 
       if (res.ok) {
         const json = await res.json();
@@ -104,10 +110,7 @@ export const memberDashboardApi = {
   },
 
   submitWithdrawalRequest: async (payload: IWithdrawalRequestPayload) => {
-    let token = null;
-    if (typeof window !== "undefined") {
-      token = sessionStorage.getItem("fg_access_token");
-    }
+    const token = getStoredAccessToken();
 
     const res = await fetch(`${API_BASE_URL}/withdrawals/request`, {
       method: "POST",
@@ -125,6 +128,11 @@ export const memberDashboardApi = {
       }),
     });
 
+    if (res.status === 401) {
+      clearClientAuth(true);
+      throw new Error("Session expired or invalid. Please sign in again.");
+    }
+
     const json = await res.json();
     if (!res.ok || !json.success) {
       throw new Error(json.message || "Failed to submit withdrawal request");
@@ -133,3 +141,4 @@ export const memberDashboardApi = {
     return json.data;
   },
 };
+

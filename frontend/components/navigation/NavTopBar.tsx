@@ -25,27 +25,31 @@ export function NavTopBar() {
     getMarqueeItemsApi(true)
       .then((data) => {
         if (data && data.length > 0) {
-          setMarqueeItems(
-            data.map((m) => ({
-              text: getLocalizedText(m.text, lang),
-              link: m.link,
+          const validItems = data
+            .map((m: any) => ({
+              text: getLocalizedText(m.text || m.headline, lang),
+              link: m.link || m.targetLink || "",
             }))
-          );
-        } else {
-          // 2. Fallback to Notice Tickers
-          getTickerNoticesApi()
-            .then((noticeData) => {
-              if (noticeData && noticeData.length > 0) {
-                setMarqueeItems(
-                  noticeData.map((n) => ({
-                    text: getLocalizedText(n.title, lang),
-                    link: `/notice/${n.slug || n._id}`,
-                  }))
-                );
-              }
-            })
-            .catch(() => {});
+            .filter((item) => Boolean(item.text && item.text.trim()));
+
+          if (validItems.length > 0) {
+            setMarqueeItems(validItems);
+            return;
+          }
         }
+        // 2. Fallback to Notice Tickers
+        getTickerNoticesApi()
+          .then((noticeData) => {
+            if (noticeData && noticeData.length > 0) {
+              setMarqueeItems(
+                noticeData.map((n) => ({
+                  text: getLocalizedText(n.title, lang),
+                  link: `/notice/${n.slug || n._id}`,
+                }))
+              );
+            }
+          })
+          .catch(() => {});
       })
       .catch(() => {});
   }, [lang]);

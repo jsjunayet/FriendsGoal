@@ -21,6 +21,12 @@ import {
   IPaymentResult,
 } from "@/lib/operationApi";
 import { ExportDropdown } from "@/components/shared";
+import {
+  exportReportToPdf,
+  exportReportToExcel,
+  IReportColumn,
+  IExportReportOptions,
+} from "@/lib/reportExportEngine";
 import { printMoneyReceipt } from "@/lib/receiptGenerator";
 import { TableRowsSkeleton } from "@/components/ui/Skeletons";
 
@@ -195,7 +201,66 @@ export function MoneyCollectionView() {
     });
   };
 
-  const safeHistory = Array.isArray(history) ? history : [];
+  const safeHistory: ICollectionRecord[] = Array.isArray(history) ? history : [];
+
+  const handleExportCollections = async (type: "pdf" | "excel") => {
+    const columns: IReportColumn[] = [
+      { header: "SL#", dataKey: "sl", excelWidth: 8, align: "center" },
+      { header: "Member Name", dataKey: "memberName", excelWidth: 28, align: "left" },
+      { header: "Receive Date", dataKey: "receiveDate", excelWidth: 16, align: "center" },
+      { header: "Month Name", dataKey: "monthName", excelWidth: 24, align: "center" },
+      { header: "Total Amount", dataKey: "amount", excelWidth: 16, align: "right", isCurrency: true },
+      { header: "Created By", dataKey: "createdBy", excelWidth: 14, align: "center" },
+    ];
+
+    const mappedRows = safeHistory.map((rec: ICollectionRecord, idx: number) => {
+      let rDate = "N/A";
+      try {
+        const d = new Date(rec.paymentDate || (rec as any).date || (rec as any).createdAt || Date.now());
+        if (!isNaN(d.getTime())) {
+          rDate = d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+        }
+      } catch (_) {}
+
+      return {
+        sl: idx + 1,
+        memberName: `${rec.memberCode || "001"}-${rec.memberName || "Member"}`,
+        receiveDate: rDate,
+        monthName: rec.month || "N/A",
+        amount: Number(rec.amount) || 0,
+        createdBy: (rec as any).collectedByName || (rec as any).createdBy || "Admin",
+      };
+    });
+
+    const filterSummary = selectedMember
+      ? `Member: ${selectedMember.memberCode} – ${selectedMember.fullName} | Total Records: ${safeHistory.length}`
+      : `Recent Collection Transactions | Total Records: ${safeHistory.length}`;
+
+    const exportOptions: IExportReportOptions = {
+      reportTitle: "Collection Reports",
+      filterSummary,
+      columns,
+      rows: mappedRows,
+      amountColumnKey: "amount",
+      filenamePrefix: "Collection_Report",
+      sheetName: "RptCollectionNew",
+      memberInfo: selectedMember
+        ? {
+            memberCode: selectedMember.memberCode,
+            fullName: selectedMember.fullName,
+            phone: selectedMember.mobileNo,
+            dueAmount: dueBalance,
+            savingsBalance: advanceBalance,
+          }
+        : undefined,
+    };
+
+    if (type === "pdf") {
+      exportReportToPdf(exportOptions);
+    } else {
+      await exportReportToExcel(exportOptions);
+    }
+  };
 
   return (
     <div className="w-full flex flex-col gap-6 p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
@@ -207,7 +272,7 @@ export function MoneyCollectionView() {
         </div>
 
         <div className="flex items-center gap-3">
-          <ExportDropdown endpointUrl="/api/v1/reports/collection/export" defaultFilename="Collection_Report" />
+          <ExportDropdown onExport={handleExportCollections} buttonLabel="Export" defaultFilename="Collection_Report" />
 
           <button
             type="button"

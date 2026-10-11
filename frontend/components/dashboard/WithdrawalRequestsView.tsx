@@ -248,7 +248,10 @@ export default function WithdrawalRequestsView() {
                   MEMBER
                 </th>
                 <th className="py-3 px-6 text-[11px] font-bold uppercase tracking-wider text-gray-400">
-                  AMOUNT
+                  AVAILABLE BALANCE
+                </th>
+                <th className="py-3 px-6 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                  REQUEST AMOUNT
                 </th>
                 <th className="py-3 px-6 text-[11px] font-bold uppercase tracking-wider text-gray-400">
                   METHOD
@@ -266,10 +269,10 @@ export default function WithdrawalRequestsView() {
             </thead>
             <tbody className="divide-y divide-gray-50 text-sm">
               {isLoading ? (
-                <TableRowsSkeleton cols={7} rows={6} />
+                <TableRowsSkeleton cols={8} rows={6} />
               ) : withdrawals.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12">
+                  <td colSpan={8} className="py-12">
                     <EmptyState
                       title="No withdrawal requests found"
                       description={
@@ -317,6 +320,37 @@ export default function WithdrawalRequestsView() {
                               {item.memberName}
                             </span>
                           </div>
+                        </td>
+
+                        {/* AVAILABLE BALANCE */}
+                        <td className="py-4 px-6 whitespace-nowrap">
+                          {(() => {
+                            const rawBal = item?.availableBalance;
+                            const balNum = typeof rawBal === "object" && (rawBal as any)?.$numberDecimal
+                              ? parseFloat((rawBal as any).$numberDecimal) || 0
+                              : Number(rawBal) || 0;
+                            const reqAmt = Number(item?.amount) || 0;
+                            const isLow = balNum < reqAmt;
+
+                            return (
+                              <div className="flex flex-col">
+                                <span className="font-bold text-gray-900 text-sm">
+                                  ৳{balNum.toLocaleString()}
+                                </span>
+                                {isLow ? (
+                                  <span className="text-[10px] text-red-500 font-semibold flex items-center gap-1 mt-0.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                    Low Balance
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 mt-0.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                    Sufficient
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
 
                         {/* AMOUNT */}
@@ -414,7 +448,7 @@ export default function WithdrawalRequestsView() {
                       {/* Expanded View matching Screenshots 3 & 4 */}
                       {isExpanded && (
                         <tr className="bg-[#FAFBFB]">
-                          <td colSpan={7} className="p-0">
+                          <td colSpan={8} className="p-0">
                             <div className="border-t border-b border-gray-100 bg-[#F8FAF9]/80 px-8 py-5 transition-all">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                                 {/* Left Side: Details */}

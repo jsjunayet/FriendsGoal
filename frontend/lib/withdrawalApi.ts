@@ -1,4 +1,5 @@
 import { auditLogApi } from "./auditLogApi";
+import { getStoredAccessToken, clearClientAuth } from "@/lib/authUtils";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
@@ -10,6 +11,14 @@ export type TWithdrawalMethod =
   | "Cash Pickup"
   | string;
 
+export function parseDecimal(val: any): number {
+  if (val == null) return 0;
+  if (typeof val === "number") return val;
+  if (typeof val === "object" && val.$numberDecimal) return parseFloat(val.$numberDecimal) || 0;
+  if (typeof val === "object" && typeof val.toString === "function") return parseFloat(val.toString()) || 0;
+  return parseFloat(String(val)) || 0;
+}
+
 export interface IWithdrawalItem {
   _id: string;
   referenceId: string; // e.g. "A3F9C2"
@@ -19,6 +28,7 @@ export interface IWithdrawalItem {
   avatarColor?: string;
   memberAvatar?: string;
   amount: number;
+  availableBalance?: number;
   method: TWithdrawalMethod;
   accountDetails: string;
   reason: string;
@@ -69,16 +79,18 @@ export const withdrawalApi = {
       if (search) queryParams.append("search", search);
       if (memberId) queryParams.append("memberId", memberId);
 
-      let token = null;
-      if (typeof window !== "undefined") {
-        token = sessionStorage.getItem("fg_access_token");
-      }
+      const token = getStoredAccessToken();
 
       const res = await fetch(`${API_BASE_URL}/withdrawals?${queryParams.toString()}`, {
         cache: "no-store",
         credentials: "include",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
+
+      if (res.status === 401) {
+        clearClientAuth(true);
+        throw new Error("Session expired or invalid. Please sign in again.");
+      }
 
       if (res.ok) {
         const json = await res.json();
@@ -119,6 +131,7 @@ export const withdrawalApi = {
                 avatarColor: colors[idx % colors.length],
                 memberAvatar: item.member?.pictureUrl || null,
                 amount: Number(item.amount) || 0,
+                availableBalance: parseDecimal(item.availableBalance ?? item.member?.totalDeposit ?? 0),
                 method: item.method || item.payoutMethod || "Mobile Banking",
                 accountDetails: item.accountDetails || item.accountNumber || "bKash",
                 reason: item.reason || "Personal expenses",
@@ -216,10 +229,7 @@ export const withdrawalApi = {
       }
     }
 
-    let token = null;
-    if (typeof window !== "undefined") {
-      token = sessionStorage.getItem("fg_access_token");
-    }
+    const token = getStoredAccessToken();
 
     // Call backend API
     try {
@@ -236,6 +246,12 @@ export const withdrawalApi = {
           reviewerName,
         }),
       });
+
+      if (res.status === 401) {
+        clearClientAuth(true);
+        throw new Error("Session expired or invalid. Please sign in again.");
+      }
+
       if (!res.ok) throw new Error("API Response not OK");
     } catch (err) {
       console.error(err);

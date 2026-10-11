@@ -16,13 +16,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${BASE_URL}${path}`;
   let token = null;
   try {
-    token = sessionStorage.getItem("fg_access_token");
+    token =
+      sessionStorage.getItem("fg_access_token") ||
+      localStorage.getItem("fg_access_token") ||
+      sessionStorage.getItem("accessToken") ||
+      localStorage.getItem("accessToken");
   } catch (e) {}
 
   const mergedHeaders = {
     "Content-Type": "application/json",
-    "Cache-Control": "no-cache, no-store, must-revalidate",
-    Pragma: "no-cache",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers ?? {}),
   };
