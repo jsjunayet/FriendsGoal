@@ -102,6 +102,11 @@ const getDueListFromDB = async (query: DueListQueryParams) => {
     }
     allCount++;
 
+    const dueMonthCount = Math.round(dueAmount / 1000) || 1;
+    const dueMonth = dueAmount > 0
+      ? `${dueMonthCount} ${dueMonthCount === 1 ? "Month" : "Months"}`
+      : "N/A";
+
     return {
       id: m._id.toString(),
       memberCode: m.memberCode,
@@ -110,6 +115,7 @@ const getDueListFromDB = async (query: DueListQueryParams) => {
       dueAmount,
       advanceBalance,
       status: itemStatus,
+      dueMonth,
     };
   });
 

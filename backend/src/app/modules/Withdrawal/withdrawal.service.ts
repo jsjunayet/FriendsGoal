@@ -405,9 +405,15 @@ const getWithdrawalsFromDB = async (query: Record<string, any>) => {
       }
     }
 
+    const reqAmount = Number(item.amount) || 0;
+    // Task 4: AVAILABLE BALANCE = Current Balance + Pending Requested Amount
+    // Example: Current balance 27,000 + requested amount 9,000 -> 36,000
+    const availableBalance = item.status === "Pending" ? deposit + reqAmount : deposit;
+
     return {
       ...item,
-      availableBalance: deposit,
+      currentBalance: deposit,
+      availableBalance,
     };
   });
 

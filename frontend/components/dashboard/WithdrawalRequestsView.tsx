@@ -322,14 +322,20 @@ export default function WithdrawalRequestsView() {
                           </div>
                         </td>
 
-                        {/* AVAILABLE BALANCE */}
+                        {/* AVAILABLE BALANCE (Formula: Current Balance + Pending Requested Amount) */}
                         <td className="py-4 px-6 whitespace-nowrap">
                           {(() => {
                             const rawBal = item?.availableBalance;
-                            const balNum = typeof rawBal === "object" && (rawBal as any)?.$numberDecimal
+                            let balNum = typeof rawBal === "object" && (rawBal as any)?.$numberDecimal
                               ? parseFloat((rawBal as any).$numberDecimal) || 0
                               : Number(rawBal) || 0;
                             const reqAmt = Number(item?.amount) || 0;
+
+                            // Task 4: AVAILABLE BALANCE = Current Balance + Pending Requested Amount
+                            if ((item as any)?.currentBalance !== undefined && item?.status === "Pending") {
+                              balNum = Number((item as any).currentBalance) + reqAmt;
+                            }
+
                             const isLow = balNum < reqAmt;
 
                             return (

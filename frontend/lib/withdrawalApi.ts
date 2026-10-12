@@ -28,6 +28,7 @@ export interface IWithdrawalItem {
   avatarColor?: string;
   memberAvatar?: string;
   amount: number;
+  currentBalance?: number;
   availableBalance?: number;
   method: TWithdrawalMethod;
   accountDetails: string;
@@ -131,7 +132,12 @@ export const withdrawalApi = {
                 avatarColor: colors[idx % colors.length],
                 memberAvatar: item.member?.pictureUrl || null,
                 amount: Number(item.amount) || 0,
-                availableBalance: parseDecimal(item.availableBalance ?? item.member?.totalDeposit ?? 0),
+                currentBalance: parseDecimal(item.currentBalance ?? item.member?.totalDeposit ?? 0),
+                availableBalance: parseDecimal(
+                  item.availableBalance ??
+                    (Number(item.member?.totalDeposit || 0) +
+                      (item.status === "Pending" ? Number(item.amount || 0) : 0))
+                ),
                 method: item.method || item.payoutMethod || "Mobile Banking",
                 accountDetails: item.accountDetails || item.accountNumber || "bKash",
                 reason: item.reason || "Personal expenses",

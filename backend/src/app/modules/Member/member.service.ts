@@ -16,6 +16,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { NotificationServices } from "../Notification/notification.service";
 import { AuditLogServices } from "../AuditLog/auditLog.service";
+import { recalculateAndDistributeAllMemberProfits } from "../InvestmentIncome/investmentIncome.service";
 
 // ─── 1. Create Member ─────────────────────────────────────────────────────────
 
@@ -122,6 +123,11 @@ const createMemberIntoDB = async (payload: IMember) => {
     target: `${result.fullName} (${result.memberCode})`,
     details: `New member ${result.fullName} (ID: ${result.memberCode}) enrolled into the organization with role ${result.role}.`,
   }).catch((err) => console.error("Failed to record member creation audit log:", err));
+
+  // Dynamic real-time profit redistribution across all active members upon onboarding
+  await recalculateAndDistributeAllMemberProfits().catch((err) =>
+    console.error("Failed to redistribute investment profits on new member:", err)
+  );
 
   return result;
 };
@@ -333,6 +339,11 @@ const updateMemberIntoDB = async (id: string, payload: Partial<IMember>) => {
       target: `${updatedMember.fullName} (${updatedMember.memberCode})`,
       details: `Profile and role configuration updated for ${updatedMember.fullName}.`,
     }).catch((err) => console.error("Failed to record member update audit log:", err));
+
+    // Dynamic real-time profit redistribution across active members if status or parameters updated
+    await recalculateAndDistributeAllMemberProfits().catch((err) =>
+      console.error("Failed to redistribute investment profits on member update:", err)
+    );
   }
 
   return updatedMember;
@@ -364,6 +375,11 @@ const deleteMemberFromDB = async (id: string) => {
       target: `${result.fullName} (${result.memberCode})`,
       details: `Member account ${result.fullName} (ID: ${result.memberCode}) deleted from the system.`,
     }).catch((err) => console.error("Failed to record member deletion audit log:", err));
+
+    // Dynamic real-time profit redistribution across remaining active members upon member deletion
+    await recalculateAndDistributeAllMemberProfits().catch((err) =>
+      console.error("Failed to redistribute investment profits on member deletion:", err)
+    );
   }
 
   return result;
@@ -410,8 +426,36 @@ const getMemberDashboardSummaryFromDB = async (userIdOrEmail?: string) => {
   }
 
   const rawProfit = (member as any).profitBalance;
-  const profitBalance =
+  let profitBalance =
     rawProfit != null ? parseFloat(rawProfit.toString()) : 0.0;
+
+  // Task 2: Real-time dynamic equal profit distribution sync
+  if (member.status?.toLowerCase() === "active" && !member.isDeleted) {
+    const { InvestmentIncome } = await import("../InvestmentIncome/investmentIncome.model");
+    const [incAgg] = await InvestmentIncome.aggregate([
+      { $match: { isDeleted: false } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]);
+    const totalPool = incAgg?.total || 0;
+    if (totalPool > 0) {
+      const activeCount = await Member.countDocuments({
+        isDeleted: false,
+        status: { $regex: /^active$/i },
+      });
+      const perMemberShare = activeCount > 0 ? Number((totalPool / activeCount).toFixed(2)) : 0;
+      const { Disbursement } = await import("../Disbursement/disbursement.model");
+      const [disbAgg] = await Disbursement.aggregate([
+        { $match: { memberId: member._id } },
+        { $group: { _id: null, total: { $sum: "$disbursedAmount" } } },
+      ]);
+      const disbursed = disbAgg?.total || 0;
+      const dynamicProfit = Math.max(0, Number((perMemberShare - disbursed).toFixed(2)));
+      profitBalance = dynamicProfit;
+      if (Math.abs(Number(rawProfit || 0) - dynamicProfit) > 0.01) {
+        Member.findByIdAndUpdate(member._id, { $set: { profitBalance: dynamicProfit } }).exec().catch(() => {});
+      }
+    }
+  }
   const rawDeposit = member.totalDeposit;
   const totalDeposit =
     rawDeposit != null ? parseFloat(rawDeposit.toString()) : 0.0;
@@ -504,8 +548,36 @@ const getMemberProfitBalanceFromDB = async (userIdOrId?: string) => {
   }
 
   const rawProfit = (member as any).profitBalance;
-  const profitBalance =
+  let profitBalance =
     rawProfit != null ? parseFloat(rawProfit.toString()) : 0.0;
+
+  // Task 2: Real-time dynamic equal profit distribution sync
+  if (member.status?.toLowerCase() === "active" && !member.isDeleted) {
+    const { InvestmentIncome } = await import("../InvestmentIncome/investmentIncome.model");
+    const [incAgg] = await InvestmentIncome.aggregate([
+      { $match: { isDeleted: false } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]);
+    const totalPool = incAgg?.total || 0;
+    if (totalPool > 0) {
+      const activeCount = await Member.countDocuments({
+        isDeleted: false,
+        status: { $regex: /^active$/i },
+      });
+      const perMemberShare = activeCount > 0 ? Number((totalPool / activeCount).toFixed(2)) : 0;
+      const { Disbursement } = await import("../Disbursement/disbursement.model");
+      const [disbAgg] = await Disbursement.aggregate([
+        { $match: { memberId: member._id } },
+        { $group: { _id: null, total: { $sum: "$disbursedAmount" } } },
+      ]);
+      const disbursed = disbAgg?.total || 0;
+      const dynamicProfit = Math.max(0, Number((perMemberShare - disbursed).toFixed(2)));
+      profitBalance = dynamicProfit;
+      if (Math.abs(Number(rawProfit || 0) - dynamicProfit) > 0.01) {
+        Member.findByIdAndUpdate(member._id, { $set: { profitBalance: dynamicProfit } }).exec().catch(() => {});
+      }
+    }
+  }
   const rawDeposit = member.totalDeposit;
   const totalDeposit =
     rawDeposit != null ? parseFloat(rawDeposit.toString()) : 0.0;

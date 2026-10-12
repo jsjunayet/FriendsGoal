@@ -88,6 +88,10 @@ const getDueListFromDB = async (query) => {
             zeroCount++;
         }
         allCount++;
+        const dueMonthCount = Math.round(dueAmount / 1000) || 1;
+        const dueMonth = dueAmount > 0
+            ? `${dueMonthCount} ${dueMonthCount === 1 ? "Month" : "Months"}`
+            : "N/A";
         return {
             id: m._id.toString(),
             memberCode: m.memberCode,
@@ -96,6 +100,7 @@ const getDueListFromDB = async (query) => {
             dueAmount,
             advanceBalance,
             status: itemStatus,
+            dueMonth,
         };
     });
     // Filter by status pill ('All', 'Advance', 'Due', 'Zero')

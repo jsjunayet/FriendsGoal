@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, FileText, CreditCard, Loader2, Download, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { printMemberStatementPdf, printMemberIdCardPdf, type IMemberPdfData } from "@/lib/memberProfilePdfGenerator";
@@ -27,25 +28,94 @@ export function MemberDownloadDropdown({
   className = "",
 }: MemberDownloadDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [isStatementLoading, setIsStatementLoading] = useState(false);
   const [isIdCardLoading, setIsIdCardLoading] = useState(false);
   const [isExcelLoading, setIsExcelLoading] = useState(false);
+  const [coords, setCoords] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+    setMounted(true);
+  }, []);
+
+  const updatePosition = useCallback(() => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const menuWidth = 260;
+    const menuHeight = menuRef.current?.offsetHeight || 220;
+
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUpwards = spaceBelow < menuHeight && rect.top > menuHeight;
+
+    let top = openUpwards ? rect.top - menuHeight - 6 : rect.bottom + 6;
+    let left = align === "right" ? rect.right - menuWidth : rect.left;
+
+    // Viewport boundaries
+    if (left < 10) left = 10;
+    if (left + menuWidth > window.innerWidth - 10) {
+      left = window.innerWidth - menuWidth - 10;
+    }
+
+    setCoords({
+      top: Math.round(top),
+      left: Math.round(left),
+    });
+  }, [align]);
+
+  // Handle open / reposition / close
+  useEffect(() => {
+    if (!isOpen) return;
+
+    updatePosition();
+    const rafId = requestAnimationFrame(updatePosition);
+
+    const handleScrollOrResize = (event: Event) => {
+      if (menuRef.current && menuRef.current.contains(event.target as Node)) {
+        return;
+      }
+      if (buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        if (rect.bottom < 0 || rect.top > window.innerHeight) {
+          setIsOpen(false);
+          return;
+        }
+      }
+      updatePosition();
+    };
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        buttonRef.current?.contains(target) ||
+        menuRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setIsOpen(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
         setIsOpen(false);
       }
-    }
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isOpen]);
+
+    window.addEventListener("scroll", handleScrollOrResize, true);
+    window.addEventListener("resize", handleScrollOrResize);
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", handleScrollOrResize, true);
+      window.removeEventListener("resize", handleScrollOrResize);
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, updatePosition]);
 
   // Handle Option A: User Information Statement
   const handleDownloadStatement = async () => {
@@ -173,9 +243,10 @@ export function MemberDownloadDropdown({
   const isSmall = size === "sm";
 
   return (
-    <div className={`relative inline-block text-left ${className}`} ref={menuRef}>
+    <div className={`relative inline-block text-left ${className}`}>
       {/* Trigger Button: Download Options ▾ */}
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-haspopup="true"
@@ -196,14 +267,20 @@ export function MemberDownloadDropdown({
         />
       </button>
 
-      {/* Dropdown Menu */}
-      {isOpen && (
+      {/* Floating Dropdown Menu (Portaled outside table to eliminate overflow clipping) */}
+      {mounted && isOpen && createPortal(
         <div
+          ref={menuRef}
           role="menu"
           aria-orientation="vertical"
-          className={`absolute z-50 mt-1.5 w-64 rounded-xl bg-white p-1.5 shadow-xl ring-1 ring-black/5 border border-slate-100 animate-in fade-in zoom-in-95 duration-100 ${
-            align === "right" ? "right-0 origin-top-right" : "left-0 origin-top-left"
-          }`}
+          style={{
+            position: "fixed",
+            top: `${coords.top}px`,
+            left: `${coords.left}px`,
+            width: "260px",
+            zIndex: 99999,
+          }}
+          className="rounded-xl bg-white p-1.5 shadow-2xl ring-1 ring-black/10 border border-slate-200 animate-in fade-in zoom-in-95 duration-100"
         >
           <div className="px-2.5 py-1.5 border-b border-slate-100 mb-1">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -285,7 +362,8 @@ export function MemberDownloadDropdown({
               </div>
             </div>
           </button>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

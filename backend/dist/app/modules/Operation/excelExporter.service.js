@@ -13,14 +13,14 @@ async function generateDueListExcel(items, filtersSummary = "All Records") {
         views: [{ showGridLines: true }],
     });
     // Title rows
-    worksheet.mergeCells("A1:E1");
+    worksheet.mergeCells("A1:F1");
     const titleCell = worksheet.getCell("A1");
     titleCell.value = "Friends Goal — Receivable Due List Report";
     titleCell.font = { name: "Arial", size: 16, bold: true, color: { argb: "FFFFFFFF" } };
     titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF00B074" } };
     titleCell.alignment = { vertical: "middle", horizontal: "center" };
     worksheet.getRow(1).height = 36;
-    worksheet.mergeCells("A2:E2");
+    worksheet.mergeCells("A2:F2");
     const subCell = worksheet.getCell("A2");
     subCell.value = `Exported on: ${new Date().toLocaleString()} | Filters: ${filtersSummary}`;
     subCell.font = { name: "Arial", size: 10, italic: true, color: { argb: "FF4B5563" } };
@@ -32,6 +32,7 @@ async function generateDueListExcel(items, filtersSummary = "All Records") {
         "ID (CODE)",
         "MEMBER NAME",
         "MOBILE NO",
+        "DUE MONTH",
         "DUE AMOUNT (BDT)",
         "STATUS / REMARKS",
     ]);
@@ -45,14 +46,17 @@ async function generateDueListExcel(items, filtersSummary = "All Records") {
             bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
         };
     });
-    headerRow.getCell(4).alignment = { vertical: "middle", horizontal: "right" };
+    headerRow.getCell(4).alignment = { vertical: "middle", horizontal: "center" };
+    headerRow.getCell(5).alignment = { vertical: "middle", horizontal: "right" };
     // Data rows
     const startDataRow = 5;
     items.forEach((item, index) => {
+        const dueMonthText = item.dueMonth || (item.dueAmount > 0 ? `${Math.round(item.dueAmount / 1000) || 1} ${Math.round(item.dueAmount / 1000) === 1 ? "Month" : "Months"}` : "N/A");
         const row = worksheet.addRow([
             item.memberCode,
             item.memberName,
             item.mobileNo,
+            dueMonthText,
             item.dueAmount,
             item.status,
         ]);
@@ -66,13 +70,19 @@ async function generateDueListExcel(items, filtersSummary = "All Records") {
                 bottom: { style: "thin", color: { argb: "FFF1F5F9" } },
             };
             if (colNumber === 4) {
+                cell.alignment = { horizontal: "center" };
+                if (item.dueAmount > 0) {
+                    cell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FFDC2626" } };
+                }
+            }
+            if (colNumber === 5) {
                 cell.numFmt = '#,##0.00 "BDT"';
                 cell.alignment = { horizontal: "right" };
                 if (item.dueAmount > 0) {
                     cell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FFDC2626" } };
                 }
             }
-            if (colNumber === 5) {
+            if (colNumber === 6) {
                 if (item.status === "Advance") {
                     cell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FF00B074" } };
                 }
@@ -92,7 +102,8 @@ async function generateDueListExcel(items, filtersSummary = "All Records") {
             "TOTAL",
             `Total Members: ${items.length}`,
             "",
-            { formula: `SUM(D${startDataRow}:D${endDataRow})` },
+            "",
+            { formula: `SUM(E${startDataRow}:E${endDataRow})` },
             "",
         ]);
         totalRow.height = 28;
@@ -103,7 +114,7 @@ async function generateDueListExcel(items, filtersSummary = "All Records") {
                 top: { style: "medium", color: { argb: "FF94A3B8" } },
                 bottom: { style: "double", color: { argb: "FF94A3B8" } },
             };
-            if (colNumber === 4) {
+            if (colNumber === 5) {
                 cell.numFmt = '#,##0.00 "BDT"';
                 cell.alignment = { horizontal: "right" };
             }
@@ -113,8 +124,9 @@ async function generateDueListExcel(items, filtersSummary = "All Records") {
     worksheet.getColumn(1).width = 16;
     worksheet.getColumn(2).width = 32;
     worksheet.getColumn(3).width = 24;
-    worksheet.getColumn(4).width = 26;
-    worksheet.getColumn(5).width = 20;
+    worksheet.getColumn(4).width = 18;
+    worksheet.getColumn(5).width = 26;
+    worksheet.getColumn(6).width = 20;
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);
 }

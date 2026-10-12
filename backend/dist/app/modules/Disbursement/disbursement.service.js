@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -33,7 +66,33 @@ const getMemberProfitBalanceFromDB = async (memberId) => {
         throw new AppError_1.default(http_status_1.default.NOT_FOUND, "Member record not found");
     }
     const rawProfit = member.profitBalance;
-    const profitBalance = rawProfit != null ? parseFloat(rawProfit.toString()) : 0.0;
+    let profitBalance = rawProfit != null ? parseFloat(rawProfit.toString()) : 0.0;
+    // Task 2: Real-time dynamic equal profit distribution sync
+    if (member.status?.toLowerCase() === "active" && !member.isDeleted) {
+        const { InvestmentIncome } = await Promise.resolve().then(() => __importStar(require("../InvestmentIncome/investmentIncome.model")));
+        const [incAgg] = await InvestmentIncome.aggregate([
+            { $match: { isDeleted: false } },
+            { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]);
+        const totalPool = incAgg?.total || 0;
+        if (totalPool > 0) {
+            const activeCount = await member_model_1.Member.countDocuments({
+                isDeleted: false,
+                status: { $regex: /^active$/i },
+            });
+            const perMemberShare = activeCount > 0 ? Number((totalPool / activeCount).toFixed(2)) : 0;
+            const [disbAgg] = await disbursement_model_1.Disbursement.aggregate([
+                { $match: { memberId: member._id } },
+                { $group: { _id: null, total: { $sum: "$disbursedAmount" } } },
+            ]);
+            const disbursed = disbAgg?.total || 0;
+            const dynamicProfit = Math.max(0, Number((perMemberShare - disbursed).toFixed(2)));
+            profitBalance = dynamicProfit;
+            if (Math.abs(Number(rawProfit || 0) - dynamicProfit) > 0.01) {
+                member_model_1.Member.findByIdAndUpdate(member._id, { $set: { profitBalance: dynamicProfit } }).exec().catch(() => { });
+            }
+        }
+    }
     return {
         memberId: member._id,
         memberName: member.fullName,

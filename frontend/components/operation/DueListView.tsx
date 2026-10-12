@@ -150,12 +150,24 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
         { header: "Status", dataKey: "status", excelWidth: 12, align: "center" },
       ];
 
+      const formatDueMonth = (item: any) => {
+        const due = Number(item.dueAmount) || 0;
+        if (due <= 0 || item.status === "Advance" || item.status === "Zero") {
+          return "N/A";
+        }
+        if (item.dueMonth && item.dueMonth !== "N/A") {
+          return item.dueMonth;
+        }
+        const count = Math.round(due / 1000) || 1;
+        return `${count} ${count === 1 ? "Month" : "Months"}`;
+      };
+
       const mappedRows = exportRows.map((item, idx) => ({
         sl: idx + 1,
         memberCode: item.memberCode || "N/A",
         memberName: item.memberName || "N/A",
         mobileNo: item.mobileNo || "N/A",
-        dueMonth: item.dueMonth || "N/A",
+        dueMonth: formatDueMonth(item),
         dueAmount: Number(item.dueAmount) || 0,
         status: item.status || "Due",
       }));
@@ -395,16 +407,17 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
                 <th className="py-3.5 px-6">ID (CODE)</th>
                 <th className="py-3.5 px-6">MEMBER NAME</th>
                 <th className="py-3.5 px-6">MOBILE NO</th>
+                <th className="py-3.5 px-6 text-center">DUE MONTH</th>
                 <th className="py-3.5 px-6 text-right">DUE AMOUNT</th>
                 <th className="py-3.5 px-6 text-right">STATUS / REMARKS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <TableRowsSkeleton cols={5} rows={6} />
+                <TableRowsSkeleton cols={6} rows={6} />
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12">
+                  <td colSpan={6} className="py-12">
                     <EmptyState
                       title="No receivable records found"
                       description={
@@ -416,31 +429,51 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
                   </td>
                 </tr>
               ) : (
-                data.map((item, idx) => (
-                  <tr
-                    key={item._id || idx}
-                    className="hover:bg-gray-50/70 transition-colors group"
-                  >
-                    {/* ID */}
-                    <td className="py-4 px-6 font-medium text-gray-700">
-                      {item.memberCode}
-                    </td>
+                data.map((item, idx) => {
+                  const due = Number(item.dueAmount) || 0;
+                  const isDue = item.status === "Due" && due > 0;
+                  const dueMonthStr = isDue
+                    ? (item.dueMonth && item.dueMonth !== "N/A"
+                        ? item.dueMonth
+                        : `${Math.round(due / 1000) || 1} ${Math.round(due / 1000) === 1 ? "Month" : "Months"}`)
+                    : "N/A";
 
-                    {/* Member Name */}
-                    <td className="py-4 px-6 font-bold text-gray-900">
-                      {item.memberName}
-                    </td>
+                  return (
+                    <tr
+                      key={item._id || idx}
+                      className="hover:bg-gray-50/70 transition-colors group"
+                    >
+                      {/* ID */}
+                      <td className="py-4 px-6 font-medium text-gray-700">
+                        {item.memberCode}
+                      </td>
 
-                    {/* Mobile No */}
-                    <td className="py-4 px-6 text-gray-500 font-normal">
-                      {item.mobileNo}
-                    </td>
+                      {/* Member Name */}
+                      <td className="py-4 px-6 font-bold text-gray-900">
+                        {item.memberName}
+                      </td>
 
-                    {/* Due Amount */}
-                    <td
-                      className={`py-4 px-6 text-right font-bold ${item.status === "Due"
-                          ? "text-[#EF4444]"
-                          : item.status === "Advance"
+                      {/* Mobile No */}
+                      <td className="py-4 px-6 text-gray-500 font-normal">
+                        {item.mobileNo}
+                      </td>
+
+                      {/* Due Month */}
+                      <td className="py-4 px-6 text-center">
+                        {isDue ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-600 border border-red-100">
+                            {dueMonthStr}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">N/A</span>
+                        )}
+                      </td>
+
+                      {/* Due Amount */}
+                      <td
+                        className={`py-4 px-6 text-right font-bold ${item.status === "Due"
+                            ? "text-[#EF4444]"
+                            : item.status === "Advance"
                             ? "text-gray-900"
                             : "text-gray-800"
                         }`}
@@ -475,7 +508,8 @@ export function DueListView({ initialStatus }: { initialStatus?: string }) {
                       )}
                     </td>
                   </tr>
-                ))
+                );
+              })
               )}
             </tbody>
           </table>

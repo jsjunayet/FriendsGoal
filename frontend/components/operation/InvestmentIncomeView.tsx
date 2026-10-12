@@ -155,9 +155,15 @@ export function InvestmentIncomeView() {
           <span className="text-[12px] font-bold text-[#00603B] uppercase tracking-wider">
             TOTAL INCOME
           </span>
-          <span className="text-[32px] font-bold text-[#00603B]">
-            ৳ {totalIncome.toLocaleString()}
-          </span>
+          <div className="flex items-center gap-1.5 text-[32px] font-bold text-[#00603B]">
+            <span
+              className="font-['Noto_Sans_Bengali',_system-ui,_sans-serif] text-[30px] font-extrabold leading-none text-[#00603B] select-none"
+              title="Bangladeshi Taka (৳)"
+            >
+              ৳
+            </span>
+            <span>{totalIncome.toLocaleString()}</span>
+          </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex flex-col gap-1">
           <span className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">

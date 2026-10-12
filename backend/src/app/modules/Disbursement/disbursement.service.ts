@@ -35,8 +35,35 @@ const getMemberProfitBalanceFromDB = async (memberId: string) => {
   }
 
   const rawProfit = (member as any).profitBalance;
-  const profitBalance =
+  let profitBalance =
     rawProfit != null ? parseFloat(rawProfit.toString()) : 0.0;
+
+  // Task 2: Real-time dynamic equal profit distribution sync
+  if (member.status?.toLowerCase() === "active" && !member.isDeleted) {
+    const { InvestmentIncome } = await import("../InvestmentIncome/investmentIncome.model");
+    const [incAgg] = await InvestmentIncome.aggregate([
+      { $match: { isDeleted: false } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]);
+    const totalPool = incAgg?.total || 0;
+    if (totalPool > 0) {
+      const activeCount = await Member.countDocuments({
+        isDeleted: false,
+        status: { $regex: /^active$/i },
+      });
+      const perMemberShare = activeCount > 0 ? Number((totalPool / activeCount).toFixed(2)) : 0;
+      const [disbAgg] = await Disbursement.aggregate([
+        { $match: { memberId: member._id } },
+        { $group: { _id: null, total: { $sum: "$disbursedAmount" } } },
+      ]);
+      const disbursed = disbAgg?.total || 0;
+      const dynamicProfit = Math.max(0, Number((perMemberShare - disbursed).toFixed(2)));
+      profitBalance = dynamicProfit;
+      if (Math.abs(Number(rawProfit || 0) - dynamicProfit) > 0.01) {
+        Member.findByIdAndUpdate(member._id, { $set: { profitBalance: dynamicProfit } }).exec().catch(() => {});
+      }
+    }
+  }
 
   return {
     memberId: member._id,

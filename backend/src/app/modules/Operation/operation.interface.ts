@@ -54,6 +54,7 @@ export interface IDueListItem {
   dueAmount: number;
   advanceBalance: number;
   status: "Advance" | "Due" | "Zero";
+  dueMonth?: string;
 }
 
 export interface IExportFilterOptions {

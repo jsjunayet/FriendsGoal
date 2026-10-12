@@ -22,7 +22,13 @@ import {
   Loader2,
   X,
   AlertCircle,
+  User,
 } from "lucide-react";
+import {
+  DatePickerInput,
+  parseDateStrict,
+  formatDateStrict,
+} from "@/components/ui/DatePickerInput";
 import { z } from "zod";
 import {
   createMemberApi,
@@ -153,40 +159,88 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
     }
   };
 
-  const [formData, setFormData] = useState<Partial<IMember>>({
-    fullName: initialMember?.fullName || "",
-    email: initialMember?.email || "",
-    bloodGroup: initialMember?.bloodGroup || "B+",
-    profession: initialMember?.profession || "Business",
-    nidNo: initialMember?.nidNo || "",
-    birthRegistrationNo: initialMember?.birthRegistrationNo || "",
-    fatherName: initialMember?.fatherName || "",
-    motherName: initialMember?.motherName || "",
-    mobileNo: initialMember?.mobileNo || "",
-    dateOfBirth: initialMember?.dateOfBirth || "11/15/1992",
-    division: initialMember?.division || "Barisal",
-    district: initialMember?.district || "Patuakhali",
-    thana: initialMember?.thana || "Bauphal",
-    presentAddress:
-      initialMember?.presentAddress ||
-      "Village: Gosinga, P.O: Gosinga-8620, P.S: Bauphal, Dist: Patuakhali.",
-    designation: initialMember?.designation || "General Member",
-    designationBn: initialMember?.designationBn || "সাধারণ সদস্য",
-    councilCategory: initialMember?.councilCategory || "general_member",
-    role: initialMember?.role || "member",
-    password: "",
-    nomineeName: initialMember?.nomineeName || "",
-    nomineeRelation: initialMember?.nomineeRelation || "Spouse",
-    nomineeDob: initialMember?.nomineeDob || "mm/dd/yyyy",
-    nomineeNid: initialMember?.nomineeNid || "",
-    nomineeAddress: initialMember?.nomineeAddress || "",
-    pictureUrl: initialMember?.pictureUrl || "/images/hero/hero-2.png",
-    signatureUrl: initialMember?.signatureUrl || "",
-    totalDeposit: isCreateMode ? 0 : (initialMember?.totalDeposit ?? 0),
-    savingsBalance: isCreateMode ? 0 : (initialMember?.savingsBalance ?? 0),
-    dueAmount: isCreateMode ? calculateInitialDueFromJan2024().due : (initialMember?.dueAmount ?? 0),
-    memberCode: isCreateMode ? undefined : (initialMember?.memberCode || undefined),
-  });
+  const getInitialState = (): Partial<IMember> => {
+    if (isCreateMode) {
+      return {
+        fullName: "",
+        email: "",
+        bloodGroup: "",
+        profession: "",
+        nidNo: "",
+        birthRegistrationNo: "",
+        fatherName: "",
+        motherName: "",
+        mobileNo: "",
+        dateOfBirth: "",
+        division: "",
+        district: "",
+        thana: "",
+        presentAddress: "",
+        designation: "General Member",
+        designationBn: "সাধারণ সদস্য",
+        councilCategory: "general_member",
+        role: "member",
+        password: "",
+        nomineeName: "",
+        nomineeRelation: "",
+        nomineeDob: "",
+        nomineeNid: "",
+        nomineeAddress: "",
+        pictureUrl: "",
+        signatureUrl: "",
+        totalDeposit: 0,
+        savingsBalance: 0,
+        dueAmount: calculateInitialDueFromJan2024().due,
+        memberCode: undefined,
+      };
+    }
+
+    return {
+      fullName: initialMember?.fullName || "",
+      email: initialMember?.email || "",
+      bloodGroup: initialMember?.bloodGroup || "",
+      profession: initialMember?.profession || "",
+      nidNo: initialMember?.nidNo || "",
+      birthRegistrationNo: initialMember?.birthRegistrationNo || "",
+      fatherName: initialMember?.fatherName || "",
+      motherName: initialMember?.motherName || "",
+      mobileNo: initialMember?.mobileNo || "",
+      dateOfBirth: initialMember?.dateOfBirth
+        ? formatDateStrict(parseDateStrict(initialMember.dateOfBirth)) || initialMember.dateOfBirth
+        : "",
+      division: initialMember?.division || "",
+      district: initialMember?.district || "",
+      thana: initialMember?.thana || "",
+      presentAddress: initialMember?.presentAddress || "",
+      designation: initialMember?.designation || "General Member",
+      designationBn: initialMember?.designationBn || "সাধারণ সদস্য",
+      councilCategory: initialMember?.councilCategory || "general_member",
+      role: initialMember?.role || "member",
+      password: "",
+      nomineeName: initialMember?.nomineeName || "",
+      nomineeRelation: initialMember?.nomineeRelation || "",
+      nomineeDob: initialMember?.nomineeDob
+        ? formatDateStrict(parseDateStrict(initialMember.nomineeDob)) || initialMember.nomineeDob
+        : "",
+      nomineeNid: initialMember?.nomineeNid || "",
+      nomineeAddress: initialMember?.nomineeAddress || "",
+      pictureUrl: initialMember?.pictureUrl || "",
+      signatureUrl: initialMember?.signatureUrl || "",
+      totalDeposit: initialMember?.totalDeposit ?? 0,
+      savingsBalance: initialMember?.savingsBalance ?? 0,
+      dueAmount: initialMember?.dueAmount ?? 0,
+      memberCode: initialMember?.memberCode || undefined,
+    };
+  };
+
+  const [formData, setFormData] = useState<Partial<IMember>>(getInitialState);
+
+  useEffect(() => {
+    setFormData(getInitialState());
+    if (isCreateMode) {
+      setFormErrors({});
+    }
+  }, [isCreateMode, initialMember?._id]);
 
   const [showPassword, setShowPassword] = useState(false);
   const [customDesignation, setCustomDesignation] = useState(false);
@@ -374,14 +428,20 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
             {/* Portrait Image with Camera Badge */}
             <div
               onClick={() => profileInputRef.current?.click()}
-              className="relative w-28 h-28 rounded-full bg-gray-100 border-4 border-white shadow-md overflow-hidden mb-3 cursor-pointer group"
+              className="relative w-28 h-28 rounded-full bg-gray-100 border-4 border-white shadow-md overflow-hidden mb-3 cursor-pointer group flex items-center justify-center"
             >
-              <Image
-                src={formData.pictureUrl || "/images/hero/hero-2.png"}
-                alt={formData.fullName || "Profile"}
-                fill
-                className="object-cover object-top"
-              />
+              {formData.pictureUrl ? (
+                <Image
+                  src={formData.pictureUrl}
+                  alt={formData.fullName || "Profile"}
+                  fill
+                  className="object-cover object-top"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 text-gray-300">
+                  <User className="w-12 h-12 stroke-[1.5]" />
+                </div>
+              )}
               <input
                 ref={profileInputRef}
                 type="file"
@@ -403,10 +463,10 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
             </div>
 
             <h2 className="text-[17px] font-bold text-[#0F172A] leading-tight">
-              {formData.fullName || "Member Name"}
+              {formData.fullName || (isCreateMode ? "New Member" : "Member Name")}
             </h2>
             <p className="text-[12px] text-gray-400 mt-1">
-              Member Code: {formData.memberCode || "001"}
+              Member Code: {formData.memberCode || (isCreateMode ? "Auto-generated" : "001")}
             </p>
 
             <div className="w-full h-px bg-gray-100 my-4" />
@@ -415,12 +475,16 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
             <div className="flex items-center justify-between w-full text-[12px] text-gray-500">
               <div className="text-left">
                 <span className="block text-gray-400 text-[11px]">Joined</span>
-                <span className="font-semibold text-gray-700">01-Jan-2024</span>
+                <span className="font-semibold text-gray-700">
+                  {isCreateMode
+                    ? formatDateStrict(new Date())
+                    : (initialMember?.createdAt ? formatDateStrict(new Date(initialMember.createdAt)) : "01-Jan-2024")}
+                </span>
               </div>
               <div className="text-right">
                 <span className="block text-gray-400 text-[11px]">Savings</span>
                 <span className="font-bold text-[#00B074] text-[13px]">
-                  {Number(formData.savingsBalance || 1000).toFixed(2)} ৳
+                  {Number(formData.savingsBalance || 0).toFixed(2)} ৳
                 </span>
               </div>
             </div>
@@ -521,7 +585,7 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                   type="text"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  placeholder="MD JUWEL HASAN"
+                  placeholder="Enter full name"
                   disabled={!isCreateMode}
                   className={`w-full h-10 px-3 rounded-xl border text-[13px] transition-all ${
                     !isCreateMode
@@ -542,10 +606,11 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                   Blood Group
                 </label>
                 <select
-                  value={formData.bloodGroup}
+                  value={formData.bloodGroup || ""}
                   onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
                   className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-800 focus:outline-none focus:border-[#00B074]"
                 >
+                  <option value="">Select Blood Group</option>
                   {["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map((bg) => (
                     <option key={bg} value={bg}>
                       {bg}
@@ -559,10 +624,11 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                   Profession
                 </label>
                 <select
-                  value={formData.profession}
+                  value={formData.profession || ""}
                   onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
                   className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-800 focus:outline-none focus:border-[#00B074]"
                 >
+                  <option value="">Select Profession</option>
                   {["Business", "Service", "Teacher", "Engineer", "Doctor", "Student", "Other"].map(
                     (p) => (
                       <option key={p} value={p}>
@@ -615,7 +681,7 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                   type="text"
                   value={formData.fatherName}
                   onChange={(e) => setFormData({ ...formData, fatherName: e.target.value })}
-                  placeholder="MD KADOM ALI"
+                  placeholder="Enter father's name"
                   className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-800 focus:outline-none focus:border-[#00B074]"
                 />
               </div>
@@ -628,7 +694,7 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                   type="text"
                   value={formData.motherName}
                   onChange={(e) => setFormData({ ...formData, motherName: e.target.value })}
-                  placeholder="MD KADOM ALI"
+                  placeholder="Enter mother's name"
                   className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-800 focus:outline-none focus:border-[#00B074]"
                 />
               </div>
@@ -644,7 +710,7 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                   type="text"
                   value={formData.mobileNo}
                   onChange={(e) => setFormData({ ...formData, mobileNo: e.target.value })}
-                  placeholder="01774987030"
+                  placeholder="e.g. 017XXXXXXXX"
                   className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-800 focus:outline-none focus:border-[#00B074]"
                 />
                 {formErrors.mobileNo && (
@@ -656,12 +722,10 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                 <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
                   Date of Birth
                 </label>
-                <input
-                  type="text"
+                <DatePickerInput
                   value={formData.dateOfBirth}
-                  onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                  placeholder="11/15/1992"
-                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-800 focus:outline-none focus:border-[#00B074]"
+                  onChange={(d) => setFormData((prev) => ({ ...prev, dateOfBirth: d }))}
+                  placeholder="01-Nov-1994"
                 />
               </div>
             </div>
@@ -676,7 +740,7 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                   type="text"
                   value={formData.division}
                   onChange={(e) => setFormData({ ...formData, division: e.target.value })}
-                  placeholder="Barisal"
+                  placeholder="Enter division"
                   className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-800 focus:outline-none focus:border-[#00B074]"
                 />
               </div>
@@ -689,7 +753,7 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                   type="text"
                   value={formData.district}
                   onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                  placeholder="Patuakhali"
+                  placeholder="Enter district"
                   className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-800 focus:outline-none focus:border-[#00B074]"
                 />
               </div>
@@ -702,7 +766,7 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                   type="text"
                   value={formData.thana}
                   onChange={(e) => setFormData({ ...formData, thana: e.target.value })}
-                  placeholder="Bauphal"
+                  placeholder="Enter thana / upazila"
                   className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-800 focus:outline-none focus:border-[#00B074]"
                 />
               </div>
@@ -717,7 +781,7 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                 type="text"
                 value={formData.presentAddress}
                 onChange={(e) => setFormData({ ...formData, presentAddress: e.target.value })}
-                placeholder="Village: Gosinga, P.O: Gosinga-8620, P.S: Bauphal, Dist: Patuakhali."
+                placeholder="Enter present address"
                 className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-800 focus:outline-none focus:border-[#00B074]"
               />
             </div>
@@ -950,10 +1014,11 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                   Relation
                 </label>
                 <select
-                  value={formData.nomineeRelation}
+                  value={formData.nomineeRelation || ""}
                   onChange={(e) => setFormData({ ...formData, nomineeRelation: e.target.value })}
                   className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-800 focus:outline-none focus:border-[#00B074]"
                 >
+                  <option value="">Select Relation</option>
                   {["Spouse", "Father", "Mother", "Brother", "Sister", "Son", "Daughter", "Other"].map(
                     (rel) => (
                       <option key={rel} value={rel}>
@@ -971,12 +1036,10 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                 <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
                   Date of Birth
                 </label>
-                <input
-                  type="text"
+                <DatePickerInput
                   value={formData.nomineeDob}
-                  onChange={(e) => setFormData({ ...formData, nomineeDob: e.target.value })}
-                  placeholder="mm/dd/yyyy"
-                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-800 focus:outline-none focus:border-[#00B074]"
+                  onChange={(d) => setFormData((prev) => ({ ...prev, nomineeDob: d }))}
+                  placeholder="01-Nov-1994"
                 />
               </div>
 

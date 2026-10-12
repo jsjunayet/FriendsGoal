@@ -7,6 +7,55 @@ import { Member } from "../Member/member.model";
 import { StatCounter } from "../Stats/stats.model";
 import { AuditLogServices } from "../AuditLog/auditLog.service";
 
+// ─── Dynamic Equal Profit Distribution Engine ────────────────────────────────
+export const recalculateAndDistributeAllMemberProfits = async (session?: mongoose.ClientSession) => {
+  const incomeAgg = await InvestmentIncome.aggregate([
+    { $match: { isDeleted: false } },
+    { $group: { _id: null, total: { $sum: "$amount" } } },
+  ]).session(session || null);
+
+  const totalInvestmentIncome = incomeAgg[0]?.total || 0;
+
+  const activeMembers = await Member.find({
+    isDeleted: false,
+    status: { $regex: /^active$/i },
+  }).session(session || null);
+
+  const activeCount = activeMembers.length;
+  const perMemberEqualShare = activeCount > 0
+    ? Number((totalInvestmentIncome / activeCount).toFixed(2))
+    : 0;
+
+  // Check disbursements to ensure accounting integrity
+  const { Disbursement } = await import("../Disbursement/disbursement.model");
+  const disbursementsAgg = await Disbursement.aggregate([
+    { $group: { _id: "$memberId", totalDisbursed: { $sum: "$disbursedAmount" } } },
+  ]).session(session || null);
+
+  const disbursedMap = new Map<string, number>();
+  for (const d of disbursementsAgg) {
+    if (d._id) disbursedMap.set(d._id.toString(), d.totalDisbursed || 0);
+  }
+
+  for (const member of activeMembers) {
+    const memberIdStr = member._id.toString();
+    const disbursed = disbursedMap.get(memberIdStr) || 0;
+    const finalProfit = Math.max(0, Number((perMemberEqualShare - disbursed).toFixed(2)));
+
+    await Member.findByIdAndUpdate(
+      member._id,
+      { $set: { profitBalance: finalProfit } },
+      session ? { session } : undefined
+    );
+  }
+
+  return {
+    totalInvestmentIncome,
+    activeCount,
+    perMemberEqualShare,
+  };
+};
+
 const createInvestmentIncome = async (payload: any, userId?: string) => {
   const amount = Number(payload.amount);
   if (isNaN(amount) || amount <= 0) {
@@ -19,7 +68,7 @@ const createInvestmentIncome = async (payload: any, userId?: string) => {
     throw new AppError(httpStatus.NOT_FOUND, "Investment not found");
   }
 
-  // 2. Fetch Active Members
+  // 2. Fetch Active Members Count
   const activeMembers = await Member.find({
     isDeleted: false,
     status: { $regex: /^active$/i },
@@ -52,14 +101,8 @@ const createInvestmentIncome = async (payload: any, userId?: string) => {
     const newIncome = new InvestmentIncome(incomeData);
     await newIncome.save({ session });
 
-    // Update each active member's profitBalance
-    if (activeMembersCount > 0) {
-      await Member.updateMany(
-        { _id: { $in: activeMembers.map((m) => m._id) } },
-        { $inc: { profitBalance: perMemberProfit } },
-        { session }
-      );
-    }
+    // Re-evaluate entire investment profit pool equally across all active members
+    await recalculateAndDistributeAllMemberProfits(session);
 
     // Global Metrics update if required (StatCounter)
     const netProfitStat = await StatCounter.findOne({ key: "total_net_profit" }).session(session);
@@ -100,12 +143,7 @@ const createInvestmentIncome = async (payload: any, userId?: string) => {
       const newIncome = new InvestmentIncome(incomeData);
       await newIncome.save();
 
-      if (activeMembersCount > 0) {
-        await Member.updateMany(
-          { _id: { $in: activeMembers.map((m) => m._id) } },
-          { $inc: { profitBalance: perMemberProfit } }
-        );
-      }
+      await recalculateAndDistributeAllMemberProfits();
 
       await AuditLogServices.createAuditLogInDB({
         adminName: "Super Admin",
@@ -154,4 +192,5 @@ const getInvestmentIncomes = async (query: Record<string, unknown>) => {
 export const InvestmentIncomeService = {
   createInvestmentIncome,
   getInvestmentIncomes,
+  recalculateAndDistributeAllMemberProfits,
 };

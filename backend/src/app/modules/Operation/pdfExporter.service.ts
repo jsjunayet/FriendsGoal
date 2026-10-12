@@ -49,14 +49,15 @@ export async function generateDueListPdf(
       currentY += 20;
 
       // 2. Column Ratios & Definitions
-      // CODE (~8%), MEMBER NAME (~25%), MOBILE NO (~15%), DUE AMOUNT (~17%), ADVANCE (~17%), STATUS (~18%)
+      // CODE, MEMBER NAME, MOBILE NO, DUE MONTH, DUE AMOUNT, ADVANCE, STATUS
       const columns = [
-        { header: "CODE", width: 43, align: "center" as const },
-        { header: "MEMBER NAME", width: 134, align: "left" as const },
-        { header: "MOBILE NO", width: 80, align: "left" as const },
-        { header: "DUE AMOUNT", width: 91, align: "right" as const },
-        { header: "ADVANCE", width: 91, align: "right" as const },
-        { header: "STATUS", width: 96, align: "center" as const },
+        { header: "CODE", width: 40, align: "center" as const },
+        { header: "MEMBER NAME", width: 125, align: "left" as const },
+        { header: "MOBILE NO", width: 75, align: "left" as const },
+        { header: "DUE MONTH", width: 65, align: "center" as const },
+        { header: "DUE AMOUNT", width: 75, align: "right" as const },
+        { header: "ADVANCE", width: 75, align: "right" as const },
+        { header: "STATUS", width: 80, align: "center" as const },
       ];
 
       const drawHeaderRow = (y: number): number => {
@@ -92,13 +93,14 @@ export async function generateDueListPdf(
         const codeText = item.memberCode || "-";
         const nameText = item.memberName || "-";
         const mobileText = item.mobileNo || "-";
+        const dueMonthText = item.dueMonth || (due > 0 ? `${Math.round(due / 1000) || 1} ${Math.round(due / 1000) === 1 ? "Month" : "Months"}` : "N/A");
         const dueText = due.toLocaleString(undefined, { minimumFractionDigits: 2 });
         const advText = adv.toLocaleString(undefined, { minimumFractionDigits: 2 });
         const statusText = item.status || "-";
 
         // Calculate dynamic height based on content wrapping
         doc.fontSize(8).font("Helvetica");
-        const nameHeight = doc.heightOfString(nameText, { width: 134 - 8 }) + 8;
+        const nameHeight = doc.heightOfString(nameText, { width: 125 - 8 }) + 8;
         const dynamicRowHeight = Math.max(18, nameHeight);
 
         if (currentY + dynamicRowHeight > bottomBoundary) {
@@ -118,33 +120,38 @@ export async function generateDueListPdf(
 
         // CODE
         doc.fillColor("#1E293B").font("Helvetica");
-        doc.text(codeText, cellX + 4, currentY + 4, { width: 43 - 8, align: "center", lineBreak: true });
-        cellX += 43;
+        doc.text(codeText, cellX + 4, currentY + 4, { width: 40 - 8, align: "center", lineBreak: true });
+        cellX += 40;
 
         // MEMBER NAME (Auto-wrapping text)
         doc.font("Helvetica-Bold");
-        doc.text(nameText, cellX + 4, currentY + 4, { width: 134 - 8, align: "left", lineBreak: true });
-        cellX += 134;
+        doc.text(nameText, cellX + 4, currentY + 4, { width: 125 - 8, align: "left", lineBreak: true });
+        cellX += 125;
 
         // MOBILE NO
         doc.font("Helvetica");
-        doc.text(mobileText, cellX + 4, currentY + 4, { width: 80 - 8, align: "left", lineBreak: true });
-        cellX += 80;
+        doc.text(mobileText, cellX + 4, currentY + 4, { width: 75 - 8, align: "left", lineBreak: true });
+        cellX += 75;
+
+        // DUE MONTH
+        doc.font("Helvetica").fillColor(due > 0 ? "#C0262D" : "#64748B");
+        doc.text(dueMonthText, cellX + 4, currentY + 4, { width: 65 - 8, align: "center", lineBreak: true });
+        cellX += 65;
 
         // DUE AMOUNT
         doc.font("Helvetica-Bold").fillColor(due > 0 ? "#C0262D" : "#1E293B");
-        doc.text(dueText, cellX + 4, currentY + 4, { width: 91 - 8, align: "right", lineBreak: true });
-        cellX += 91;
+        doc.text(dueText, cellX + 4, currentY + 4, { width: 75 - 8, align: "right", lineBreak: true });
+        cellX += 75;
 
         // ADVANCE
         doc.font("Helvetica-Bold").fillColor(adv > 0 ? "#0E3B6C" : "#1E293B");
-        doc.text(advText, cellX + 4, currentY + 4, { width: 91 - 8, align: "right", lineBreak: true });
-        cellX += 91;
+        doc.text(advText, cellX + 4, currentY + 4, { width: 75 - 8, align: "right", lineBreak: true });
+        cellX += 75;
 
         // STATUS
         const statusColor = statusText === "Due" ? "#C0262D" : statusText === "Advance" ? "#0E3B6C" : "#64748B";
         doc.font("Helvetica-Bold").fillColor(statusColor);
-        doc.text(statusText.toUpperCase(), cellX + 4, currentY + 4, { width: 96 - 8, align: "center", lineBreak: true });
+        doc.text(statusText.toUpperCase(), cellX + 4, currentY + 4, { width: 80 - 8, align: "center", lineBreak: true });
 
         currentY += dynamicRowHeight;
       }
