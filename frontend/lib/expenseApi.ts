@@ -14,6 +14,7 @@ export interface IExpenseRecord {
   amount: number;
   remarks: string;
   voucherNo?: string;
+  receiptUrl?: string;
   createdAt?: string;
 }
 
@@ -25,6 +26,8 @@ export interface ICreateExpensePayload {
   expenseDate: string;
   amount: number;
   remarks: string;
+  voucherNo?: string;
+  receiptUrl?: string;
 }
 
 export interface IExpenseFilterParams {
@@ -122,13 +125,16 @@ export async function fetchExpensesApi(
 
   if (filters.search) {
     const term = filters.search.toLowerCase().trim();
+    const cleanNum = term.replace(/[^0-9.]/g, "");
     filtered = filtered.filter(
       (e) =>
-        e.memberName.toLowerCase().includes(term) ||
-        e.expenseHead.toLowerCase().includes(term) ||
-        e.remarks.toLowerCase().includes(term) ||
+        (e.memberName && e.memberName.toLowerCase().includes(term)) ||
+        (e.expenseHead && e.expenseHead.toLowerCase().includes(term)) ||
+        (e.remarks && e.remarks.toLowerCase().includes(term)) ||
         String(e.expenseId).includes(term) ||
-        String(e.amount).includes(term)
+        String(e.amount).includes(term) ||
+        (cleanNum && String(e.amount).includes(cleanNum)) ||
+        (e.voucherNo && e.voucherNo.toLowerCase().includes(term))
     );
   }
 
@@ -202,7 +208,8 @@ export async function createExpenseApi(
     expenseDate: payload.expenseDate,
     amount: Number(payload.amount),
     remarks: payload.remarks,
-    voucherNo: `EXP-${String(nextId).padStart(5, "0")}`,
+    voucherNo: payload.voucherNo || `EXP-${String(nextId).padStart(5, "0")}`,
+    receiptUrl: payload.receiptUrl,
     createdAt: new Date().toISOString(),
   };
 

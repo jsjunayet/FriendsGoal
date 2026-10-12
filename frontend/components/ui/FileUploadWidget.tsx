@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { UploadCloud, X, Image as ImageIcon, Loader2 } from "lucide-react";
-import Image from "next/image";
+import { UploadCloud, X, Loader2 } from "lucide-react";
+import { SafeImage } from "@/components/ui/SafeImage";
+import { uploadMultipleImagesToCloud } from "@/lib/cloudUpload";
 import { toast } from "sonner";
 
 interface FileUploadWidgetProps {
@@ -10,16 +11,15 @@ interface FileUploadWidgetProps {
   onChange: (images: string[]) => void;
   multiple?: boolean;
   label?: string;
+  folder?: string;
 }
-
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:5000/api/v1";
 
 export function FileUploadWidget({
   images,
   onChange,
   multiple = true,
   label = "Upload Images (Drag & Drop or Click)",
+  folder = "friends_goal",
 }: FileUploadWidgetProps) {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -30,50 +30,31 @@ export function FileUploadWidget({
     setUploading(true);
 
     try {
-      const formData = new FormData();
-      Array.from(files).forEach((file) => {
-        formData.append("images", file);
-      });
+      const fileArray = Array.from(files);
+      const uploadedUrls = await uploadMultipleImagesToCloud(fileArray, { folder });
 
-      let token = null;
-      try {
-        token = sessionStorage.getItem("fg_access_token");
-      } catch (e) { }
+      const validUrls = uploadedUrls.filter((u) => Boolean(u && u.trim()));
 
-      const res = await fetch(`${BASE_URL}/upload`, {
-        method: "POST",
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: formData,
-      });
-
-      const json = await res.json();
-      if (res.ok && json.success) {
-        const uploadedUrls: string[] = Array.isArray(json.data?.urls)
-          ? json.data.urls
-          : json.data?.url
-          ? [json.data.url]
-          : typeof json.data === "string"
-          ? [json.data]
-          : [];
-
-        if (uploadedUrls.length > 0) {
-          if (multiple) {
-            const combined = [...images.filter((img) => Boolean(img && img.trim())), ...uploadedUrls];
-            onChange(combined);
-          } else {
-            onChange([uploadedUrls[0]]);
-          }
-          toast.success("Image uploaded successfully!");
+      if (validUrls.length > 0) {
+        if (multiple) {
+          const combined = [
+            ...images.filter((img) => Boolean(img && img.trim())),
+            ...validUrls,
+          ];
+          onChange(combined);
         } else {
-          toast.error("No image URL returned from server.");
+          onChange([validUrls[0]]);
         }
+        toast.success(
+          validUrls.length === 1
+            ? "Image uploaded successfully to Cloud Storage!"
+            : `${validUrls.length} images uploaded successfully to Cloud Storage!`
+        );
       } else {
-        toast.error(json.message || "Failed to upload images");
+        toast.error("No image URL returned from upload provider.");
       }
     } catch (err: any) {
-      toast.error(err.message || "Error uploading file");
+      toast.error(err.message || "Error uploading file to Cloud Storage");
     } finally {
       setUploading(false);
     }
@@ -136,7 +117,7 @@ export function FileUploadWidget({
         {uploading ? (
           <div className="flex flex-col items-center gap-2 py-2">
             <Loader2 className="w-8 h-8 text-[#00B074] animate-spin" />
-            <p className="text-xs font-bold text-gray-600">Uploading file(s)...</p>
+            <p className="text-xs font-bold text-gray-600">Uploading to Cloud Storage...</p>
           </div>
         ) : (
           <>
@@ -147,7 +128,7 @@ export function FileUploadWidget({
               <p className="text-xs font-bold text-gray-800">
                 Drag & Drop photos here, or <span className="text-[#00B074]">Browse</span>
               </p>
-              <p className="text-[11px] text-gray-400 mt-0.5">Supports PNG, JPG, WEBP (Max 10MB per file)</p>
+              <p className="text-[11px] text-gray-400 mt-0.5">Direct Cloudinary CDN upload (PNG, JPG, WEBP)</p>
             </div>
           </>
         )}
@@ -161,7 +142,7 @@ export function FileUploadWidget({
               key={src + i}
               className="relative aspect-[4/3] rounded-xl overflow-hidden border border-gray-200 bg-gray-100 group shadow-xs"
             >
-              <Image src={src} alt={`Uploaded ${i + 1}`} fill sizes="140px" className="object-cover" />
+              <SafeImage src={src} alt={`Uploaded ${i + 1}`} fill sizes="140px" className="object-cover" />
               <button
                 type="button"
                 onClick={(e) => {

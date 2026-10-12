@@ -9,8 +9,13 @@ import {
   Edit3,
   Loader2,
   CheckCircle2,
+  Paperclip,
+  UploadCloud,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { uploadImageToCloud } from "@/lib/cloudUpload";
+import { SafeImage } from "@/components/ui/SafeImage";
 import {
   createExpenseApi,
   fetchExpenseCategoriesApi,
@@ -36,6 +41,18 @@ export function CreateExpenseView() {
   });
   const [amount, setAmount] = useState("");
   const [remarks, setRemarks] = useState("");
+  const [receiptUrl, setReceiptUrl] = useState("");
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+
+  const handleReset = () => {
+    setExpenseHead("");
+    setSelectedMember(null);
+    setMemberInput("");
+    setExpenseDate(new Date().toISOString().slice(0, 10));
+    setAmount("");
+    setRemarks("");
+    setReceiptUrl("");
+  };
 
   // Categories & Members
   const [categories, setCategories] = useState<IExpenseCategory[]>([]);
@@ -68,6 +85,7 @@ export function CreateExpenseView() {
             setExpenseDate(new Date(target.expenseDate).toISOString().slice(0, 10));
             setAmount(String(target.amount));
             setRemarks(target.remarks);
+            if (target.receiptUrl) setReceiptUrl(target.receiptUrl);
           }
         }
       } catch (err) {
@@ -85,15 +103,6 @@ export function CreateExpenseView() {
     });
     setMemberInput(`${member.fullName} (${member.memberCode})`);
     setIsMemberDropdownOpen(false);
-  };
-
-  const handleReset = () => {
-    setExpenseHead("");
-    setSelectedMember(null);
-    setMemberInput("");
-    setExpenseDate(new Date().toISOString().slice(0, 10));
-    setAmount("");
-    setRemarks("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -134,6 +143,7 @@ export function CreateExpenseView() {
         expenseDate,
         amount: numAmount,
         remarks: remarks.trim(),
+        receiptUrl: receiptUrl.trim() || undefined,
       };
 
       await createExpenseApi(payload);
@@ -294,10 +304,19 @@ export function CreateExpenseView() {
             <div className="md:col-span-8">
               <input
                 type="number"
-                step="0.01"
+                step="any"
+                min="0.01"
+                onKeyDown={(e) => {
+                  if (e.key === "-" || e.key === "e" || e.key === "E") {
+                    e.preventDefault();
+                  }
+                }}
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="$ 0.00"
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9.]/g, "");
+                  setAmount(val);
+                }}
+                placeholder="0.00"
                 className="w-full px-4 py-2.5 text-xs sm:text-sm bg-white border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00B074] focus:border-[#00B074]"
               />
             </div>
@@ -310,12 +329,80 @@ export function CreateExpenseView() {
             </label>
             <div className="md:col-span-8">
               <textarea
-                rows={4}
+                rows={3}
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
                 placeholder="Enter remarks or purpose of expense..."
                 className="w-full px-4 py-2.5 text-xs sm:text-sm bg-white border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00B074] focus:border-[#00B074] resize-y"
               />
+            </div>
+          </div>
+
+          {/* ─── Field 6: Receipt Attachment (Direct-to-Cloud) ──────────────── */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-4 items-start">
+            <label className="md:col-span-4 text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-1.5 pt-1.5">
+              <Paperclip className="w-3.5 h-3.5 text-gray-400" />
+              Receipt / Voucher Attachment:
+            </label>
+            <div className="md:col-span-8">
+              {receiptUrl ? (
+                <div className="relative w-full max-w-sm h-32 rounded-xl border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center group shadow-xs">
+                  <SafeImage
+                    src={receiptUrl}
+                    alt="Receipt Attachment"
+                    fill
+                    sizes="300px"
+                    className="object-contain p-2"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setReceiptUrl("")}
+                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors shadow-xs cursor-pointer z-10"
+                    title="Remove attachment"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="border-2 border-dashed border-gray-200 hover:border-[#00B074] bg-gray-50 hover:bg-emerald-50/20 rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-colors max-w-sm text-center">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploadingReceipt}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        setUploadingReceipt(true);
+                        const url = await uploadImageToCloud(file, { folder: "expense_receipts" });
+                        setReceiptUrl(url);
+                        toast.success("Receipt uploaded to cloud storage!");
+                      } catch (err: any) {
+                        toast.error(err.message || "Failed to upload receipt");
+                      } finally {
+                        setUploadingReceipt(false);
+                      }
+                    }}
+                  />
+                  {uploadingReceipt ? (
+                    <>
+                      <Loader2 className="w-5 h-5 text-[#00B074] animate-spin" />
+                      <span className="text-xs font-semibold text-gray-600">Uploading receipt to cloud...</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-8 h-8 rounded-full bg-[#E8F8F5] text-[#00B074] flex items-center justify-center">
+                        <UploadCloud className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-semibold text-gray-700">
+                        Upload invoice / voucher image
+                      </span>
+                      <span className="text-[10.5px] text-gray-400">PNG, JPG, WEBP (Direct Cloud CDN)</span>
+                    </>
+                  )}
+                </label>
+              )}
             </div>
           </div>
 

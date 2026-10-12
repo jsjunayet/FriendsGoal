@@ -13,6 +13,7 @@ const createAdjustmentValidationSchema = zod_1.z.object({
         adjustmentDate: zod_1.z.string().optional(),
         adjustmentAmount: zod_1.z.number().refine((val) => val !== 0, "Adjustment amount cannot be zero"),
         remarks: zod_1.z.string().min(1, "Remarks are required"),
+        receiptUrl: zod_1.z.string().optional(),
     }),
 });
 const filterAdjustmentsValidationSchema = zod_1.z.object({

@@ -20,6 +20,7 @@ export interface IAdjustment {
     previousBalance: IAdjustmentBalanceSnapshot;
     updatedBalance: IAdjustmentBalanceSnapshot;
     remarks: string;
+    receiptUrl?: string;
     isDeleted?: boolean;
     createdBy?: Types.ObjectId | string;
     createdAt?: Date;
@@ -31,6 +32,7 @@ export interface ICreateAdjustmentPayload {
     adjustmentDate: string | Date;
     adjustmentAmount: number;
     remarks: string;
+    receiptUrl?: string;
 }
 export interface IAdjustmentFilterParams {
     fromDate?: string;

@@ -186,6 +186,10 @@ const getCollectionsFromDB = async (memberId) => {
 };
 const collectPaymentIntoDB = async (payload) => {
     const { memberId, amount, paymentMethod = "cash", note } = payload;
+    const collectAmount = Number(amount);
+    if (isNaN(collectAmount) || collectAmount <= 0) {
+        throw new AppError_1.default(http_status_1.default.BAD_REQUEST, "Payment collection amount must be a positive number greater than 0");
+    }
     let member = null;
     if (memberId.match(/^[0-9a-fA-F]{24}$/)) {
         member = await member_model_1.Member.findById(memberId);
@@ -233,6 +237,7 @@ const collectPaymentIntoDB = async (payload) => {
         paymentMethod,
         status: "Paid",
         note: note || `Payment of ${amount} BDT recorded.`,
+        receiptUrl: payload.receiptUrl || undefined,
     });
     // Record Ledger Transaction
     await operation_model_1.Ledger.create({

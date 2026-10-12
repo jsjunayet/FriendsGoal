@@ -11,6 +11,7 @@ import { getSingleNoticeApi, type NoticeItem } from "@/lib/noticeApi";
 import { getLocalizedText } from "@/lib/i18nHelpers";
 import { NoticeDetailSkeleton } from "@/components/ui/Skeletons";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SafeImage } from "@/components/ui/SafeImage";
 
 export interface NoticePreviewData {
   categoryText: string;
@@ -80,13 +81,12 @@ function ImageSlider({ images, title, onOpenLightbox }: ImageSliderProps) {
             transition={{ duration: 0.45, ease: [0.32, 0, 0.67, 0] }}
             className="absolute inset-0"
           >
-            <Image
-              src={images[active] || "/images/news/news-1.svg"}
+            <SafeImage
+              src={images[active] || "/friends_goal_placeholder.svg"}
               alt={`${title} — image ${active + 1}`}
               fill
               priority={active === 0}
-              loading={active === 0 ? "eager" : "lazy"}
-              unoptimized={images[active]?.endsWith(".svg")}
+              fallbackSrc="/friends_goal_placeholder.svg"
               sizes="(max-width: 800px) 100vw, 800px"
               className="object-cover w-full h-full"
             />
@@ -235,12 +235,12 @@ function Lightbox({ images, startIndex, title, onClose }: LightboxProps) {
         </button>
 
         <div className="relative w-full h-[55vw] max-h-[70vh] min-h-[260px] rounded-2xl overflow-hidden bg-black">
-          <Image
-            src={images[active] || "/images/news/news-1.svg"}
+          <SafeImage
+            src={images[active] || "/friends_goal_placeholder.svg"}
             alt={`${title} — image ${active + 1}`}
             fill
             priority
-            unoptimized={images[active]?.endsWith(".svg")}
+            fallbackSrc="/friends_goal_placeholder.svg"
             sizes="(max-width: 900px) 100vw, 900px"
             className="object-contain"
           />

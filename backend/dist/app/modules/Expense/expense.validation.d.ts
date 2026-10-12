@@ -9,6 +9,8 @@ export declare const ExpenseValidation: {
             expenseDate: z.ZodString;
             amount: z.ZodNumber;
             remarks: z.ZodString;
+            voucherNo: z.ZodOptional<z.ZodString>;
+            receiptUrl: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>;
     }, z.core.$strip>;
     updateExpenseValidationSchema: z.ZodObject<{
@@ -20,6 +22,8 @@ export declare const ExpenseValidation: {
             expenseDate: z.ZodOptional<z.ZodString>;
             amount: z.ZodOptional<z.ZodNumber>;
             remarks: z.ZodOptional<z.ZodString>;
+            voucherNo: z.ZodOptional<z.ZodString>;
+            receiptUrl: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>;
     }, z.core.$strip>;
     createCategoryValidationSchema: z.ZodObject<{

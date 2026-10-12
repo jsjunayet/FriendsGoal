@@ -68,7 +68,8 @@ const createExpenseInDB = async (
     expenseDate: new Date(payload.expenseDate),
     amount: Number(payload.amount),
     remarks: payload.remarks.trim(),
-    voucherNo,
+    voucherNo: payload.voucherNo ? payload.voucherNo.trim() : voucherNo,
+    receiptUrl: payload.receiptUrl ? payload.receiptUrl.trim() : undefined,
     isDeleted: false,
   };
 
@@ -98,20 +99,29 @@ const getExpensesFromDB = async (query: IExpenseFilterQuery) => {
 
   // Search filter (Search For...)
   if (query.search && query.search.trim()) {
-    const searchTerm = query.search.trim();
-    const isNum = !isNaN(Number(searchTerm));
+    const rawSearch = query.search.trim();
+    // Escape regex special characters so searching e.g. "(", "[", etc. doesn't crash MongoDB
+    const sanitized = rawSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
     const orConditions: any[] = [
-      { memberName: { $regex: searchTerm, $options: "i" } },
-      { expenseHead: { $regex: searchTerm, $options: "i" } },
-      { remarks: { $regex: searchTerm, $options: "i" } },
-      { memberCode: { $regex: searchTerm, $options: "i" } },
-      { voucherNo: { $regex: searchTerm, $options: "i" } },
+      { memberName: { $regex: sanitized, $options: "i" } },
+      { expenseHead: { $regex: sanitized, $options: "i" } },
+      { remarks: { $regex: sanitized, $options: "i" } },
+      { memberCode: { $regex: sanitized, $options: "i" } },
+      { voucherNo: { $regex: sanitized, $options: "i" } },
     ];
 
-    if (isNum) {
-      orConditions.push({ expenseId: Number(searchTerm) });
-      orConditions.push({ amount: Number(searchTerm) });
+    // Clean out currency symbols and commas e.g. "5,000", "5,000.00", "৳5000"
+    const cleanedNumberStr = rawSearch.replace(/[^0-9.]/g, "");
+    if (cleanedNumberStr) {
+      const numVal = Number(cleanedNumberStr);
+      if (!isNaN(numVal)) {
+        orConditions.push({ amount: numVal });
+        // Only match expenseId if it's an integer
+        if (Number.isInteger(numVal)) {
+          orConditions.push({ expenseId: numVal });
+        }
+      }
     }
 
     filter.$or = orConditions;

@@ -11,6 +11,7 @@ export declare const AdjustmentValidation: {
             adjustmentDate: z.ZodOptional<z.ZodString>;
             adjustmentAmount: z.ZodNumber;
             remarks: z.ZodString;
+            receiptUrl: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>;
     }, z.core.$strip>;
     filterAdjustmentsValidationSchema: z.ZodObject<{

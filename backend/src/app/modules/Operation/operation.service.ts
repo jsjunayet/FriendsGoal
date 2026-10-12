@@ -224,6 +224,11 @@ interface CollectPaymentPayload {
 const collectPaymentIntoDB = async (payload: CollectPaymentPayload) => {
   const { memberId, amount, paymentMethod = "cash", note } = payload;
 
+  const collectAmount = Number(amount);
+  if (isNaN(collectAmount) || collectAmount <= 0) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Payment collection amount must be a positive number greater than 0");
+  }
+
   let member = null;
   if (memberId.match(/^[0-9a-fA-F]{24}$/)) {
     member = await Member.findById(memberId);
@@ -275,6 +280,7 @@ const collectPaymentIntoDB = async (payload: CollectPaymentPayload) => {
     paymentMethod,
     status: "Paid",
     note: note || `Payment of ${amount} BDT recorded.`,
+    receiptUrl: (payload as any).receiptUrl || undefined,
   });
 
   // Record Ledger Transaction

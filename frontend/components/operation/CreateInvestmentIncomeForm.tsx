@@ -54,10 +54,16 @@ export function CreateInvestmentIncomeForm() {
       toast.error("Please fill in all required fields");
       return;
     }
+
+    const numAmount = Number(formData.amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      toast.error("Investment income amount must be a positive number greater than 0");
+      return;
+    }
     
     mutate({
       ...formData,
-      amount: Number(formData.amount),
+      amount: numAmount,
     });
   };
 
@@ -135,9 +141,19 @@ export function CreateInvestmentIncomeForm() {
               </label>
               <input
                 type="number"
-                min="0"
+                step="any"
+                min="0.01"
+                onKeyDown={(e) => {
+                  if (e.key === "-" || e.key === "e" || e.key === "E") {
+                    e.preventDefault();
+                  }
+                }}
                 value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9.]/g, "");
+                  setFormData({ ...formData, amount: val });
+                }}
+                placeholder="0.00"
                 className="flex-1 h-11 px-3 rounded-md border border-gray-300 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#00603B]/20 focus:border-[#00603B] transition-shadow"
                 required
               />

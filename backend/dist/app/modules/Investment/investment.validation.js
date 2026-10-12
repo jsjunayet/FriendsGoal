@@ -5,7 +5,7 @@ const zod_1 = require("zod");
 const createInvestmentValidationSchema = zod_1.z.object({
     body: zod_1.z.object({
         name: zod_1.z.string().min(1, "Investment name is required"),
-        amount: zod_1.z.number().min(0, "Amount must be greater than or equal to 0"),
+        amount: zod_1.z.number().positive("Amount must be greater than zero"),
         startDate: zod_1.z.string().min(1, "Start date is required"),
         endDate: zod_1.z.string().nullable().optional(),
         remarks: zod_1.z.string().min(1, "Remarks are required"),
@@ -19,7 +19,7 @@ const createInvestmentValidationSchema = zod_1.z.object({
 const updateInvestmentValidationSchema = zod_1.z.object({
     body: zod_1.z.object({
         name: zod_1.z.string().min(1).optional(),
-        amount: zod_1.z.number().min(0).optional(),
+        amount: zod_1.z.number().positive("Amount must be greater than zero").optional(),
         startDate: zod_1.z.string().optional(),
         endDate: zod_1.z.string().nullable().optional(),
         remarks: zod_1.z.string().min(1).optional(),

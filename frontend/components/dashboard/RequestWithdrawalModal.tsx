@@ -135,6 +135,13 @@ export function RequestWithdrawalModal({
     if (isSubmitting) return;
     setErrorMsg(null);
 
+    if (!isAmountEntered || withdrawAmt <= 0) {
+      const msg = "Withdrawal amount must be greater than 0 and cannot be negative.";
+      setErrorMsg(msg);
+      toast.error(msg);
+      return;
+    }
+
     if (isOverLimit || withdrawAmt > allowableDepositLimit) {
       const errorText = `You can only request withdrawal from your total deposit amount (৳ ${allowableDepositLimit.toLocaleString()}). Profit balance cannot be withdrawn.`;
       setErrorMsg(errorText);
@@ -306,12 +313,21 @@ export function RequestWithdrawalModal({
                   <input
                     type="number"
                     step="any"
+                    min="0.01"
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "-" || e.key === "e" || e.key === "E") {
+                        e.preventDefault();
+                      }
+                    }}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9.]/g, "");
+                      setAmount(val);
+                    }}
                     placeholder="0.00"
                     max={allowableDepositLimit}
                     className={`w-full pl-9 pr-4 py-3 text-lg font-bold bg-white border rounded-xl text-gray-900 transition-all focus:outline-none ${
-                      isOverLimit
+                      isOverLimit || (isAmountEntered && isZeroOrNegative)
                         ? "border-red-500 text-red-600 focus:border-red-500 focus:ring-2 focus:ring-red-200"
                         : "border-gray-300 focus:ring-2 focus:ring-[#3C5B42]/20 focus:border-[#3C5B42]"
                     }`}
@@ -319,6 +335,13 @@ export function RequestWithdrawalModal({
                 </div>
                 
                 {/* Instant validation message */}
+                {isZeroOrNegative && (
+                  <p className="text-xs text-red-600 font-semibold mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Withdrawal amount must be greater than 0 and cannot be negative.</span>
+                  </p>
+                )}
+
                 {isOverLimit && (
                   <p className="text-xs text-red-600 font-semibold mt-1.5 flex items-center gap-1">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" />

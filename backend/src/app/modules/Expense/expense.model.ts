@@ -84,6 +84,10 @@ const expenseSchema = new Schema<IExpense, ExpenseModel>(
       type: String,
       trim: true,
     },
+    receiptUrl: {
+      type: String,
+      trim: true,
+    },
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",

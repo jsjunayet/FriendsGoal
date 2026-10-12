@@ -11,6 +11,7 @@ const createAdjustmentValidationSchema = z.object({
     adjustmentDate: z.string().optional(),
     adjustmentAmount: z.number().refine((val) => val !== 0, "Adjustment amount cannot be zero"),
     remarks: z.string().min(1, "Remarks are required"),
+    receiptUrl: z.string().optional(),
   }),
 });
 

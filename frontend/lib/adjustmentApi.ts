@@ -22,6 +22,7 @@ export interface IAdjustmentRecord {
     dueAmount: number;
   };
   remarks: string;
+  receiptUrl?: string;
   createdAt?: string;
 }
 
@@ -31,6 +32,7 @@ export interface ICreateAdjustmentPayload {
   adjustmentDate?: string;
   adjustmentAmount: number;
   remarks: string;
+  receiptUrl?: string;
 }
 
 export interface IAdjustmentFilterParams {

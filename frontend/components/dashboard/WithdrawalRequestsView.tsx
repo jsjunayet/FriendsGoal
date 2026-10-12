@@ -23,6 +23,8 @@ import {
 import { printWithdrawalReceipt } from "@/lib/receiptGenerator";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TableRowsSkeleton } from "@/components/ui/Skeletons";
+import { SafeImage } from "@/components/ui/SafeImage";
+import { AvatarFallback } from "@/components/ui/AvatarFallback";
 
 type TabType = "All" | "Pending" | "Approved" | "Rejected";
 
@@ -305,16 +307,22 @@ export default function WithdrawalRequestsView() {
                           <div className="flex items-center gap-3">
                             {item.memberAvatar ? (
                               <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 flex-shrink-0 relative shadow-xs">
-                                <img src={item.memberAvatar} alt={item.memberName} className="w-full h-full object-cover" />
+                                <SafeImage
+                                  src={item.memberAvatar}
+                                  alt={item.memberName}
+                                  fill
+                                  sizes="32px"
+                                  className="object-cover"
+                                  fallbackName={item.memberName}
+                                  renderAvatarFallback
+                                />
                               </div>
                             ) : (
-                              <div
-                                className={`w-8 h-8 rounded-full ${
-                                  item.avatarColor || "bg-[#2F80ED]"
-                                } text-white flex items-center justify-center text-xs font-bold shadow-xs flex-shrink-0`}
-                              >
-                                {item.memberInitials}
-                              </div>
+                              <AvatarFallback
+                                name={item.memberName}
+                                size="sm"
+                                className={item.avatarColor || "bg-[#2F80ED]"}
+                              />
                             )}
                             <span className="font-semibold text-gray-900 whitespace-nowrap">
                               {item.memberName}

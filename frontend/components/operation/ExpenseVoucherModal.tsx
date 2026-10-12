@@ -1,7 +1,8 @@
 "use client";
 
-import { X, Printer } from "lucide-react";
+import { X, Printer, ExternalLink } from "lucide-react";
 import { IExpenseRecord } from "@/lib/expenseApi";
+import { SafeImage } from "@/components/ui/SafeImage";
 
 interface ExpenseVoucherModalProps {
   expense: IExpenseRecord | null;
@@ -165,6 +166,36 @@ export function ExpenseVoucherModal({
               ✓ Valid Official Debit Voucher
             </span>
           </div>
+
+          {/* Receipt / Invoice Attachment */}
+          {expense.receiptUrl && (
+            <div className="p-3.5 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-white shadow-2xs flex-shrink-0">
+                  <SafeImage
+                    src={expense.receiptUrl}
+                    alt="Expense Receipt"
+                    fill
+                    sizes="64px"
+                    className="object-cover"
+                  />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-gray-900">Receipt Attachment</h4>
+                  <p className="text-[11px] text-gray-500">Official verified receipt stored in Cloud Storage</p>
+                </div>
+              </div>
+              <a
+                href={expense.receiptUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-xs font-semibold text-gray-700 hover:text-[#0E3B6C] hover:border-[#0E3B6C] transition-colors flex items-center gap-1.5 shadow-2xs flex-shrink-0 print:hidden"
+              >
+                <span>View Full</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          )}
 
           {/* Signature Areas */}
           <div className="pt-8 grid grid-cols-3 gap-6 text-center text-xs text-gray-600">

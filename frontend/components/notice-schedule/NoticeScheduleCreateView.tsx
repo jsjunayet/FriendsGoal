@@ -14,6 +14,7 @@ import {
   NoticeAudience,
 } from "@/lib/noticeScheduleApi";
 import { fetchMembersApi, IMember } from "@/lib/memberApi";
+import { DatePickerInput } from "@/components/ui/DatePickerInput";
 
 export function NoticeScheduleCreateView() {
   const router = useRouter();
@@ -310,15 +311,12 @@ export function NoticeScheduleCreateView() {
                 <label className="block text-xs font-bold text-gray-700">
                   Payment due date <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
+                <DatePickerInput
                   value={formData.dueDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, dueDate: e.target.value })
+                  onChange={(d) =>
+                    setFormData((prev) => ({ ...prev, dueDate: d }))
                   }
-                  placeholder="e.g. Oct 15, 2026"
-                  required
-                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-xs sm:text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00B074] focus:border-[#00B074]"
+                  placeholder="DD-MMM-YYYY (e.g. 15-Oct-2026)"
                 />
               </div>
 
@@ -353,15 +351,12 @@ export function NoticeScheduleCreateView() {
                 <label className="block text-xs font-bold text-gray-700">
                   Event Date <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
+                <DatePickerInput
                   value={formData.eventDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, eventDate: e.target.value })
+                  onChange={(d) =>
+                    setFormData((prev) => ({ ...prev, eventDate: d }))
                   }
-                  placeholder="e.g. Oct 22, 2026"
-                  required
-                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-xs sm:text-[13px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00B074] focus:border-[#00B074]"
+                  placeholder="DD-MMM-YYYY (e.g. 22-Oct-2026)"
                 />
               </div>
 

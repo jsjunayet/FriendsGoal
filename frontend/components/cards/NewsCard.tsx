@@ -9,6 +9,8 @@ import { getLocalizedText, hasValidImage, getImageList } from "@/lib/i18nHelpers
 import type { NoticeItem } from "@/lib/noticeApi";
 import type { NewsArticle } from "@/types";
 
+import { SafeImage } from "@/components/ui/SafeImage";
+
 interface NewsCardProps {
   article?: NewsArticle;
   notice?: NoticeItem;
@@ -67,13 +69,13 @@ export function NewsCard({ article, notice, index }: NewsCardProps) {
       {/* Image with Category Badge matching Image 2 */}
       <div className="relative w-full h-[210px] sm:h-[220px] bg-gray-100 overflow-hidden flex items-center justify-center">
         {hasImage && primaryImg ? (
-          <Image
+          <SafeImage
             src={primaryImg}
             alt={title}
             fill
             sizes="(max-width: 768px) 100vw, 380px"
             priority={isAboveFold}
-            loading={isAboveFold ? "eager" : "lazy"}
+            fallbackSrc="/friends_goal_placeholder.svg"
             className="object-cover transition-transform duration-500 hover:scale-105"
           />
         ) : (

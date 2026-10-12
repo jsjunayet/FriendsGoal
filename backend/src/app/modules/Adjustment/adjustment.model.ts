@@ -77,6 +77,10 @@ const adjustmentSchema = new Schema<IAdjustment>(
       required: [true, "Remarks are required for audit justification"],
       trim: true,
     },
+    receiptUrl: {
+      type: String,
+      trim: true,
+    },
     isDeleted: {
       type: Boolean,
       default: false,

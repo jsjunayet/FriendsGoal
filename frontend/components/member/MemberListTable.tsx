@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { SafeImage } from "@/components/ui/SafeImage";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Search,
@@ -206,11 +207,15 @@ export function MemberListTable({ onToggleMobileSidebar }: MemberListTableProps)
                     {/* Picture */}
                     <td className="py-3 px-4">
                       <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 flex-shrink-0">
-                        <Image
-                          src={member.pictureUrl || "/images/hero/hero-2.png"}
+                        <SafeImage
+                          src={member.pictureUrl}
                           alt={member.fullName}
                           fill
+                          sizes="36px"
                           className="object-cover object-top"
+                          fallbackName={member.fullName}
+                          fallbackMemberId={member.memberCode}
+                          renderAvatarFallback
                         />
                       </div>
                     </td>

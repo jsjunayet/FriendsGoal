@@ -73,6 +73,10 @@ const adjustmentSchema = new mongoose_1.Schema({
         required: [true, "Remarks are required for audit justification"],
         trim: true,
     },
+    receiptUrl: {
+        type: String,
+        trim: true,
+    },
     isDeleted: {
         type: Boolean,
         default: false,

@@ -25,6 +25,11 @@ const createInvestmentInDB = async (
     // Legacy index already dropped
   }
 
+  const invAmount = Number(payload.amount);
+  if (isNaN(invAmount) || invAmount <= 0) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Investment amount must be a positive number greater than 0");
+  }
+
   let memberName = payload.memberName;
   let memberCode = payload.memberCode;
 
@@ -210,7 +215,11 @@ const updateInvestmentInDB = async (id: string, payload: IUpdateInvestmentPayloa
     updateData.endDate = payload.endDate ? new Date(payload.endDate) : null;
   }
   if (payload.amount !== undefined) {
-    updateData.amount = Number(payload.amount);
+    const updatedAmt = Number(payload.amount);
+    if (isNaN(updatedAmt) || updatedAmt <= 0) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Investment amount must be a positive number greater than 0");
+    }
+    updateData.amount = updatedAmt;
   }
   if (payload.status) {
     updateData.isActive = payload.status === "Running";

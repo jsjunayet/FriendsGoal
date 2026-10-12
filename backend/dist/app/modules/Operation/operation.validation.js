@@ -9,6 +9,7 @@ const collectPaymentValidationSchema = zod_1.z.object({
         paymentMethod: zod_1.z.enum(["cash", "bank", "mobile_banking"]).optional(),
         month: zod_1.z.string().optional(),
         note: zod_1.z.string().optional(),
+        receiptUrl: zod_1.z.string().optional(),
     }),
 });
 const dueListQueryValidationSchema = zod_1.z.object({

@@ -94,9 +94,13 @@ export function CreateInvestmentView() {
       toast.error("Please enter Investment Name");
       return;
     }
-    const numAmount = parseFloat(amount.replace(/[^0-9.]/g, ""));
-    if (isNaN(numAmount) || numAmount < 0) {
-      toast.error("Please enter a valid Amount");
+    if (amount.includes("-")) {
+      toast.error("Investment amount cannot be negative");
+      return;
+    }
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      toast.error("Investment amount must be a positive number greater than 0");
       return;
     }
     if (!startDate) {
@@ -207,8 +211,17 @@ export function CreateInvestmentView() {
               <input
                 type="number"
                 step="any"
+                min="0.01"
+                onKeyDown={(e) => {
+                  if (e.key === "-" || e.key === "e" || e.key === "E") {
+                    e.preventDefault();
+                  }
+                }}
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9.]/g, "");
+                  setAmount(val);
+                }}
                 placeholder="0.00"
                 className="w-full px-4 py-2.5 text-xs sm:text-sm bg-white border border-gray-300 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#00B074] focus:border-[#00B074]"
               />

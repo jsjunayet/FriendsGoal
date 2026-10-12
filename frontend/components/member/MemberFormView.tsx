@@ -24,6 +24,9 @@ import {
   AlertCircle,
   User,
 } from "lucide-react";
+import { uploadImageToCloud } from "@/lib/cloudUpload";
+import { SignaturePadModal } from "@/components/ui/SignaturePadModal";
+import { SafeImage } from "@/components/ui/SafeImage";
 import {
   DatePickerInput,
   parseDateStrict,
@@ -107,6 +110,7 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
   const [uploadingProfile, setUploadingProfile] = useState(false);
   const [uploadingSignature, setUploadingSignature] = useState(false);
   const [uploadingNominee, setUploadingNominee] = useState(false);
+  const [signatureModalOpen, setSignatureModalOpen] = useState(false);
 
   const profileInputRef = useRef<HTMLInputElement>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
@@ -122,36 +126,21 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
     if (targetField === "nomineePictureUrl") setUploadingNominee(true);
 
     try {
-      const formDataUpload = new FormData();
-      formDataUpload.append("images", file);
+      const folder = targetField === "signatureUrl" ? "signatures" : "members";
+      const uploadedUrl = await uploadImageToCloud(file, { folder });
 
-      let token = null;
-      try {
-        token =
-          sessionStorage.getItem("fg_access_token") ||
-          localStorage.getItem("fg_access_token");
-      } catch (e) {}
-
-      const res = await fetch(`${BASE_URL}/upload`, {
-        method: "POST",
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: formDataUpload,
-      });
-
-      const json = await res.json();
-      if (res.ok && json.success) {
-        const uploadedUrl = json.data?.url || (json.data?.urls && json.data.urls[0]);
-        if (uploadedUrl) {
-          setFormData((prev) => ({ ...prev, [targetField]: uploadedUrl }));
-          toast.success("Image uploaded successfully!");
-        }
-      } else {
-        toast.error(json.message || "Failed to upload image");
+      if (uploadedUrl) {
+        setFormData((prev) => ({ ...prev, [targetField]: uploadedUrl }));
+        toast.success(
+          targetField === "signatureUrl"
+            ? "Signature uploaded successfully!"
+            : targetField === "nomineePictureUrl"
+              ? "Nominee photo uploaded successfully!"
+              : "Profile photo uploaded successfully!"
+        );
       }
     } catch (err: any) {
-      toast.error(err.message || "Error uploading file");
+      toast.error(err.message || "Error uploading file to Cloud Storage");
     } finally {
       if (targetField === "pictureUrl") setUploadingProfile(false);
       if (targetField === "signatureUrl") setUploadingSignature(false);
@@ -353,11 +342,11 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
       ...formData,
       ...(isCreateMode
         ? {
-            totalDeposit: 0,
-            savingsBalance: 0,
-            dueAmount: Number(formData.dueAmount) > 0 ? Number(formData.dueAmount) : calculateInitialDueFromJan2024().due,
-            memberCode: undefined,
-          }
+          totalDeposit: 0,
+          savingsBalance: 0,
+          dueAmount: Number(formData.dueAmount) > 0 ? Number(formData.dueAmount) : calculateInitialDueFromJan2024().due,
+          memberCode: undefined,
+        }
         : {}),
     };
 
@@ -431,11 +420,15 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
               className="relative w-28 h-28 rounded-full bg-gray-100 border-4 border-white shadow-md overflow-hidden mb-3 cursor-pointer group flex items-center justify-center"
             >
               {formData.pictureUrl ? (
-                <Image
+                <SafeImage
                   src={formData.pictureUrl}
                   alt={formData.fullName || "Profile"}
                   fill
+                  sizes="120px"
                   className="object-cover object-top"
+                  fallbackName={formData.fullName}
+                  fallbackMemberId={formData.memberCode}
+                  renderAvatarFallback
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 text-gray-300">
@@ -489,11 +482,22 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
               </div>
             </div>
 
-            {/* Member Signature Upload Box */}
+            {/* Member Signature Box: Canvas Drawing & File Upload */}
             <div className="w-full mt-5 text-left">
-              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                Member Signature
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                  Member Signature
+                </label>
+                {formData.signatureUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setSignatureModalOpen(true)}
+                    className="text-[11px] text-[#00B074] hover:underline font-semibold flex items-center gap-1"
+                  >
+                    <PenTool className="w-3 h-3" /> Re-draw
+                  </button>
+                )}
+              </div>
               <input
                 ref={signatureInputRef}
                 type="file"
@@ -503,10 +507,11 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
               />
               {formData.signatureUrl ? (
                 <div className="relative w-full h-24 border border-gray-200 rounded-xl bg-white p-2 flex items-center justify-center group overflow-hidden shadow-xs">
-                  <Image
+                  <SafeImage
                     src={formData.signatureUrl}
                     alt="Signature"
                     fill
+                    sizes="200px"
                     className="object-contain p-2"
                   />
                   <button
@@ -522,18 +527,32 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                   </button>
                 </div>
               ) : (
-                <div
-                  onClick={() => signatureInputRef.current?.click()}
-                  className="w-full h-24 border-2 border-dashed border-gray-200 rounded-xl bg-[#FAFAFA] flex flex-col items-center justify-center text-gray-400 hover:border-[#00B074] hover:bg-emerald-50/20 transition-all cursor-pointer p-2"
-                >
-                  {uploadingSignature ? (
-                    <Loader2 className="w-6 h-6 text-[#00B074] animate-spin mb-1" />
-                  ) : (
-                    <PenTool className="w-5 h-5 text-gray-400 mb-1" />
-                  )}
-                  <span className="text-[11.5px] font-medium text-gray-500">
-                    {uploadingSignature ? "Uploading signature..." : "Click to upload signature"}
-                  </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSignatureModalOpen(true)}
+                    className="h-24 border-2 border-dashed border-[#00B074]/30 bg-emerald-50/30 rounded-xl flex flex-col items-center justify-center text-[#00B074] hover:bg-emerald-50/70 hover:border-[#00B074] transition-all p-2 text-center"
+                  >
+                    <PenTool className="w-5 h-5 mb-1 text-[#00B074]" />
+                    <span className="text-[11.5px] font-bold">Draw Canvas</span>
+                    <span className="text-[9.5px] text-gray-500">Touch or mouse</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => signatureInputRef.current?.click()}
+                    disabled={uploadingSignature}
+                    className="h-24 border-2 border-dashed border-gray-200 rounded-xl bg-[#FAFAFA] flex flex-col items-center justify-center text-gray-500 hover:border-gray-400 hover:bg-gray-100/50 transition-all p-2 text-center"
+                  >
+                    {uploadingSignature ? (
+                      <Loader2 className="w-5 h-5 text-[#00B074] animate-spin mb-1" />
+                    ) : (
+                      <Upload className="w-5 h-5 text-gray-400 mb-1" />
+                    )}
+                    <span className="text-[11.5px] font-medium text-gray-700">
+                      {uploadingSignature ? "Uploading..." : "Upload File"}
+                    </span>
+                    <span className="text-[9.5px] text-gray-400">PNG / JPG</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -587,11 +606,10 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   placeholder="Enter full name"
                   disabled={!isCreateMode}
-                  className={`w-full h-10 px-3 rounded-xl border text-[13px] transition-all ${
-                    !isCreateMode
+                  className={`w-full h-10 px-3 rounded-xl border text-[13px] transition-all ${!isCreateMode
                       ? "bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200 select-none shadow-none"
                       : "bg-white text-gray-800 border-gray-200 focus:outline-none focus:border-[#00B074] focus:ring-1 focus:ring-[#00B074]"
-                  }`}
+                    }`}
                 />
                 {!isCreateMode && (
                   <p className="text-[11px] text-gray-400 mt-1">Full name cannot be changed.</p>
@@ -893,9 +911,7 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                   className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-800 focus:outline-none focus:border-[#00B074]"
                 >
                   <option value="member">Member</option>
-                  <option value="manager">Manager</option>
                   <option value="admin">Admin</option>
-                  <option value="superadmin">Super Admin</option>
                 </select>
               </div>
 
@@ -934,11 +950,10 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="member@friendsgoal.org"
                 disabled={!isCreateMode}
-                className={`w-full h-10 px-3 rounded-xl border text-[13px] transition-all ${
-                  !isCreateMode
+                className={`w-full h-10 px-3 rounded-xl border text-[13px] transition-all ${!isCreateMode
                     ? "bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200 select-none shadow-none"
                     : "bg-white text-gray-800 border-gray-200 focus:outline-none focus:border-[#00B074]"
-                }`}
+                  }`}
               />
               {!isCreateMode && (
                 <p className="text-[11px] text-gray-400 mt-1">Email address cannot be changed.</p>
@@ -969,7 +984,7 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                 className="w-14 h-14 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 flex-shrink-0 relative overflow-hidden cursor-pointer hover:border-[#00B074] group"
               >
                 {formData.nomineePictureUrl ? (
-                  <Image src={formData.nomineePictureUrl} alt="Nominee" fill className="object-cover" />
+                  <SafeImage src={formData.nomineePictureUrl} alt="Nominee" fill sizes="60px" className="object-cover" />
                 ) : uploadingNominee ? (
                   <Loader2 className="w-5 h-5 text-[#00B074] animate-spin" />
                 ) : (
@@ -988,8 +1003,8 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
                   {uploadingNominee
                     ? "Uploading..."
                     : formData.nomineePictureUrl
-                    ? "Change Nominee Photo"
-                    : "Upload a clear photo of the nominee. Max size 2MB."}
+                      ? "Change Nominee Photo"
+                      : "Upload a clear photo of the nominee. Max size 2MB."}
                 </button>
               </div>
             </div>
@@ -1110,6 +1125,14 @@ export function MemberFormView({ initialMember, isCreateMode = false }: MemberFo
           isDeleting={deleteMutation.isPending}
         />
       )}
+
+      {/* Canvas Signature Pad Modal */}
+      <SignaturePadModal
+        isOpen={signatureModalOpen}
+        onClose={() => setSignatureModalOpen(false)}
+        onSave={(url) => setFormData((prev) => ({ ...prev, signatureUrl: url }))}
+        title={`Member Signature — ${formData.fullName || "New Member"}`}
+      />
     </div>
   );
 }

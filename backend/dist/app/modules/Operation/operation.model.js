@@ -57,6 +57,10 @@ const collectionSchema = new mongoose_1.Schema({
         type: String,
         trim: true,
     },
+    receiptUrl: {
+        type: String,
+        trim: true,
+    },
 }, {
     timestamps: true,
 });

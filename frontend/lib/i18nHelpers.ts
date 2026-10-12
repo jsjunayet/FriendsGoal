@@ -36,18 +36,18 @@ export function hasValidImage(images?: string[] | string | null): boolean {
  */
 export function resolveImageUrl(url?: string | null): string {
   if (!url) return "";
-  const trimmed = url.trim();
+  const trimmed = url.trim().replace(/\\/g, "/");
   if (!trimmed) return "";
   if (trimmed.startsWith("data:")) {
     return trimmed;
   }
-  // If it's a local upload (either relative /uploads/... or http://localhost:5000/uploads/...)
-  // Normalize to /uploads/... so the browser fetches same-origin via Next.js rewrite or static public
-  if (trimmed.includes("/uploads/")) {
-    return trimmed.slice(trimmed.indexOf("/uploads/"));
-  }
+  // External cloud URLs (Cloudinary, AWS S3, etc.) must always be preserved
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
     return trimmed;
+  }
+  // If it's a local legacy upload
+  if (trimmed.includes("/uploads/")) {
+    return trimmed.slice(trimmed.indexOf("/uploads/"));
   }
   return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
 }

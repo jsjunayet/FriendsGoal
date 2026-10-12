@@ -71,6 +71,10 @@ const expenseSchema = new mongoose_1.Schema({
         type: String,
         trim: true,
     },
+    receiptUrl: {
+        type: String,
+        trim: true,
+    },
     createdBy: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "User",

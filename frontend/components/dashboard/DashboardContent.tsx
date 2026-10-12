@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { SafeImage } from "@/components/ui/SafeImage";
 import {
   MapPin,
   Calendar,
@@ -215,11 +216,16 @@ function PersonalFinancialCard() {
         <div className="p-3 border-b sm:border-b-0 sm:border-r border-[#F0F0F0] flex flex-col gap-0 bg-white">
           {/* Portrait image with gap on all sides */}
           <div className="relative w-full aspect-[4/5] rounded-[14px] overflow-hidden bg-[#F0F0F0]">
-            <Image
-              src={summary?.pictureUrl || "/images/about/about-1.png"}
+            <SafeImage
+              src={summary?.pictureUrl}
               alt={memberName}
               fill
+              sizes="220px"
+              priority={true}
               className="object-cover object-top rounded-[14px]"
+              fallbackName={memberName}
+              fallbackMemberId={summary?.memberCode}
+              renderAvatarFallback
             />
           </div>
 

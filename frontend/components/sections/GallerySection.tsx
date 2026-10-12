@@ -11,6 +11,7 @@ import { useTranslation } from "@/context/LanguageContext";
 import { getGalleryItemsApi, type GalleryItem } from "@/lib/galleryApi";
 import { getLocalizedText, getImageList, hasValidImage } from "@/lib/i18nHelpers";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SafeImage } from "@/components/ui/SafeImage";
 
 import "swiper/css";
 import "swiper/css/pagination";
@@ -66,13 +67,14 @@ function GalleryLightboxModal({ items, startIndex, onClose }: LightboxModalProps
       {/* Main Image Frame */}
       <div className="relative w-full max-w-[1000px] h-[65vh] sm:h-[75vh] flex items-center justify-center">
         {activeItem && (
-          <Image
+          <SafeImage
             src={activeItem.image}
             alt={activeItem.title}
             fill
             className="object-contain"
             sizes="100vw"
             priority
+            fallbackSrc="/friends_goal_placeholder.svg"
           />
         )}
 
@@ -204,12 +206,13 @@ function GalleryGrid() {
                     className="relative aspect-[4/3] rounded-[20px] sm:rounded-[24px] overflow-hidden border border-white/10 shadow-lg bg-[#333] group cursor-pointer"
                   >
                     {hasImg && primaryImg ? (
-                      <Image
+                      <SafeImage
                         src={primaryImg}
                         alt={slideTitle}
                         fill
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         loading={index < PAGE_SIZE ? "eager" : "lazy"}
+                        fallbackSrc="/friends_goal_placeholder.svg"
                         className="object-cover transition-transform duration-700 group-hover:scale-105"
                       />
                     ) : (
@@ -389,12 +392,13 @@ function GallerySlider() {
                         className="relative aspect-[4/3] rounded-[20px] sm:rounded-[24px] overflow-hidden border border-white/10 shadow-lg bg-[#262626] group cursor-pointer"
                       >
                         {hasImg && primaryImg ? (
-                          <Image
+                          <SafeImage
                             src={primaryImg}
                             alt={slideTitle}
                             fill
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                             priority={index === 0}
+                            fallbackSrc="/friends_goal_placeholder.svg"
                             className="object-cover transition-transform duration-700 group-hover:scale-105"
                           />
                         ) : (

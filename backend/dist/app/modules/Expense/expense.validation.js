@@ -11,6 +11,8 @@ const createExpenseValidationSchema = zod_1.z.object({
         expenseDate: zod_1.z.string().min(1, "Expense date is required"),
         amount: zod_1.z.number().positive("Amount must be greater than 0"),
         remarks: zod_1.z.string().min(1, "Remarks are required"),
+        voucherNo: zod_1.z.string().optional(),
+        receiptUrl: zod_1.z.string().optional(),
     }),
 });
 const updateExpenseValidationSchema = zod_1.z.object({
@@ -22,6 +24,8 @@ const updateExpenseValidationSchema = zod_1.z.object({
         expenseDate: zod_1.z.string().optional(),
         amount: zod_1.z.number().positive().optional(),
         remarks: zod_1.z.string().min(1).optional(),
+        voucherNo: zod_1.z.string().optional(),
+        receiptUrl: zod_1.z.string().optional(),
     }),
 });
 const createCategoryValidationSchema = zod_1.z.object({

@@ -11,6 +11,7 @@ export declare const OperationValidation: {
             }>>;
             month: z.ZodOptional<z.ZodString>;
             note: z.ZodOptional<z.ZodString>;
+            receiptUrl: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>;
     }, z.core.$strip>;
     dueListQueryValidationSchema: z.ZodObject<{

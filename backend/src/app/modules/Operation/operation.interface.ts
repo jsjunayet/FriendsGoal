@@ -13,6 +13,7 @@ export interface ICollection {
   status: "Paid" | "Due" | "Advance";
   note?: string;
   receivedBy?: string;
+  receiptUrl?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }

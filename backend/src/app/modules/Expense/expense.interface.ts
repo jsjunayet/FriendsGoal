@@ -23,6 +23,7 @@ export interface IExpense {
   amount: number;
   remarks: string;
   voucherNo?: string;
+  receiptUrl?: string;
   createdBy?: Types.ObjectId | string;
   isDeleted: boolean;
   createdAt?: Date;
@@ -41,6 +42,8 @@ export interface ICreateExpensePayload {
   expenseDate: string | Date;
   amount: number;
   remarks: string;
+  voucherNo?: string;
+  receiptUrl?: string;
 }
 
 export interface IUpdateExpensePayload {
@@ -51,6 +54,8 @@ export interface IUpdateExpensePayload {
   expenseDate?: string | Date;
   amount?: number;
   remarks?: string;
+  voucherNo?: string;
+  receiptUrl?: string;
 }
 
 export interface IExpenseFilterQuery {

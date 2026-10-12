@@ -126,6 +126,7 @@ const createAdjustmentInDB = async (payload, userId) => {
         previousBalance,
         updatedBalance,
         remarks,
+        receiptUrl: payload.receiptUrl || undefined,
         isDeleted: false,
     };
     if (userId && mongoose_1.default.isValidObjectId(userId)) {

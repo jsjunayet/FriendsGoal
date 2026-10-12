@@ -1,91 +1,86 @@
 import { Router } from "express";
-import multer from "multer";
-import path from "path";
-import fs from "fs";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import httpStatus from "http-status";
-
-import os from "os";
-
-// On Vercel / serverless environments, the root directory (/var/task) is read-only.
-// Writable temporary storage is only available under os.tmpdir() (/tmp).
-const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
-const uploadsDir = isServerless
-  ? path.join(os.tmpdir(), "uploads")
-  : path.join(process.cwd(), "uploads");
-
-try {
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-} catch (err) {
-  console.warn("Notice: could not create uploads directory at module init:", err);
-}
-
-// Storage config
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    try {
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
-    } catch (_) {}
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
-  },
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only image files are allowed!"));
-    }
-  },
-});
+import {
+  uploadMemory,
+  uploadBufferToCloudinary,
+  generateCloudinarySignature,
+} from "../../utils/sendImageToCloudinary";
 
 const router = Router();
 
-// POST /api/v1/upload (Single or Multiple File Upload)
+/**
+ * GET or POST /api/v1/upload/signature
+ * Returns signed signature and auth credentials so client can upload directly to Cloudinary.
+ * Bypasses Vercel serverless 4.5MB payload limit completely!
+ */
+const handleSignatureRequest = catchAsync(async (req, res) => {
+  const folder = (req.query.folder as string) || (req.body?.folder as string) || "friends_goal";
+  const signatureData = generateCloudinarySignature(folder);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Cloudinary upload signature generated successfully",
+    data: signatureData,
+  });
+});
+
+router.get("/signature", handleSignatureRequest);
+router.post("/signature", handleSignatureRequest);
+
+/**
+ * POST /api/v1/upload
+ * Server-side fallback upload using in-memory streams directly to Cloudinary.
+ * Does NOT write any files to local/serverless disk (/public/uploads or /tmp/uploads).
+ * Returns permanent Cloudinary public secure_urls.
+ */
 router.post(
   "/",
-  upload.array("images", 10),
+  uploadMemory.array("images", 10),
   catchAsync(async (req, res) => {
     const files = req.files as Express.Multer.File[];
-    if (!files || files.length === 0) {
-      // Check single file fallback
-      const file = req.file;
-      if (file) {
-        const fileUrl = `/uploads/${file.filename}`;
-        return sendResponse(res, {
-          statusCode: httpStatus.OK,
-          success: true,
-          message: "Image uploaded successfully",
-          data: { url: fileUrl, urls: [fileUrl] },
-        });
-      }
+    const singleFile = req.file as Express.Multer.File | undefined;
+
+    const filesToUpload: Express.Multer.File[] = [];
+    if (Array.isArray(files) && files.length > 0) {
+      filesToUpload.push(...files);
+    } else if (singleFile) {
+      filesToUpload.push(singleFile);
+    }
+
+    if (filesToUpload.length === 0) {
       return sendResponse(res, {
         statusCode: httpStatus.BAD_REQUEST,
         success: false,
-        message: "No files uploaded",
+        message: "No image file provided for upload",
         data: null,
       });
     }
 
-    const urls = files.map((file) => `/uploads/${file.filename}`);
+    // Upload each buffer directly to Cloudinary concurrently
+    const uploadPromises = filesToUpload.map(async (file) => {
+      const result = await uploadBufferToCloudinary(file.buffer, {
+        filename: file.originalname,
+        folder: "friends_goal",
+      });
+      return result.secure_url;
+    });
+
+    const secureUrls = await Promise.all(uploadPromises);
+
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: "Images uploaded successfully",
-      data: { url: urls[0], urls },
+      message:
+        secureUrls.length === 1
+          ? "Image uploaded successfully to cloud storage"
+          : "Images uploaded successfully to cloud storage",
+      data: {
+        url: secureUrls[0],
+        urls: secureUrls,
+      },
     });
   })
 );

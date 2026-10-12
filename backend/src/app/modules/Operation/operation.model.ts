@@ -58,6 +58,10 @@ const collectionSchema = new Schema<ICollection>(
       type: String,
       trim: true,
     },
+    receiptUrl: {
+      type: String,
+      trim: true,
+    },
   },
   {
     timestamps: true,

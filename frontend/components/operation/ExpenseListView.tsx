@@ -11,6 +11,7 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 import {
   fetchExpensesApi,
@@ -44,7 +45,7 @@ export function ExpenseListView() {
     setLoading(true);
     try {
       const res = await fetchExpensesApi({
-        search: searchVal || undefined,
+        search: searchVal ? searchVal.trim() : undefined,
         page: pageNumber,
         limit: 10,
       });
@@ -57,15 +58,36 @@ export function ExpenseListView() {
     }
   };
 
+  // Initial load
   useEffect(() => {
     loadExpenses(1, "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Live debounced search (300ms)
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (searchTerm.trim() !== activeSearch) {
+        setActiveSearch(searchTerm.trim());
+        loadExpenses(1, searchTerm.trim());
+      }
+    }, 300);
+
+    return () => clearTimeout(handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setActiveSearch(searchTerm);
-    loadExpenses(1, searchTerm);
+    const trimmed = searchTerm.trim();
+    setActiveSearch(trimmed);
+    loadExpenses(1, trimmed);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    setActiveSearch("");
+    loadExpenses(1, "");
   };
 
   const handlePageChange = (newPage: number) => {
@@ -192,8 +214,18 @@ export function ExpenseListView() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search For..."
-                className="w-48 sm:w-64 pl-10 pr-3 py-2 text-xs sm:text-sm bg-white border border-r-0 border-gray-300 rounded-l-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
+                className="w-48 sm:w-64 pl-10 pr-8 py-2 text-xs sm:text-sm bg-white border border-r-0 border-gray-300 rounded-l-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
             <button
               type="submit"

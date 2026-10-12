@@ -7,6 +7,7 @@ const collectPaymentValidationSchema = z.object({
     paymentMethod: z.enum(["cash", "bank", "mobile_banking"]).optional(),
     month: z.string().optional(),
     note: z.string().optional(),
+    receiptUrl: z.string().optional(),
   }),
 });
 

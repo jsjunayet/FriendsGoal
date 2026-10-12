@@ -140,6 +140,7 @@ const createAdjustmentInDB = async (
     previousBalance,
     updatedBalance,
     remarks,
+    receiptUrl: payload.receiptUrl || undefined,
     isDeleted: false,
   };
 

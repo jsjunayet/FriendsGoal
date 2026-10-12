@@ -9,6 +9,8 @@ const createExpenseValidationSchema = z.object({
     expenseDate: z.string().min(1, "Expense date is required"),
     amount: z.number().positive("Amount must be greater than 0"),
     remarks: z.string().min(1, "Remarks are required"),
+    voucherNo: z.string().optional(),
+    receiptUrl: z.string().optional(),
   }),
 });
 
@@ -21,6 +23,8 @@ const updateExpenseValidationSchema = z.object({
     expenseDate: z.string().optional(),
     amount: z.number().positive().optional(),
     remarks: z.string().min(1).optional(),
+    voucherNo: z.string().optional(),
+    receiptUrl: z.string().optional(),
   }),
 });
 

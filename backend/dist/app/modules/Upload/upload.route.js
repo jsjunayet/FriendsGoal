@@ -5,85 +5,71 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UploadRoutes = void 0;
 const express_1 = require("express");
-const multer_1 = __importDefault(require("multer"));
-const path_1 = __importDefault(require("path"));
-const fs_1 = __importDefault(require("fs"));
 const catchAsync_1 = __importDefault(require("../../utils/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../utils/sendResponse"));
 const http_status_1 = __importDefault(require("http-status"));
-const os_1 = __importDefault(require("os"));
-// On Vercel / serverless environments, the root directory (/var/task) is read-only.
-// Writable temporary storage is only available under os.tmpdir() (/tmp).
-const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
-const uploadsDir = isServerless
-    ? path_1.default.join(os_1.default.tmpdir(), "uploads")
-    : path_1.default.join(process.cwd(), "uploads");
-try {
-    if (!fs_1.default.existsSync(uploadsDir)) {
-        fs_1.default.mkdirSync(uploadsDir, { recursive: true });
-    }
-}
-catch (err) {
-    console.warn("Notice: could not create uploads directory at module init:", err);
-}
-// Storage config
-const storage = multer_1.default.diskStorage({
-    destination: (req, file, cb) => {
-        try {
-            if (!fs_1.default.existsSync(uploadsDir)) {
-                fs_1.default.mkdirSync(uploadsDir, { recursive: true });
-            }
-        }
-        catch (_) { }
-        cb(null, uploadsDir);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-        const ext = path_1.default.extname(file.originalname);
-        cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
-    },
-});
-const upload = (0, multer_1.default)({
-    storage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-    fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith("image/")) {
-            cb(null, true);
-        }
-        else {
-            cb(new Error("Only image files are allowed!"));
-        }
-    },
-});
+const sendImageToCloudinary_1 = require("../../utils/sendImageToCloudinary");
 const router = (0, express_1.Router)();
-// POST /api/v1/upload (Single or Multiple File Upload)
-router.post("/", upload.array("images", 10), (0, catchAsync_1.default)(async (req, res) => {
-    const files = req.files;
-    if (!files || files.length === 0) {
-        // Check single file fallback
-        const file = req.file;
-        if (file) {
-            const fileUrl = `/uploads/${file.filename}`;
-            return (0, sendResponse_1.default)(res, {
-                statusCode: http_status_1.default.OK,
-                success: true,
-                message: "Image uploaded successfully",
-                data: { url: fileUrl, urls: [fileUrl] },
-            });
-        }
-        return (0, sendResponse_1.default)(res, {
-            statusCode: http_status_1.default.BAD_REQUEST,
-            success: false,
-            message: "No files uploaded",
-            data: null,
-        });
-    }
-    const urls = files.map((file) => `/uploads/${file.filename}`);
+/**
+ * GET or POST /api/v1/upload/signature
+ * Returns signed signature and auth credentials so client can upload directly to Cloudinary.
+ * Bypasses Vercel serverless 4.5MB payload limit completely!
+ */
+const handleSignatureRequest = (0, catchAsync_1.default)(async (req, res) => {
+    const folder = req.query.folder || req.body?.folder || "friends_goal";
+    const signatureData = (0, sendImageToCloudinary_1.generateCloudinarySignature)(folder);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_1.default.OK,
         success: true,
-        message: "Images uploaded successfully",
-        data: { url: urls[0], urls },
+        message: "Cloudinary upload signature generated successfully",
+        data: signatureData,
+    });
+});
+router.get("/signature", handleSignatureRequest);
+router.post("/signature", handleSignatureRequest);
+/**
+ * POST /api/v1/upload
+ * Server-side fallback upload using in-memory streams directly to Cloudinary.
+ * Does NOT write any files to local/serverless disk (/public/uploads or /tmp/uploads).
+ * Returns permanent Cloudinary public secure_urls.
+ */
+router.post("/", sendImageToCloudinary_1.uploadMemory.array("images", 10), (0, catchAsync_1.default)(async (req, res) => {
+    const files = req.files;
+    const singleFile = req.file;
+    const filesToUpload = [];
+    if (Array.isArray(files) && files.length > 0) {
+        filesToUpload.push(...files);
+    }
+    else if (singleFile) {
+        filesToUpload.push(singleFile);
+    }
+    if (filesToUpload.length === 0) {
+        return (0, sendResponse_1.default)(res, {
+            statusCode: http_status_1.default.BAD_REQUEST,
+            success: false,
+            message: "No image file provided for upload",
+            data: null,
+        });
+    }
+    // Upload each buffer directly to Cloudinary concurrently
+    const uploadPromises = filesToUpload.map(async (file) => {
+        const result = await (0, sendImageToCloudinary_1.uploadBufferToCloudinary)(file.buffer, {
+            filename: file.originalname,
+            folder: "friends_goal",
+        });
+        return result.secure_url;
+    });
+    const secureUrls = await Promise.all(uploadPromises);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_1.default.OK,
+        success: true,
+        message: secureUrls.length === 1
+            ? "Image uploaded successfully to cloud storage"
+            : "Images uploaded successfully to cloud storage",
+        data: {
+            url: secureUrls[0],
+            urls: secureUrls,
+        },
     });
 }));
 exports.UploadRoutes = router;

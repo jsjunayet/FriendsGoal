@@ -22,10 +22,20 @@ const nextConfig: NextConfig = {
         port: "5000",
         pathname: "/**",
       },
-      // Cloudinary — used for member profile images uploaded via the backend
+      // Cloudinary CDN hostnames
       {
         protocol: "https",
         hostname: "res.cloudinary.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "api.cloudinary.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "cloudinary.com",
         pathname: "/**",
       },
       // Allow any HTTPS & HTTP image source as a fallback (useful for dev/staging APIs)

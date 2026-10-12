@@ -137,8 +137,12 @@ export function MoneyCollectionView() {
     e.preventDefault();
     if (isSubmitting) return;
 
+    if (paidInput.includes("-")) {
+      toast.error("Payment amount cannot be negative");
+      return;
+    }
     const amountNum = parseFloat(paidInput);
-    if (!amountNum || amountNum <= 0) {
+    if (isNaN(amountNum) || amountNum <= 0) {
       toast.error("Please enter a valid payment amount greater than 0");
       return;
     }
@@ -342,9 +346,18 @@ export function MoneyCollectionView() {
                 <input
                   type="number"
                   step="any"
+                  min="0.01"
+                  onKeyDown={(e) => {
+                    if (e.key === "-" || e.key === "e" || e.key === "E") {
+                      e.preventDefault();
+                    }
+                  }}
                   required
                   value={paidInput}
-                  onChange={(e) => setPaidInput(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9.]/g, "");
+                    setPaidInput(val);
+                  }}
                   placeholder="Enter amount..."
                   className="flex-1 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-800 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-[#00B074]/30 focus:border-[#00B074] transition-all"
                 />
